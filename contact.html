@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us - NK Securities Research</title>
+  <meta name="description" content="Get in touch with NK Securities Research. Our offices are located in Gurugram, India and Singapore.">
+  <meta name="author" content="NK Securities Research">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://www.nksecurities.com/contact.html">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NK Securities Research">
+  <meta property="og:title" content="Contact Us - NK Securities Research">
+  <meta property="og:description" content="Get in touch with NK Securities Research. Our offices are located in Gurugram, India and Singapore.">
+  <meta property="og:url" content="https://www.nksecurities.com/contact.html">
+  <meta property="og:image" content="https://www.nksecurities.com/images/og-image.jpg">
+  <meta property="og:image:width" content="624">
+  <meta property="og:image:height" content="416">
+  <meta property="og:image:alt" content="NK Securities Research — A leader in high frequency trading & technology">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Contact Us - NK Securities Research">
+  <meta name="twitter:description" content="Get in touch with NK Securities Research. Our offices are located in Gurugram, India and Singapore.">
+  <meta name="twitter:image" content="https://www.nksecurities.com/images/og-image.jpg">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/accessibility.css">
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+    body {
+      transition: all 0.4s ease;
+    }
+
+    #particles-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .page-hero {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .deco-lines {
+      position: absolute;
+      top: 50%;
+      right: 15%;
+      transform: translateY(-50%);
+      width: 500px;
+      height: 450px;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .deco-line {
+      position: absolute;
+      background: linear-gradient(90deg, transparent, currentColor, transparent);
+      opacity: 0.6;
+    }
+
+    .deco-line.blue {
+      color: #1a3080;
+    }
+
+    .deco-line.green {
+      color: #2d8035;
+    }
+
+    .deco-line.horizontal {
+      height: 2px;
+      width: 100%;
+    }
+
+    .deco-line.vertical {
+      width: 2px;
+      height: 100%;
+    }
+
+    .deco-line.diagonal {
+      height: 2px;
+      transform-origin: left center;
+    }
+
+    .deco-line-1 { top: 10%; left: 0; width: 80%; }
+    .deco-line-2 { top: 25%; left: 20%; width: 100%; }
+    .deco-line-3 { top: 40%; left: 0; width: 60%; }
+    .deco-line-4 { top: 55%; left: 30%; width: 90%; }
+    .deco-line-5 { top: 70%; left: 10%; width: 70%; }
+    .deco-line-6 { top: 85%; left: 0; width: 50%; }
+
+    .deco-line-v1 { left: 20%; top: 5%; height: 40%; }
+    .deco-line-v2 { left: 50%; top: 30%; height: 50%; }
+    .deco-line-v3 { left: 80%; top: 10%; height: 60%; }
+
+    .deco-line-d1 { top: 15%; left: 10%; width: 250px; transform: rotate(30deg); }
+    .deco-line-d2 { top: 50%; left: 40%; width: 200px; transform: rotate(-20deg); }
+    .deco-line-d3 { top: 75%; left: 20%; width: 180px; transform: rotate(45deg); }
+
+    @keyframes lineFade {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    .deco-line:nth-child(odd) {
+      animation: lineFade 4s ease-in-out infinite;
+    }
+
+    .deco-line:nth-child(even) {
+      animation: lineFade 4s ease-in-out infinite 2s;
+    }
+
+    @media (max-width: 1023px) {
+      .deco-lines {
+        display: none;
+      }
+    }
+
+    .page-hero .container {
+      position: relative;
+      z-index: 2;
+    }
+
+    .office-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 60px;
+    }
+
+    .office-card {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    @media (min-width: 1024px) {
+      .office-card {
+        width: 500px;
+      }
+
+      .office-card.gurugram {
+        width: 100%;
+        flex-direction: row-reverse;
+        align-items: center;
+        gap: 60px;
+        align-self: auto;
+      }
+
+      .office-card.singapore {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        gap: 60px;
+        align-self: auto;
+      }
+
+      .office-card.gurugram .office-image,
+      .office-card.singapore .office-image {
+        flex: 0 0 500px;
+        width: 500px;
+      }
+
+      .office-card.gurugram .office-text,
+      .office-card.singapore .office-text {
+        flex: 1;
+        padding: 32px 40px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+
+      .office-card.gift-city {
+        width: 100%;
+        flex-direction: row-reverse;
+        align-items: center;
+        gap: 60px;
+        align-self: auto;
+      }
+
+      .office-card.gift-city .office-image {
+        flex: 0 0 500px;
+        width: 500px;
+      }
+
+      .office-card.gift-city .office-text {
+        flex: 1;
+        padding: 32px 40px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .office-card {
+        width: 550px;
+      }
+
+      .office-card.gurugram .office-image,
+      .office-card.singapore .office-image,
+      .office-card.gift-city .office-image {
+        flex: 0 0 550px;
+        width: 550px;
+      }
+    }
+
+    .office-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .office-address {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .office-image {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 0;
+    }
+
+    .office-image {
+      height: 350px;
+    }
+
+    @media (min-width: 1024px) {
+      .office-image {
+        height: 400px;
+      }
+    }
+
+    .office-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+
+    .office-card:hover .office-image img {
+      transform: scale(1.03);
+    }
+
+    .office-image.no-image {
+      background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+      position: relative;
+    }
+
+    [data-theme="dark"] .office-image.no-image,
+    :root .office-image.no-image {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    }
+
+    .office-image.no-image::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      opacity: 0.3;
+    }
+
+    .contact-form-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .contact-form-full {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 640px) {
+      .form-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .contact-form-full .form-group input,
+    .contact-form-full .form-group textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      color: var(--text-primary);
+      transition: border-color 0.3s ease;
+      outline: none;
+    }
+
+    .contact-form-full .form-group input::placeholder,
+    .contact-form-full .form-group textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .contact-form-full .form-group input:focus,
+    .contact-form-full .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .contact-form-full .form-group textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .contact-form-full .form-submit {
+      align-self: flex-start;
+      padding: 16px 48px;
+    }
+
+    /* Loading state for the submit button while EmailJS is sending */
+    .contact-form-full .form-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Inline status message shown after a submission attempt */
+    .form-status {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 4px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .form-status.is-visible {
+      display: block;
+    }
+
+    .form-status.is-success {
+      background: rgba(34, 139, 34, 0.12);
+      border: 1px solid rgba(34, 139, 34, 0.5);
+      color: #2e7d32;
+    }
+
+    .form-status.is-error {
+      background: rgba(200, 35, 35, 0.12);
+      border: 1px solid rgba(200, 35, 35, 0.5);
+      color: #c62828;
+    }
+
+    .compliance-section {
+      max-width: 600px;
+    }
+
+    .compliance-info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
+    }
+
+    .compliance-info p {
+      margin-bottom: 8px;
+    }
+
+    .compliance-info p:last-child {
+      margin-bottom: 0;
+    }
+
+    .compliance-info a {
+      color: var(--accent);
+    }
+
+    .compliance-info a:hover {
+      text-decoration: underline;
+    }
+
+    .grievance-section {
+      overflow-x: auto;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+
+    .grievance-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+
+    .grievance-table th,
+    .grievance-table td {
+      padding: 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .grievance-table th {
+      background: var(--surface);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+
+    .grievance-table td {
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+
+    .grievance-table td strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .grievance-table a {
+      color: var(--accent);
+    }
+
+    .grievance-table a:hover {
+      text-decoration: underline;
+    }
+
+    .grievance-table tr:hover {
+      background: var(--surface);
+    }
+
+    .table-note {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    .regulatory-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 640px) {
+      .regulatory-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .regulatory-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .regulatory-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .regulatory-card h3 {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .regulatory-card .body-text {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .regulatory-card a {
+      color: var(--accent);
+    }
+
+    .regulatory-card a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="contact.html" class="nav-link active">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta">Open Positions</a>
+      </div>
+
+      <div class="nav-hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="contact.html" class="active">CONTACT</a>
+    <a href="open-positions.html">OPEN POSITIONS</a>
+  </div>
+
+  <section class="page-hero">
+
+    <div class="deco-lines">
+
+      <div class="deco-line horizontal blue deco-line-1"></div>
+      <div class="deco-line horizontal green deco-line-2"></div>
+      <div class="deco-line horizontal blue deco-line-3"></div>
+      <div class="deco-line horizontal green deco-line-4"></div>
+      <div class="deco-line horizontal blue deco-line-5"></div>
+      <div class="deco-line horizontal green deco-line-6"></div>
+
+      <div class="deco-line vertical green deco-line-v1"></div>
+      <div class="deco-line vertical blue deco-line-v2"></div>
+      <div class="deco-line vertical green deco-line-v3"></div>
+
+      <div class="deco-line diagonal blue deco-line-d1"></div>
+      <div class="deco-line diagonal green deco-line-d2"></div>
+      <div class="deco-line diagonal blue deco-line-d3"></div>
+    </div>
+
+    <div class="container">
+      <span class="label">CONTACT US</span>
+      <h1 class="display-xl">
+        <span class="line">Global</span>
+        <span class="line italic">Presence</span>
+      </h1>
+      <p class="body-text max-w-480 mt-60">Operating across a broad and growing set of markets - from India's major exchanges to international venues across Asia and beyond. The U.S. is next.</p>
+    </div>
+  </section>
+
+  <section class="section" style="border-bottom: none; padding: 80px 0;">
+    <div class="container">
+      <div class="office-grid fade-up">
+
+        <div class="office-card gurugram">
+          <div class="office-text">
+            <h3 class="office-title">Gurugram Office</h3>
+            <p class="office-address">
+              The Executive Center, Level 12, Two Horizon Center, Golf Course Road, DLF Phase 5, Sector 43 Gurugram, Haryana, India 122002
+            </p>
+          </div>
+          <div class="office-image">
+            <img src="images/gurugram-office.webp" alt="Gurugram Office" onerror="this.style.display='none'; this.parentElement.classList.add('no-image');" loading="lazy" decoding="async">
+          </div>
+        </div>
+
+        <div class="office-card singapore">
+          <div class="office-text">
+            <h3 class="office-title">Singapore Office</h3>
+            <p class="office-address">
+              #42-57, Level 42, Six Battery Road, Singapore, 049909
+            </p>
+          </div>
+          <div class="office-image">
+            <img src="images/singapore-office.webp" alt="Singapore Office" onerror="this.style.display='none'; this.parentElement.classList.add('no-image');" loading="lazy" decoding="async">
+          </div>
+        </div>
+
+        <div class="office-card gift-city">
+          <div class="office-text">
+            <h3 class="office-title">Gift City Office</h3>
+            <p class="office-address">
+              Unit Nos.: P04-02C, P04-02D, P04-02E, 4th Floor, Tower A, WTC Gift City, Block no 51, Road 5E, Zone 5, Gift City, Gandhinagar, Gujarat, India 382050
+            </p>
+          </div>
+          <div class="office-image">
+            <img src="images/gift-city-office.webp" alt="GIFT City Office" onerror="this.style.display='none'; this.parentElement.classList.add('no-image');" loading="lazy" decoding="async">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="contact-form-wrapper fade-up">
+        <h2 class="display-sm mb-40">Pleased to meet you</h2>
+        <form class="contact-form-full" id="contact-form" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <input type="text" id="name" name="name" placeholder="Name" required>
+            </div>
+            <div class="form-group">
+              <input type="email" id="email" name="email" placeholder="Email" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <input type="text" id="subject" name="subject" placeholder="Subject" required>
+            </div>
+            <div class="form-group">
+              <input type="tel" id="phone" name="phone" placeholder="Phone">
+            </div>
+          </div>
+          <div class="form-group">
+            <textarea id="message" name="message" placeholder="Message" rows="5" required></textarea>
+          </div>
+          <button type="submit" class="form-submit" id="contact-submit">Submit</button>
+          <!-- Success / error feedback is injected here by js/contact-form.js -->
+          <div class="form-status" id="form-status" role="alert" aria-live="polite"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="compliance-section fade-up">
+        <h2 class="display-sm mb-40">Compliance Officer Details</h2>
+        <div class="compliance-info">
+          <p class="body-text"><strong>Name:</strong> Varun Narang</p>
+          <p class="body-text"><strong>Phone:</strong> +91 9873708954</p>
+          <p class="body-text"><strong>Email:</strong> <a href="mailto:v.narang@nksecurities.com">v.narang@nksecurities.com</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grievance-section fade-up">
+        <h2 class="display-sm mb-40">Investor Grievance Escalation Matrix</h2>
+        <div class="table-wrapper">
+          <table class="grievance-table">
+            <thead>
+              <tr>
+                <th>Details</th>
+                <th>Contact Person</th>
+                <th>Address</th>
+                <th>Contact Number</th>
+                <th>Email ID</th>
+                <th>Working Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Customer Care</strong></td>
+                <td>Yatin Gupta</td>
+                <td>12th Floor, Two Horizon Center, DLF Phase-5, Sector 43, Gurgaon-122002</td>
+                <td>0124-695-8700</td>
+                <td><a href="mailto:ygupta@nksecurities.com">ygupta@nksecurities.com</a></td>
+                <td>09:30 AM to 04:00 PM</td>
+              </tr>
+              <tr>
+                <td><strong>Head of Customer Care</strong></td>
+                <td>Bharat Bhushan</td>
+                <td>12th Floor, Two Horizon Center, DLF Phase-5, Sector 43, Gurgaon-122002</td>
+                <td>0124-695-8700</td>
+                <td><a href="mailto:bbhushan@nksecurities.com">bbhushan@nksecurities.com</a></td>
+                <td>09:30 AM to 04:00 PM</td>
+              </tr>
+              <tr>
+                <td><strong>Compliance Officer</strong></td>
+                <td>Varun Narang</td>
+                <td>12th Floor, Two Horizon Center, DLF Phase-5, Sector 43, Gurgaon-122002</td>
+                <td>0124-695-8700</td>
+                <td><a href="mailto:v.narang@nksecurities.com">v.narang@nksecurities.com</a></td>
+                <td>09:30 AM to 04:00 PM</td>
+              </tr>
+              <tr>
+                <td><strong>CEO</strong></td>
+                <td>Sudhanshu Narang</td>
+                <td>12th Floor, Two Horizon Center, DLF Phase-5, Sector 43, Gurgaon-122002</td>
+                <td>0124-695-8700</td>
+                <td><a href="mailto:info@nksecurities.com">info@nksecurities.com</a></td>
+                <td>09:30 AM to 04:00 PM</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="body-text" style="margin-top: 32px; margin-bottom: 24px;">In absence of response / complaint not addressed to your satisfaction, you may lodge a complaint with SEBI or respective Exchanges at:</p>
+
+        <div class="table-wrapper">
+          <table class="grievance-table">
+            <thead>
+              <tr>
+                <th>Regulator / Exchange</th>
+                <th>Web Links</th>
+                <th>Contact Number</th>
+                <th>Email ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Securities and Exchange Board of India (SEBI)</strong></td>
+                <td><a href="https://scores.gov.in" target="_blank" rel="noopener">SEBI SCORES</a></td>
+                <td>1800 22 7575 / 1800 266 7575</td>
+                <td><a href="https://scores.gov.in" target="_blank" rel="noopener">scores.gov.in</a></td>
+              </tr>
+              <tr>
+                <td><strong>National Stock Exchange of India Ltd. (NSE)</strong></td>
+                <td><a href="https://www.nseindia.com" target="_blank" rel="noopener">NSE</a></td>
+                <td>1800 22 0058</td>
+                <td><a href="mailto:ignse@nse.co.in">ignse@nse.co.in</a></td>
+              </tr>
+              <tr>
+                <td><strong>Bombay Stock Exchange Ltd. (BSE)</strong></td>
+                <td><a href="https://www.bseindia.com" target="_blank" rel="noopener">BSE</a></td>
+                <td>022 2272 8097</td>
+                <td><a href="mailto:is@bseindia.com">is@bseindia.com</a></td>
+              </tr>
+              <tr>
+                <td><strong>Multi Commodity Exchange of India Ltd. (MCX)</strong></td>
+                <td><a href="https://www.mcxindia.com" target="_blank" rel="noopener">MCX</a></td>
+                <td>022 6731 8888</td>
+                <td><a href="mailto:grievance@mcxindia.com">grievance@mcxindia.com</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">Note: Please quote complaint Ref No. while raising your complaint at SEBI SCORES / Exchange portal.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/vendor/three.min.js"></script>
+  <script src="js/bundle-b.js"></script>
+
+  <!-- EmailJS Browser SDK (latest v4) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Contact form handler (EmailJS init, validation, submission, error handling) -->
+  <script src="js/contact-form.js"></script>
+
+</body>
+</html>

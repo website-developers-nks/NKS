@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Company - NK Securities Research</title>
+  <meta name="description" content="NK Securities Research was founded in 2011 as a partnership firm. Learn about our journey, leadership, and milestones.">
+  <meta name="author" content="NK Securities Research">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://www.nksecurities.com/about.html">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NK Securities Research">
+  <meta property="og:title" content="Company - NK Securities Research">
+  <meta property="og:description" content="NK Securities Research was founded in 2011 as a partnership firm. Learn about our journey, leadership, and milestones.">
+  <meta property="og:url" content="https://www.nksecurities.com/about.html">
+  <meta property="og:image" content="https://www.nksecurities.com/images/og-image.jpg">
+  <meta property="og:image:width" content="624">
+  <meta property="og:image:height" content="416">
+  <meta property="og:image:alt" content="NK Securities Research — A leader in high frequency trading & technology">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Company - NK Securities Research">
+  <meta name="twitter:description" content="NK Securities Research was founded in 2011 as a partnership firm. Learn about our journey, leadership, and milestones.">
+  <meta name="twitter:image" content="https://www.nksecurities.com/images/og-image.jpg">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/accessibility.css">
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+    body {
+      transition: all 0.4s ease;
+    }
+
+    #particles-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .page-hero .page-hero-content {
+      align-items: start;
+    }
+
+    .page-hero .hero-stats {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    .leadership-grid-compact {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 60px;
+      margin-top: 60px;
+    }
+
+    @media (min-width: 768px) {
+      .leadership-grid-compact {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 48px;
+      }
+    }
+
+    .leader-card-compact {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 640px) {
+      .leader-card-compact {
+        grid-template-columns: 180px 1fr;
+        gap: 32px;
+      }
+    }
+
+    .leader-image-compact {
+      width: 100%;
+      max-width: 200px;
+      overflow: hidden;
+      border-radius: 4px;
+      align-self: stretch;
+    }
+
+    @media (max-width: 639px) {
+      .leader-image-compact {
+        aspect-ratio: 1;
+        max-width: 150px;
+      }
+    }
+
+    .leader-image-compact img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(25%);
+      transition: filter 0.4s ease;
+    }
+
+    .leader-card-compact:hover .leader-image-compact img {
+      filter: grayscale(0%);
+    }
+
+    html:not([data-theme="light"]) .leader-image-compact img {
+      filter: grayscale(40%) brightness(0.8);
+    }
+
+    html:not([data-theme="light"]) .leader-card-compact:hover .leader-image-compact img {
+      filter: grayscale(0%) brightness(0.9);
+    }
+
+    .leader-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .leader-info .leader-role {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .leader-info .leader-name {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .leader-info .leader-bio {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .leader-info .leader-bio p {
+      margin-bottom: 12px;
+    }
+
+    .leader-info .leader-bio p:last-child {
+      margin-bottom: 0;
+    }
+
+    #candlestick-container {
+      width: 100%;
+      height: 400px;
+      min-width: 300px;
+    }
+
+    @media (min-width: 1024px) {
+      #candlestick-container {
+        width: 500px;
+        height: 450px;
+      }
+    }
+
+    #candlestick-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link active">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="contact.html" class="nav-link">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta">Open Positions</a>
+      </div>
+
+      <div class="nav-hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html" class="active">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="contact.html">CONTACT</a>
+    <a href="open-positions.html">OPEN POSITIONS</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="page-hero-content">
+        <div>
+          <span class="label">ABOUT NK SECURITIES Research</span>
+          <h1 class="display-xl">
+            <span class="line">A Journey of</span>
+            <span class="line italic">Growth</span>
+            <span class="line">Since 2011</span>
+          </h1>
+          <p class="body-text" style="margin-top: 32px; max-width: 480px;">
+            From a two-partner firm in to a globally recognised HFT powerhouse - every milestone reflects our commitment to excellence, technology and market leadership. </p>
+        </div>
+
+        <div class="hero-stats parallax" data-speed="0.3">
+
+          <div id="candlestick-container"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <span class="label fade-up">THE FOUNDING TEAM</span>
+      <h2 class="display-md fade-up">Deep Technical Expertise Meets Market Passion</h2>
+      <p class="body-text max-w-640 fade-up" style="margin-top: 20px;">
+        Founded by two IIT Delhi CS graduates (2009) - Sudhanshu and Faraz built one of India's leading HFT firms from the ground up, combining deep technical expertise with an unwavering passion for markets.
+      </p>
+
+      <div class="leadership-grid-compact">
+        <div class="leader-card-compact fade-up stagger-child">
+          <div class="leader-image-compact">
+            <img src="images/Sudhanshu_Narang_about.webp" alt="Sudhanshu Narang" loading="lazy">
+          </div>
+          <div class="leader-info">
+            <span class="leader-role">Director & Co-Founder</span>
+            <h3 class="leader-name">Sudhanshu Narang</h3>
+            <div class="leader-bio">
+              <p>A CS graduate from IIT Delhi (2009), Sudhanshu brings analytical rigour and a spirit of experimentation to every challenge.</p>
+              <p>Inspired by Steve Jobs' "Stay Hungry, Stay Foolish" - he embraces lifelong learning and fearless exploration.</p>
+              <p>Beyond markets, he enjoys nature, football and tennis.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="leader-card-compact fade-up stagger-child">
+          <div class="leader-image-compact">
+            <img src="images/Faraz_khan_about.webp" alt="Faraz Khan" loading="lazy">
+          </div>
+          <div class="leader-info">
+            <span class="leader-role">Director & Co-Founder</span>
+            <h3 class="leader-name">Faraz Khan</h3>
+            <div class="leader-bio">
+              <p>A CS graduate from IIT Delhi (2009), Faraz is passionate about leveraging technology to drive innovation in financial markets.</p>
+              <p>Relentless - a mindset that fuels his pursuit of excellence in every aspect of life.</p>
+              <p>Outside of trading, he embraces challenges in golf, swimming and exploring new culinary experiences.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <span class="label fade-up">A JOURNEY OF GROWTH</span>
+      <h2 class="display-md fade-up">From Two Founders to Global Operations</h2>
+      <p class="body-text max-w-640 fade-up" style="margin-top: 20px;">every milestone reflects our commitment to excellence, technology and market leadership.
+      </p>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <span class="timeline-year">2011</span>
+          <p class="timeline-text">NKSR-India established by Sudhanshu Narang & Faraz Khan. NSE trading begins.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2014</span>
+          <p class="timeline-text">Awarded Certificate of Appreciation by NSE India for being the top performing member in Equity Futures and Options.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2015</span>
+          <p class="timeline-text">Awarded Certificate of Appreciation by NSE India for being the top performing member in Equity and Equity Derivatives.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2020</span>
+          <p class="timeline-text">NKSR-India incorporated. Established new office at Two Horizon Center. NK-Singapore launched for global market access.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2021</span>
+          <p class="timeline-text">Elite Hiring: IIT campus recruitment drive. Top math & CS talent onboarded to build market research and trading infrastructure.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2022</span>
+          <p class="timeline-text">Awarded Top Member on NSE Index Derivatives. BSE trading scaled significantly.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2023</span>
+          <p class="timeline-text">Expanding more in India operations.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2024</span>
+          <p class="timeline-text">MCX launched. Awarded Leading Member, MCX Options. NSE-IX international derivatives initiated.</p>
+        </div>
+
+        <div class="timeline-item">
+          <span class="timeline-year">2025</span>
+          <p class="timeline-text">Expanding more in global operations.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/vendor/three.min.js"></script>
+  <script src="js/bundle-b.js"></script>
+
+  
+
+  <script>
+    (function() {
+      const container = document.getElementById('candlestick-container');
+      if (!container || typeof THREE === 'undefined') return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+
+      const blueColor = 0x243d93;
+      const greenColor = 0x64a443;
+
+      const candleData = [
+        { o: 20, c: 35, h: 40, l: 15, bullish: true },
+        { o: 35, c: 50, h: 55, l: 30, bullish: true },
+        { o: 50, c: 65, h: 72, l: 45, bullish: true },
+        { o: 65, c: 55, h: 70, l: 50, bullish: false },
+        { o: 55, c: 45, h: 60, l: 40, bullish: false },
+        { o: 45, c: 60, h: 68, l: 42, bullish: true },
+        { o: 60, c: 78, h: 85, l: 55, bullish: true },
+        { o: 78, c: 95, h: 100, l: 75, bullish: true },
+      ];
+
+      const candles = [];
+      const candleWidth = 0.8;
+      const spacing = 1.5;
+      const startX = -((candleData.length - 1) * spacing) / 2;
+
+      candleData.forEach((data, index) => {
+        const group = new THREE.Group();
+
+        const bodyHeight = Math.abs(data.c - data.o) / 10;
+        const bodyY = (data.o + data.c) / 2 / 10 - 5;
+        const bodyGeometry = new THREE.BoxGeometry(candleWidth, bodyHeight, candleWidth * 0.6);
+        const bodyMaterial = new THREE.MeshPhongMaterial({
+          color: data.bullish ? greenColor : blueColor,
+          transparent: true,
+          opacity: 0.9,
+          shininess: 100
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = bodyY;
+        group.add(body);
+
+        const wickHeight = (data.h - data.l) / 10;
+        const wickY = (data.h + data.l) / 2 / 10 - 5;
+        const wickGeometry = new THREE.BoxGeometry(0.08, wickHeight, 0.08);
+        const wickMaterial = new THREE.MeshPhongMaterial({
+          color: data.bullish ? greenColor : blueColor,
+          transparent: true,
+          opacity: 0.7
+        });
+        const wick = new THREE.Mesh(wickGeometry, wickMaterial);
+        wick.position.y = wickY;
+        group.add(wick);
+
+        group.position.x = startX + index * spacing;
+        group.position.y = -10;
+        group.userData = { targetY: 0, delay: index * 0.15 };
+
+        scene.add(group);
+        candles.push(group);
+      });
+
+      const gridHelper = new THREE.GridHelper(20, 20, 0x333333, 0x222222);
+      gridHelper.position.y = -6;
+      gridHelper.material.transparent = true;
+      gridHelper.material.opacity = 0.3;
+      scene.add(gridHelper);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 10, 7);
+      scene.add(directionalLight);
+
+      const pointLight = new THREE.PointLight(0x64a443, 0.5, 20);
+      pointLight.position.set(-5, 5, 5);
+      scene.add(pointLight);
+
+      const pointLight2 = new THREE.PointLight(0x243d93, 0.5, 20);
+      pointLight2.position.set(5, 5, -5);
+      scene.add(pointLight2);
+
+      camera.position.set(8, 6, 12);
+      camera.lookAt(0, 0, 0);
+
+      let startTime = null;
+      const animationDuration = 1.5;
+
+      function animate(timestamp) {
+        requestAnimationFrame(animate);
+
+        if (!startTime) startTime = timestamp;
+        const elapsed = (timestamp - startTime) / 1000;
+
+        candles.forEach((candle, index) => {
+          const delay = candle.userData.delay;
+          const progress = Math.max(0, Math.min(1, (elapsed - delay) / 0.8));
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
+          candle.position.y = -10 + (candle.userData.targetY + 10) * easeProgress;
+        });
+
+        scene.rotation.y = Math.sin(elapsed * 0.3) * 0.1;
+
+        candles.forEach((candle, index) => {
+          if (elapsed > candle.userData.delay + 0.8) {
+            candle.position.y = candle.userData.targetY + Math.sin(elapsed * 1.5 + index * 0.5) * 0.1;
+          }
+        });
+
+        renderer.render(scene, camera);
+      }
+
+      animate(0);
+
+      function onResize() {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+      }
+
+      window.addEventListener('resize', onResize);
+
+      function updateTheme() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        gridHelper.material.opacity = isLight ? 0.15 : 0.3;
+      }
+
+      const observer = new MutationObserver(updateTheme);
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      updateTheme();
+    })();
+  </script>
+</body>
+</html>

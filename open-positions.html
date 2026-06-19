@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Positions - NK Securities Research</title>
+  <meta name="description" content="Explore career opportunities at NK Securities Research. We are hiring quantitative researchers, software engineers, and more.">
+  <meta name="author" content="NK Securities Research">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://www.nksecurities.com/open-positions.html">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NK Securities Research">
+  <meta property="og:title" content="Open Positions - NK Securities Research">
+  <meta property="og:description" content="Explore career opportunities at NK Securities Research. We are hiring quantitative researchers, software engineers, and more.">
+  <meta property="og:url" content="https://www.nksecurities.com/open-positions.html">
+  <meta property="og:image" content="https://www.nksecurities.com/images/og-image.jpg">
+  <meta property="og:image:width" content="624">
+  <meta property="og:image:height" content="416">
+  <meta property="og:image:alt" content="NK Securities Research — A leader in high frequency trading & technology">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Open Positions - NK Securities Research">
+  <meta name="twitter:description" content="Explore career opportunities at NK Securities Research. We are hiring quantitative researchers, software engineers, and more.">
+  <meta name="twitter:image" content="https://www.nksecurities.com/images/og-image.jpg">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/accessibility.css">
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+    body {
+      transition: all 0.4s ease;
+    }
+
+    #particles-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .gh-jobs-list {
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+      max-height: 600px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .gh-jobs-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .gh-jobs-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .gh-jobs-list::-webkit-scrollbar-thumb {
+      background-color: var(--border);
+      border-radius: 2px;
+    }
+
+    .gh-job-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      transition: padding-left 0.2s ease;
+    }
+
+    .gh-job-item:hover {
+      padding-left: 8px;
+    }
+
+    .gh-job-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .gh-job-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      transition: color 0.2s ease;
+    }
+
+    .gh-job-item:hover .gh-job-title {
+      color: var(--accent);
+    }
+
+    .gh-job-location {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .gh-job-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      margin-left: 24px;
+    }
+
+    .gh-job-date {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+
+    .gh-job-arrow {
+      color: var(--text-secondary);
+      font-size: 18px;
+      transition: transform 0.2s ease, color 0.2s ease;
+      flex-shrink: 0;
+      margin-right: 16px;
+    }
+
+    .gh-job-item:hover .gh-job-arrow {
+      transform: translateX(4px);
+      color: var(--accent);
+    }
+
+    .gh-job-item:hover .gh-job-date {
+      color: var(--text-primary);
+    }
+
+    .gh-jobs-count {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 12px;
+    }
+
+    .gh-jobs-error {
+      color: var(--text-secondary);
+      font-size: 15px;
+      padding: 40px 0;
+    }
+
+    .gh-filters {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    .gh-filter-input,
+    .gh-filter-select {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .gh-filter-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .gh-filter-input:focus,
+    .gh-filter-select:focus {
+      border-color: var(--accent);
+    }
+
+    .gh-filter-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+    }
+
+    .gh-filter-select option {
+      background: var(--surface, #111);
+      color: var(--text-primary, #fff);
+    }
+
+    .gh-job-id-badge {
+      font-size: 10px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .gh-no-results {
+      padding: 40px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .hero-careers-container {
+      display: flex;
+      align-items: center;
+      gap: 48px;
+    }
+
+    .hero-careers-left {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hero-careers-right {
+      flex: 0 0 580px;
+      width: 580px;
+      height: 460px;
+      position: relative;
+    }
+
+    #heroCanvas3D {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    @media (max-width: 1024px) {
+      .hero-careers-right {
+        flex: 0 0 440px;
+        width: 440px;
+        height: 360px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero-careers-container {
+        flex-direction: column;
+      }
+      .hero-careers-right {
+        flex: none;
+        width: 100%;
+        max-width: 460px;
+        height: 300px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="contact.html" class="nav-link">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta" style="border-color: var(--accent); color: var(--accent);">Open Positions</a>
+      </div>
+
+      <div class="nav-hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="contact.html">CONTACT</a>
+    <a href="open-positions.html" class="active">OPEN POSITIONS</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container hero-careers-container">
+      <div class="hero-careers-left">
+        <span class="label">CAREERS</span>
+        <h1 class="display-xl">
+          <span class="line">Build With</span>
+          <span class="line italic accent-text">The Best</span>
+        </h1>
+        <p class="body-text max-w-480 mt-60">Join 100+ professionals including IITians building market research and trading infrastructure. Work translates directly into outcomes - no layers between your contribution and measurable impact.</p>
+      </div>
+      <div class="hero-careers-right">
+        <canvas id="heroCanvas3D"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <span class="label fade-up">CURRENT OPENINGS</span>
+      <h2 class="display-md fade-up">Find your role</h2>
+
+      <div class="gh-filters fade-up">
+        <input type="text" class="gh-filter-input" id="ghSearch" placeholder="Search by roleâ¦">
+        <select class="gh-filter-select" id="ghLocation">
+          <option value="">All Locations</option>
+        </select>
+      </div>
+
+      <p class="gh-jobs-count fade-up" id="gh-jobs-count"></p>
+      <div id="gh-jobs-board" class="fade-up"></div>
+
+      <script>
+        fetch('https://api.greenhouse.io/v1/boards/nksecuritiesresearch/jobs')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var allJobs = data.jobs || [];
+            var countEl   = document.getElementById('gh-jobs-count');
+            var board     = document.getElementById('gh-jobs-board');
+            var searchEl  = document.getElementById('ghSearch');
+            var locationEl = document.getElementById('ghLocation');
+
+            if (allJobs.length === 0) {
+              countEl.textContent = '0 open positions';
+              board.innerHTML = '<p class="gh-jobs-error">No open positions at this time. Check back soon.</p>';
+              return;
+            }
+
+            var locations = [];
+            allJobs.forEach(function(job) {
+              var loc = job.location.name.trim();
+              if (loc && locations.indexOf(loc) === -1) locations.push(loc);
+            });
+            locations.sort().forEach(function(loc) {
+              var opt = document.createElement('option');
+              opt.value = loc;
+              opt.textContent = loc;
+              locationEl.appendChild(opt);
+            });
+
+            function renderJobs() {
+              var query = searchEl.value.trim().toLowerCase();
+              var locFilter = locationEl.value;
+
+              var filtered = allJobs.filter(function(job) {
+                var matchesSearch = !query || job.title.toLowerCase().includes(query);
+                var matchesLoc    = !locFilter || job.location.name.trim() === locFilter;
+                return matchesSearch && matchesLoc;
+              });
+
+              countEl.textContent = filtered.length + ' open position' + (filtered.length !== 1 ? 's' : '');
+
+              if (filtered.length === 0) {
+                board.innerHTML = '<p class="gh-no-results">No positions match your search.</p>';
+                return;
+              }
+
+              board.innerHTML = '<div class="gh-jobs-list">' + filtered.map(function(job) {
+                var date = job.updated_at
+                  ? new Date(job.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : '';
+                return '<a href="' + job.absolute_url + '" target="_blank" rel="noopener" class="gh-job-item">' +
+                  '<div class="gh-job-info">' +
+                    '<div style="display:flex;align-items:center;gap:10px;">' +
+                      '<span class="gh-job-title">' + job.title.trim() + '</span>' +
+                      (job.internal_job_id ? '<span class="gh-job-id-badge">#' + job.internal_job_id + '</span>' : '') +
+                    '</div>' +
+                    '<span class="gh-job-location">' + job.location.name + '</span>' +
+                  '</div>' +
+                  '<div class="gh-job-meta">' +
+                    (date ? '<span class="gh-job-date">' + date + '</span>' : '') +
+                    '<span class="gh-job-arrow">&#8594;</span>' +
+                  '</div>' +
+                '</a>';
+              }).join('') + '</div>';
+            }
+
+            searchEl.addEventListener('input', renderJobs);
+            locationEl.addEventListener('change', renderJobs);
+
+            renderJobs();
+          })
+          .catch(function() {
+            document.getElementById('gh-jobs-board').innerHTML =
+              '<p class="gh-jobs-error">Unable to load positions right now. Please try again later.</p>';
+          });
+      </script>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <span class="label fade-up">COMPENSATION</span>
+      <h2 class="display-md fade-up">Performance-First Philosophy</h2>
+      <p class="body-text max-w-640 fade-up" style="margin-top: 20px;">
+        Compensation structured to attract exceptional talent and align individual success with firm-wide outcomes.
+      </p>
+
+      <div class="what-we-do-grid" style="margin-top: 40px;">
+        <div class="what-we-do-item fade-up stagger-child">
+          <h3>Competitive Fixed Compensation</h3>
+          <p class="body-text">A strong base that reflects the calibre of talent we recruit and the expectations placed on each role.</p>
+        </div>
+        <div class="what-we-do-item fade-up stagger-child">
+          <h3>Performance-Linked Upside</h3>
+          <p class="body-text">Meaningful variable compensation tied directly to individual and team contribution - structured like leading global prop trading firms.</p>
+        </div>
+        <div class="what-we-do-item fade-up stagger-child">
+          <h3>No Earnings Ceiling</h3>
+          <p class="body-text">Exceptional results are rewarded proportionally. Outperformers are not constrained by fixed bands.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="cta-block fade-up">
+        <h2 class="display-md">Don't see your role?</h2>
+        <p class="body-text mb-24">We're always looking for exceptional talent. Reach out to us directly.</p>
+        <a href="contact.html" class="link-arrow accent">Contact Us</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf" target="_blank">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/vendor/three.min.js"></script>
+  <script src="js/bundle-b.js"></script>
+
+  
+
+  <script>
+  (function () {
+    'use strict';
+    var canvas = document.getElementById('heroCanvas3D');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    var wrap = canvas.parentElement;
+    function dims() { return { w: wrap.clientWidth || 460, h: wrap.clientHeight || 460 }; }
+    var d = dims();
+
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(d.w, d.h);
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(50, d.w / d.h, 0.1, 100);
+    camera.position.z = 7.2;
+
+    var spin = new THREE.Group();
+    spin.scale.setScalar(1.4); // overall size of the order book
+    spin.position.y = 0.25;     // lift so the low baseline reads centred
+    scene.add(spin);
+
+    var BLUE       = 0x243d93;
+    var BLUE_HI    = 0x4060c8;
+    var GREEN      = 0x64a443;
+    var GREEN_HI   = 0x82c255;
+
+    // ---- Order-book depth: animated bid/ask bars (HFT market-microstructure theme) ----
+    var LEVELS    = 6;     // price levels per side
+    var BAR_W     = 0.30;  // bar width / depth
+    var STEP      = 0.36;  // centre-to-centre spacing between levels
+    var GAP       = 0.30;  // half-gap at the mid price (the spread)
+    var BASE_Y    = -1.75; // baseline the bars grow up from
+    var MAX_H     = 3.7;   // tallest a bar can reach
+
+    // Shared unit-height geometries (scaled per-frame): one fill, one wireframe outline
+    var barGeo  = new THREE.BoxGeometry(BAR_W, 1, BAR_W);
+    var barEdge = new THREE.EdgesGeometry(barGeo);
+
+    var bars = [];
+    function makeSide(sign, fill, edge) {
+      // sign -1 = bids (left / green), +1 = asks (right / blue)
+      for (var i = 0; i < LEVELS; i++) {
+        var x = sign * (GAP + BAR_W / 2 + i * STEP);
+
+        var fillMat = new THREE.MeshBasicMaterial({ color: fill, transparent: true, opacity: 0.32, depthWrite: false });
+        var bar = new THREE.Mesh(barGeo, fillMat);
+
+        var outline = new THREE.LineSegments(barEdge, new THREE.LineBasicMaterial({ color: edge, transparent: true, opacity: 0.95, depthWrite: false }));
+        bar.add(outline); // outline scales with the bar
+
+        bar.position.x = x;
+        // a staircase envelope: deeper levels (toward the edges) tend to be larger
+        bar.userData.base  = 0.8 + (i / (LEVELS - 1)) * 1.5;
+        bar.userData.phase = i * 0.55 + (sign > 0 ? Math.PI : 0);
+
+        bars.push(bar);
+        spin.add(bar);
+      }
+    }
+    makeSide(-1, GREEN, GREEN_HI); // bids
+    makeSide( 1, BLUE,  BLUE_HI);  // asks
+
+    // Mid-price baseline through the centre of the book
+    var midGeo = new THREE.BufferGeometry();
+    var span = GAP + LEVELS * STEP + 0.2;
+    midGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      -span, BASE_Y, 0,  span, BASE_Y, 0
+    ]), 3));
+    var midLine = new THREE.LineSegments(midGeo, new THREE.LineBasicMaterial({ color: BLUE_HI, transparent: true, opacity: 0.45, depthWrite: false }));
+    spin.add(midLine);
+
+    // Front-facing start angle — drag to rotate, but no automatic spin
+    spin.rotation.x = 0.16;
+    spin.rotation.y = -0.28;
+
+    wrap.style.cursor = 'grab';
+
+    var dragging = false;
+    var lastX = 0, lastY = 0;
+    var velX = 0, velY = 0;
+
+    wrap.addEventListener('mousedown', function (e) {
+      dragging = true;
+      lastX    = e.clientX;
+      lastY    = e.clientY;
+      velX = velY = 0;
+      wrap.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - lastX;
+      var dy = e.clientY - lastY;
+      velX = dy * 0.01;
+      velY = dx * 0.01;
+      spin.rotation.x += velX;
+      spin.rotation.y += velY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', function () {
+      if (!dragging) return;
+      dragging = false;
+      wrap.style.cursor = 'grab';
+    });
+
+    wrap.addEventListener('touchstart', function (e) {
+      dragging = true;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+      velX = velY = 0;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', function (e) {
+      if (!dragging) return;
+      var dx = e.touches[0].clientX - lastX;
+      var dy = e.touches[0].clientY - lastY;
+      velX = dy * 0.01;
+      velY = dx * 0.01;
+      spin.rotation.x += velX;
+      spin.rotation.y += velY;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', function () {
+      dragging = false;
+    });
+
+    var t = 0;
+    (function loop() {
+      requestAnimationFrame(loop);
+      t += 0.008;
+
+      // Inertia after releasing a drag — settles to a stop, never auto-spins
+      if (!dragging) {
+        velX *= 0.92;
+        velY *= 0.92;
+        spin.rotation.x += velX;
+        spin.rotation.y += velY;
+      }
+
+      // Live order-book updates — each level's depth ticks up and down
+      for (var bi = 0; bi < bars.length; bi++) {
+        var bar = bars[bi];
+        var d   = bar.userData.base
+                + 0.35 * Math.sin(t * 1.7 + bar.userData.phase)
+                + 0.18 * Math.sin(t * 3.1 + bar.userData.phase * 1.7);
+        var h = Math.max(0.12, Math.min(MAX_H, d));
+        bar.scale.y = h;
+        bar.position.y = BASE_Y + h / 2; // grow upward from the baseline
+      }
+
+      renderer.render(scene, camera);
+    })();
+
+    window.addEventListener('resize', function () {
+      var d = dims();
+      camera.aspect = d.w / d.h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(d.w, d.h);
+    });
+  })();
+  </script>
+</body>
+</html>
