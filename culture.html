@@ -745,8 +745,8 @@
       <div class="outings-grid fade-up">
 
         <div class="outings-video">
-          <video autoplay muted loop playsinline preload="none" poster="images/tour/team-outings-poster.webp">
-            <source src="images/tour/team-outings.mp4" type="video/mp4">
+          <video id="outings-video" muted loop playsinline preload="none" poster="images/tour/team-outings-poster.webp">
+            <source data-src="images/tour/team-outings.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
         </div>
@@ -805,6 +805,24 @@
   <script src="js/vendor/three.min.js"></script>
   <script src="js/vendor/three-lines.js"></script>
   <script src="js/bundle-a.js"></script>
+
+  <script>
+    (function () {
+      var video = document.getElementById('outings-video');
+      if (!video) return;
+      var observer = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        observer.disconnect();
+        var source = video.querySelector('source[data-src]');
+        if (source) {
+          source.src = source.dataset.src;
+          video.load();
+        }
+        video.play().catch(function () {});
+      }, { rootMargin: '200px' });
+      observer.observe(video);
+    })();
+  </script>
 
   
 
