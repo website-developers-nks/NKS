@@ -671,6 +671,7 @@
           <div class="form-group">
             <textarea id="message" name="message" placeholder="Message" rows="5" required></textarea>
           </div>
+          <div class="g-recaptcha" data-sitekey="6LfmWigtAAAAAIqh-qlT41C4F4ahvXBTuPyOUaPN"></div>
           <button type="submit" class="form-submit" id="contact-submit">Submit</button>
           <!-- Success / error feedback is injected here by js/contact-form.js -->
           <div class="form-status" id="form-status" role="alert" aria-live="polite"></div>
@@ -709,14 +710,6 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td><strong>Customer Care</strong></td>
-                <td>Yatin Gupta</td>
-                <td>12th Floor, Two Horizon Center, DLF Phase-5, Sector 43, Gurgaon-122002</td>
-                <td>0124-695-8700</td>
-                <td><a href="mailto:ygupta@nksecurities.com">ygupta@nksecurities.com</a></td>
-                <td>09:30 AM to 04:00 PM</td>
-              </tr>
               <tr>
                 <td><strong>Head of Customer Care</strong></td>
                 <td>Bharat Bhushan</td>
@@ -814,9 +807,8 @@
   <script src="js/vendor/three.min.js"></script>
   <script src="js/bundle-b.js"></script>
 
-  <!-- EmailJS Browser SDK (latest v4) -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <!-- Contact form handler (EmailJS init, validation, submission, error handling) -->
   <script src="js/contact-form.js"></script>
 
 </body>
