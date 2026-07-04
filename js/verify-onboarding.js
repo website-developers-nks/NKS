@@ -100,7 +100,7 @@
 
       fetch(API_BASE + '/verify?id=' + encodeURIComponent(onboardingKey), {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(function (res) {
@@ -132,7 +132,7 @@
     function checkOtpStatus() {
       fetch(API_BASE + '/check-otp-status?onboardingKey=' + encodeURIComponent(onboardingKey), {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(function (res) {
@@ -250,7 +250,7 @@
 
       fetch(API_BASE + '/send_otp', {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ onboardingKey: onboardingKey })
       })
@@ -334,7 +334,7 @@
 
       fetch(API_BASE + '/verify_otp', {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ onboardingKey: onboardingKey, otp: code })
       })

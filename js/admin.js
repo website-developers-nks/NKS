@@ -162,7 +162,7 @@
 
       fetch(API_BASE + '/get-user-list', {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
@@ -197,7 +197,7 @@
 
       fetch(API_BASE + '/auth', {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
@@ -391,7 +391,7 @@
 
         fetch(API_BASE + '/login', {
           method: 'POST',
-          credentials: 'same-origin',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, password: password })
         })
@@ -439,7 +439,7 @@
 
         fetch(API_BASE + '/create-user', {
           method: 'POST',
-          credentials: 'same-origin',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, firstName: firstName, lastName: lastName })
         })
@@ -504,7 +504,7 @@
 
         fetch(API_BASE + '/register-onboarding', {
           method: 'POST',
-          credentials: 'same-origin',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })

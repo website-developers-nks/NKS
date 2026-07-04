@@ -96,7 +96,7 @@
 
     fetch(VERIFY_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'GET',
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { 'Accept': 'application/json' }
     })
       .then(function (res) {
@@ -529,7 +529,7 @@
 
     fetch(SYNC_FORM_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: snapshot })
     })
@@ -690,7 +690,7 @@
       .then(function () {
         return fetch(SUBMIT_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
           method: 'GET',
-          credentials: 'same-origin',
+          credentials: 'include',
           headers: { 'Accept': 'application/json' }
         });
       })
@@ -865,7 +865,7 @@
   function loadProgressData() {
     fetch(PROGRESS_DATA_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'GET',
-      credentials: 'same-origin'
+      credentials: 'include'
     })
       .then(function (res) {
         if (res.status === 401) {
@@ -973,7 +973,7 @@
 
     fetch(DOC_UPLOAD_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'include',
       body: formData
     })
       .then(function (res) { return res.json().then(function (data) { return { status: res.status, ok: res.ok, data: data }; }); })
@@ -1037,7 +1037,7 @@
 
     fetch(DOC_REMOVE_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
-      credentials: 'same-origin',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ docType: input.dataset.docType })
     })
@@ -1164,7 +1164,7 @@
       '&docType=' + encodeURIComponent(docType) +
       '&docId=' + encodeURIComponent(docId);
 
-    fetch(url, { method: 'GET', credentials: 'same-origin' })
+    fetch(url, { method: 'GET', credentials: 'include' })
       .then(function (res) {
         if (res.status === 401) {
           return res.json().catch(function () { return {}; }).then(function (body) {
