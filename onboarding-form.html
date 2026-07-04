@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Form - NK Securities Research</title>
+  <meta name="description" content="Complete your onboarding with NK Securities Research - share your details, upload documents and get set for day one.">
+  <meta name="author" content="NK Securities Research">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://www.nksecurities.com/onboarding-form.html">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NK Securities Research">
+  <meta property="og:title" content="Onboarding Form - NK Securities Research">
+  <meta property="og:description" content="Complete your onboarding with NK Securities Research - share your details, upload documents and get set for day one.">
+  <meta property="og:url" content="https://www.nksecurities.com/onboarding-form.html">
+  <meta property="og:image" content="https://www.nksecurities.com/images/og-image.jpg">
+  <meta property="og:image:width" content="624">
+  <meta property="og:image:height" content="416">
+  <meta property="og:image:alt" content="NK Securities Research — A leader in high frequency trading & technology">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Onboarding Form - NK Securities Research">
+  <meta name="twitter:description" content="Complete your onboarding with NK Securities Research - share your details, upload documents and get set for day one.">
+  <meta name="twitter:image" content="https://www.nksecurities.com/images/og-image.jpg">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/accessibility.css">
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+    body {
+      transition: all 0.4s ease;
+    }
+
+    #particles-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* ---- Shell layout ---- */
+
+    .onboarding-shell {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .onboarding-shell[hidden] {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .onboarding-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ---- Sidebar ---- */
+
+    .onboarding-sidebar {
+      position: sticky;
+      top: 104px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+    }
+
+    @media (max-width: 900px) {
+      .onboarding-sidebar {
+        position: static;
+      }
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .sidebar-brand img {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand h2 {
+      font-size: 24px;
+    }
+
+    .progress-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      margin-bottom: 20px;
+    }
+
+    .progress-copy strong {
+      display: block;
+      font-family: 'Instrument Serif', serif;
+      font-size: 30px;
+      color: var(--text-primary);
+    }
+
+    .progress-copy span {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .progress-ring {
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    .progress-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring circle {
+      fill: none;
+      stroke-width: 8;
+    }
+
+    .progress-ring .track {
+      stroke: var(--border);
+    }
+
+    .progress-ring .fill {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      stroke-dasharray: 327;
+      stroke-dashoffset: 327;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-row .badge-pill {
+      margin-bottom: 0;
+    }
+
+    .mission-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .mission-tab {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      padding: 11px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mission-tab span {
+      font-family: 'Instrument Serif', serif;
+      font-size: 17px;
+      color: var(--text-muted);
+      min-width: 24px;
+    }
+
+    .mission-tab:hover {
+      background: var(--bg);
+      color: var(--text-primary);
+    }
+
+    .mission-tab.active {
+      background: var(--accent-dim);
+      color: var(--text-primary);
+    }
+
+    .mission-tab.active span {
+      color: var(--accent);
+    }
+
+    .mission-status-dot {
+      width: 7px;
+      height: 7px;
+      min-width: 0;
+      margin-left: auto;
+      border-radius: 50%;
+      flex-shrink: 0;
+      min-width: 7px !important;
+    }
+
+    .mission-status-dot[hidden] {
+      display: none;
+    }
+
+    .mission-status-dot.is-unsaved {
+      background: #b45309;
+    }
+
+    .mission-status-dot.is-error {
+      background: #c62828;
+    }
+
+    /* ---- Main column ---- */
+
+    .onboarding-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .onboarding-hero .body-text {
+      max-width: 520px;
+    }
+
+    .step-panel {
+      display: none;
+    }
+
+    .step-panel.active {
+      display: block;
+      animation: onboardFadeIn 0.3s ease;
+    }
+
+    @keyframes onboardFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .form-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 40px;
+    }
+
+    @media (max-width: 640px) {
+      .form-panel {
+        padding: 28px 20px;
+      }
+    }
+
+    .mission-pill {
+      display: inline-block;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+
+    .form-panel h3 {
+      font-size: clamp(24px, 3vw, 34px);
+      margin-bottom: 16px;
+    }
+
+    .helper-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .starter-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 28px 0;
+    }
+
+    @media (max-width: 640px) {
+      .starter-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .starter-grid div {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .starter-grid strong {
+      display: block;
+      font-family: 'Instrument Serif', serif;
+      font-size: 28px;
+      color: var(--accent);
+    }
+
+    .starter-grid span {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0 24px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field-grid label,
+    .form-panel > label:not(.consent-row):not(.upload-card) {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 20px;
+    }
+
+    .field-grid label:first-child,
+    .field-grid label:nth-child(2) {
+      margin-top: 0;
+    }
+
+    .field-grid input,
+    .field-grid select,
+    .field-grid textarea,
+    .form-panel > label:not(.consent-row):not(.upload-card) input,
+    .form-panel > label:not(.consent-row):not(.upload-card) textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.3s ease;
+      width: 100%;
+    }
+
+    .field-grid input:focus,
+    .field-grid select:focus,
+    .field-grid textarea:focus,
+    .form-panel > label:not(.consent-row):not(.upload-card) input:focus,
+    .form-panel > label:not(.consent-row):not(.upload-card) textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .field-grid textarea,
+    .form-panel > label:not(.consent-row):not(.upload-card) textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .field-grid select {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+    }
+
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .children-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .child-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .child-chip-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .child-chip-name {
+      font-weight: 500;
+    }
+
+    .child-chip-dob {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .child-chip-remove {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      padding: 0;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .child-chip-remove:hover {
+      border-color: #c62828;
+      color: #c62828;
+    }
+
+    .child-modal-label {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      width: 100%;
+    }
+
+    .child-modal-label input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.3s ease;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .child-modal-label input:focus {
+      border-color: var(--accent);
+    }
+
+    .child-modal-error {
+      font-size: 13px;
+      color: #c62828;
+      margin: 0;
+    }
+
+    .orgs-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .org-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .org-chip-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .org-chip-name {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .org-chip-current {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .org-chip-duration {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .org-chip-role {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    [data-location] {
+      display: none !important;
+    }
+
+    [data-location].location-visible {
+      display: flex !important;
+    }
+
+    .field-grid[data-location].location-visible {
+      display: grid !important;
+    }
+
+    .upload-grid[data-location].location-visible {
+      display: grid !important;
+    }
+
+    .radio-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .radio-row input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    @media (max-width: 640px) {
+      .upload-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .upload-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      transition: border-color 0.3s ease;
+    }
+
+    .upload-card:focus-within {
+      border-color: var(--accent);
+    }
+
+    .upload-card input[type="file"] {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--text-secondary);
+    }
+
+    .upload-card.wide {
+      grid-column: 1 / -1;
+      margin-top: 20px;
+    }
+
+    .upload-status {
+      font-size: 11px;
+      letter-spacing: normal;
+      text-transform: none;
+      font-weight: 500;
+      min-height: 14px;
+    }
+
+    .upload-status.is-success {
+      color: #2e7d32;
+    }
+
+    .upload-status.is-error {
+      color: #c62828;
+    }
+
+    .upload-status.is-loading {
+      color: var(--text-secondary);
+    }
+
+    .upload-preview {
+      position: relative;
+      display: inline-block;
+    }
+
+    .upload-preview[hidden] {
+      display: none;
+    }
+
+    .upload-preview-thumb {
+      cursor: pointer;
+    }
+
+    .upload-preview img {
+      display: block;
+      max-width: 200px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .upload-preview-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--text-secondary);
+      word-break: break-all;
+    }
+
+    .upload-preview-file svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .upload-remove-btn {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .upload-remove-btn[hidden] {
+      display: none;
+    }
+
+    .upload-remove-btn:hover {
+      border-color: #c62828;
+      color: #c62828;
+    }
+
+    .upload-remove-btn:disabled {
+      cursor: not-allowed;
+    }
+
+    .upload-remove-btn.is-loading {
+      color: transparent;
+    }
+
+    .upload-remove-btn.is-loading::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: uploadSpin 0.7s linear infinite;
+    }
+
+    @keyframes uploadSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .upload-remove-btn.is-loading::after {
+        animation: none;
+      }
+    }
+
+    /* ---- Document preview modal ---- */
+
+    .doc-modal[hidden] {
+      display: none;
+    }
+
+    .doc-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .doc-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .doc-modal-dialog {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 85vh;
+      overflow: auto;
+      padding: 40px 32px 32px;
+      z-index: 1;
+    }
+
+    .doc-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .doc-modal-close:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .doc-modal-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 200px;
+      text-align: center;
+    }
+
+    .doc-modal-body img {
+      max-width: 100%;
+      max-height: 60vh;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      object-fit: contain;
+    }
+
+    .doc-modal-icon svg {
+      width: 48px;
+      height: 48px;
+      color: var(--text-muted);
+    }
+
+    .doc-modal-filename {
+      font-size: 15px;
+      color: var(--text-primary);
+      word-break: break-all;
+      max-width: 100%;
+    }
+
+    .doc-modal-noprev {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .doc-modal-footer {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #doc-modal-remove {
+      position: relative;
+    }
+
+    #doc-modal-remove.is-loading {
+      color: transparent;
+    }
+
+    #doc-modal-remove.is-loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: uploadSpin 0.7s linear infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #doc-modal-remove.is-loading::after {
+        animation: none;
+      }
+    }
+
+    /* ---- Invalid link state (mirrors verify-onboarding.html) ---- */
+
+    .verify-card {
+      max-width: 620px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 56px 48px;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .verify-card {
+        padding: 40px 24px;
+      }
+    }
+
+    .verify-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+    }
+
+    .verify-icon svg {
+      width: 30px;
+      height: 30px;
+      color: var(--accent);
+    }
+
+    .verify-icon.is-warning {
+      background: rgba(180, 83, 9, 0.12);
+    }
+
+    .verify-icon.is-warning svg {
+      color: #b45309;
+    }
+
+    .verify-icon.is-error {
+      background: rgba(200, 35, 35, 0.12);
+    }
+
+    .verify-icon.is-error svg {
+      color: #c62828;
+    }
+
+    .verify-icon.is-success {
+      background: rgba(46, 125, 50, 0.12);
+    }
+
+    .verify-icon.is-success svg {
+      color: #2e7d32;
+    }
+
+    .verify-icon.is-spinner {
+      background: transparent;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      animation: verifySpin 0.8s linear infinite;
+    }
+
+    @keyframes verifySpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .verify-icon.is-spinner {
+        animation: none;
+      }
+    }
+
+    .verify-card .body-text {
+      max-width: 440px;
+      margin: 0 auto 40px;
+    }
+
+    .consent-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+
+    .consent-row:first-child {
+      margin-top: 0;
+    }
+
+    .consent-row input {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .consent-row span {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .field-unsaved {
+      border-color: #b45309 !important;
+    }
+
+    .field-sync-error {
+      border-color: #c62828 !important;
+    }
+
+    .field-sync-message {
+      display: block;
+      min-height: 17px;
+      line-height: 1.4;
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: normal;
+      text-transform: none;
+      color: #c62828;
+    }
+
+    .consent-row .field-sync-message {
+      flex-basis: 100%;
+      min-height: 14px;
+      margin-top: 0;
+      margin-left: 29px;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 10500;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 360px;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      cursor: pointer;
+      background: var(--surface);
+      border: 1px solid rgba(200, 35, 35, 0.5);
+      border-left: 3px solid #c62828;
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #c62828;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      opacity: 0;
+      transform: translateX(16px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    @media (max-width: 480px) {
+      .toast-container {
+        left: 16px;
+        right: 16px;
+        top: 16px;
+        max-width: none;
+      }
+    }
+
+    .policy-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .review-grid {
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+
+    .review-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .review-item strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .review-item span {
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .wizard-controls,
+    .submit-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .wizard-controls {
+      justify-content: flex-end;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 32px;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      border: none;
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .submit-message {
+      margin-top: 16px;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .submit-message.is-visible {
+      display: block;
+    }
+
+    .submit-message.is-success {
+      color: #2e7d32;
+    }
+
+    .submit-message.is-error {
+      color: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="contact.html" class="nav-link">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta">Open Positions</a>
+      </div>
+
+      <div class="nav-hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="contact.html">CONTACT</a>
+    <a href="open-positions.html">OPEN POSITIONS</a>
+  </div>
+
+  <section class="section" style="border-bottom: none; padding-top: 120px;">
+    <div class="container">
+
+      <div class="verify-card" id="invalid-link-panel" hidden>
+        <div class="verify-icon is-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4M12 17h.01"/>
+            <path d="M10.29 3.86 1.82 18a1.5 1.5 0 0 0 1.29 2.25h17.78A1.5 1.5 0 0 0 22.18 18L13.71 3.86a1.5 1.5 0 0 0-2.42 0z"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Link Incomplete</h2>
+        <p class="body-text">This onboarding link looks incomplete or broken - it's missing a required verification ID. Please open the original link from your email again.</p>
+        <a href="contact.html" class="link-arrow accent">Contact us</a>
+      </div>
+
+      <!-- Shown while GET /api/onboarding/verify is in flight -->
+      <div class="verify-card" id="verify-loading-panel" hidden>
+        <div class="verify-icon is-spinner"></div>
+        <h2 class="display-sm mb-16">Verifying Your Link…</h2>
+        <p class="body-text">Hold tight while we confirm your onboarding details.</p>
+      </div>
+
+      <!-- Shown when the verify call succeeds but auth is false (not yet verified, expired, mismatched, etc.) -->
+      <div class="verify-card" id="verify-failed-panel" hidden>
+        <div class="verify-icon is-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4M12 17h.01"/>
+            <path d="M10.29 3.86 1.82 18a1.5 1.5 0 0 0 1.29 2.25h17.78A1.5 1.5 0 0 0 22.18 18L13.71 3.86a1.5 1.5 0 0 0-2.42 0z"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Verification Required</h2>
+        <p class="body-text" id="verify-failed-reason">You need to verify your identity before continuing with onboarding.</p>
+        <a href="verify-onboarding.html" id="verify-now-link" class="btn-primary" style="text-decoration: none;">Verify Now</a>
+      </div>
+
+      <!-- Shown when the backend reports this onboarding as already completed/submitted -->
+      <div class="verify-card" id="verify-completed-panel" hidden>
+        <div class="verify-icon is-success">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Onboarding Already Submitted</h2>
+        <p class="body-text">Onboarding form already submitted. For any change, contact us.</p>
+      </div>
+
+      <!-- Shown when the onboarding link has expired -->
+      <div class="verify-card" id="verify-expired-panel" hidden>
+        <div class="verify-icon is-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Link Expired</h2>
+        <p class="body-text">This onboarding link has expired. Please contact HR to request a new link.</p>
+        <a href="contact.html" class="link-arrow accent">Contact HR</a>
+      </div>
+
+      <!-- Shown when the verify call itself fails (network error or 5xx) -->
+      <div class="verify-card" id="verify-error-panel" hidden>
+        <div class="verify-icon is-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5M12 16h.01"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Something Went Wrong</h2>
+        <p class="body-text">We couldn't verify your onboarding link right now. Please try again in a moment.</p>
+        <button type="button" class="btn-primary" id="verify-retry-btn">Try Again</button>
+      </div>
+
+      <div class="onboarding-shell" id="onboarding-shell" hidden>
+
+        <aside class="onboarding-sidebar">
+          <div class="sidebar-brand">
+            <img src="images/logo.webp" alt="NK Securities">
+            <div>
+              <h2>Trading Desk Quest</h2>
+            </div>
+          </div>
+
+          <div class="progress-card">
+            <div class="progress-copy">
+              <strong id="progressText">0%</strong>
+              <span>Journey completed</span>
+            </div>
+            <div class="progress-ring" aria-hidden="true">
+              <svg viewBox="0 0 120 120">
+                <circle class="track" cx="60" cy="60" r="52"></circle>
+                <circle class="fill" id="progressCircle" cx="60" cy="60" r="52"></circle>
+              </svg>
+            </div>
+          </div>
+
+          <div class="badge-row">
+            <span class="badge-pill" id="badgeName">Market Explorer</span>
+            <span class="badge-pill location-chip" id="locationChip" hidden></span>
+          </div>
+
+          <nav class="mission-list" aria-label="Onboarding missions">
+            <button type="button" class="mission-tab active" data-step="0"><span>01</span> Opening Bell<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="1"><span>02</span> KYC Profile<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="2"><span>03</span> Family<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="3"><span>04</span> Document Vault<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="4"><span>05</span> Employment<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="5"><span>06</span> Payroll Ledger<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="6"><span>07</span> Desk Intro<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="7"><span>08</span> Compliance Check<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="8"><span>09</span> Closing Bell<span class="mission-status-dot" hidden></span></button>
+          </nav>
+        </aside>
+
+        <main>
+          <form id="onboardingForm" novalidate>
+
+            <section class="step-panel active" data-panel="0">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 01 · Opening Bell</span>
+                <h3>Let's get you set up</h3>
+                <p class="body-text">This portal turns onboarding into a guided trading-desk journey. Move mission by mission, save your progress locally and submit everything at the closing bell.</p>
+                <div class="starter-grid">
+                  <div><strong>9</strong><span>Missions</span></div>
+                  <div><strong>10 min</strong><span>Approx. time</span></div>
+                  <div><strong>100%</strong><span>Day 1 ready</span></div>
+                </div>
+                <p class="helper-text" style="margin-top: 0; margin-bottom: 20px; font-size: 12px; color: var(--text-muted);">
+                  <strong style="color: var(--text-secondary);">Fair usage:</strong> This link expires after 50 document uploads, 50 edits per field, or 5000 save requests. Complete your onboarding in one session if possible.
+                </p>
+                <label class="consent-row">
+                  <input type="checkbox" data-required="true" name="welcome_ack">
+                  <span>I'm ready to begin my onboarding quest.</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="1">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 02 · KYC Profile</span>
+                <h3>Personal Details</h3>
+                <div class="field-grid">
+                  <label>Full name (As per Aadhar)<input data-required="true" name="full_name" type="text" placeholder="Enter full name"></label>
+                  <label>Preferred name<input name="preferred_name" type="text" placeholder="What should we call you?"></label>
+                  <label>Personal email<input data-required="true" name="email" type="email" placeholder="name@email.com"></label>
+                  <label>Mobile number<input data-required="true" name="mobile" type="tel" placeholder="+91 XXXXX XXXXX"></label>
+                  <label>Date of birth<input data-required="true" name="dob" type="date"></label>
+                  <label>Nationality<input name="nationality" type="text" placeholder="e.g. Indian"></label>
+                  <label>Marital status
+                    <select name="marital_status">
+                      <option value="">Select</option>
+                      <option value="single">Single</option>
+                      <option value="married">Married</option>
+                      <option value="divorced">Divorced</option>
+                      <option value="widowed">Widowed</option>
+                    </select>
+                  </label>
+                  <label>Blood group
+                    <select name="blood_group">
+                      <option value="">Select</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </label>
+                  <label>Emergency contact<input data-required="true" name="emergency" type="text" placeholder="Name + phone number"></label>
+                </div>
+                <label>Permanent address<textarea data-required="true" name="address" placeholder="Enter permanent residential address"></textarea></label>
+                <label class="consent-row" style="margin-top: 16px;">
+                  <input type="checkbox" id="sameAsPermanent">
+                  <span>Current address is same as permanent address</span>
+                </label>
+                <label id="presentAddressLabel">Current address<textarea name="present_address" placeholder="Enter current residential address"></textarea></label>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="2">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 03 · Family</span>
+                <h3>Family Details</h3>
+                <div class="field-grid">
+                  <label>Father's name<input name="fathers_name" type="text" placeholder="Enter father's name"></label>
+                  <label>Father's date of birth<input name="fathers_dob" type="date"></label>
+                  <label>Mother's name<input name="mothers_name" type="text" placeholder="Enter mother's name"></label>
+                  <label>Mother's date of birth<input name="mothers_dob" type="date"></label>
+                  <label>Spouse's name<input name="spouse_name" type="text" placeholder="Enter spouse's name (if applicable)"></label>
+                  <label>Spouse's date of birth<input name="spouse_dob" type="date"></label>
+                </div>
+                <div class="children-section" style="margin-top: 24px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span class="label" style="margin: 0;">Children <span style="font-weight: 400; text-transform: none; letter-spacing: normal;">(You can add up to 10)</span></span>
+                    <button type="button" id="addChildBtn" class="btn-secondary" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add child</button>
+                  </div>
+                  <div id="childrenChips" class="children-chips"></div>
+                </div>
+                <div class="insurance-section" style="margin-top: 24px;">
+                  <span class="label" style="margin-bottom: 12px;">Insurance Coverage</span>
+                  <div class="radio-group">
+                    <label class="radio-row">
+                      <input type="radio" name="insurance_coverage" value="employee_spouse_kids">
+                      <span>Employee + Spouse + 2 Kids</span>
+                    </label>
+                    <label class="radio-row">
+                      <input type="radio" name="insurance_coverage" value="employee_parents">
+                      <span>Employee + up to 2 Parents</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="3">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 04 · Document Vault</span>
+                <h3>Document Uploads</h3>
+                <p class="helper-text">Documents upload securely as soon as you choose a file. Accepted formats: JPG, PNG or PDF (photo: JPG/PNG only), up to 10MB each.</p>
+                <div class="upload-grid">
+                  <label class="upload-card" data-location="gurugram,gift_city">PAN Card<input data-required="true" data-doc-type="pan_card" name="pan_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card">ID Proof<input data-required="true" data-doc-type="aadhar_card" name="id_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card">Address Proof<input data-required="true" data-doc-type="address_proof" name="address_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card">Passport Photo<input data-required="true" data-doc-type="profile_photo" name="photo_doc" type="file" accept="image/*"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card">Highest Degree Certificate<input data-doc-type="highest_degree_certificate" name="highest_degree_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="gurugram,gift_city">Higher Secondary Marksheet<input data-doc-type="higher_secondary_marksheet" name="higher_secondary_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card">Resume<input data-doc-type="resume" name="resume_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                </div>
+                <div class="field-grid" style="margin-top: 16px;" data-location="dubai">
+                  <label>Campus Name<input name="campus_name" type="text" placeholder="Enter campus/university name"></label>
+                </div>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="4">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 05 · Employment History</span>
+                <h3>Employment Details</h3>
+                <div class="orgs-section">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span class="label" style="margin: 0;">Previous Organizations</span>
+                    <button type="button" id="addOrgBtn" class="btn-secondary" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add organization</button>
+                  </div>
+                  <div id="orgsChips" class="orgs-chips"></div>
+                </div>
+                <div class="upload-grid" style="margin-top: 24px;" data-location="dubai">
+                  <label class="upload-card">Offer Letter (Last Company)<input data-doc-type="offer_letter_current_org" name="offer_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai">Last Increment Letter<input data-doc-type="last_increment_letter" name="last_increment_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai">Salary Slip (3 Months Zipped)<input data-doc-type="salary_slip" name="salary_slip_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai">Bonus Letter<input data-doc-type="bonus_letter" name="bonus_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai">Experience Letter<input data-doc-type="experience_letter" name="experience_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                </div>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="5">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 06 · Payroll Ledger</span>
+                <h3>Bank &amp; Payroll</h3>
+                <div class="field-grid">
+                  <label>Bank name<input data-required="true" name="bank_name" type="text"></label>
+                  <label>Account holder name<input data-required="true" name="account_holder" type="text"></label>
+                  <label>Account number<input data-required="true" name="account_number" type="text"></label>
+                  <label>IFSC code<input data-required="true" name="ifsc" type="text"></label>
+                </div>
+                <label class="upload-card wide">Cancelled cheque / bank proof<input data-required="true" data-doc-type="bank_proof" name="bank_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="6">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 07 · Desk Intro</span>
+                <h3>Culture Intro</h3>
+                <div class="field-grid">
+                  <label>One line about you<input data-required="true" name="intro_line" type="text" placeholder="Example: I love markets, music and filter coffee."></label>
+                  <label>Preferred birthday celebration
+                    <select name="birthday_pref">
+                      <option value="team_wishes">Team wishes are okay</option>
+                      <option value="private">Keep it private</option>
+                      <option value="small_celebration">Small celebration is okay</option>
+                    </select>
+                  </label>
+                  <label>Coffee / tea order<input name="drink_order" type="text" placeholder="Your go-to beverage"></label>
+                  <label>Hobbies<input name="hobbies" type="text" placeholder="Reading, sport, travel..."></label>
+                </div>
+                <label>Fun fact<textarea name="fun_fact" placeholder="Share something your team can get to know you by"></textarea></label>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="7">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 08 · Compliance Check</span>
+                <h3>Policy Acknowledgements</h3>
+                <div class="policy-list">
+                  <label class="consent-row"><input data-required="true" name="policy_code" type="checkbox"><span>I have read and understood the Code of Conduct.</span></label>
+                  <label class="consent-row"><input data-required="true" name="policy_confidentiality" type="checkbox"><span>I agree to the confidentiality and data protection requirements.</span></label>
+                  <label class="consent-row"><input data-required="true" name="policy_it" type="checkbox"><span>I have reviewed the IT and information security guidelines.</span></label>
+                  <label class="consent-row"><input data-required="true" name="policy_hr" type="checkbox"><span>I acknowledge the HR policies shared during onboarding.</span></label>
+                </div>
+              </div>
+            </section>
+
+            <section class="step-panel" data-panel="8">
+              <div class="form-panel">
+                <span class="mission-pill">Mission 09 · Closing Bell</span>
+                <h3>Review &amp; Submit</h3>
+                <p class="body-text">Check your completion status below, then submit your onboarding or download your answers as a CSV.</p>
+                <div id="reviewSummary" class="review-grid"></div>
+                <div class="submit-row">
+                  <button type="button" id="downloadCsvBtn" class="btn-secondary">Download CSV</button>
+                </div>
+                <p id="submitMessage" class="submit-message" role="status"></p>
+              </div>
+            </section>
+
+            <div class="wizard-controls">
+              <button type="button" id="prevBtn" class="btn-secondary">Back</button>
+              <button type="button" id="saveBtn" class="btn-secondary">Save progress</button>
+              <button type="submit" id="submitBtn" class="btn-primary" style="display: none;">Submit onboarding</button>
+              <button type="button" id="nextBtn" class="btn-primary">Next mission</button>
+            </div>
+          </form>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="doc-modal" id="doc-preview-modal" hidden>
+    <div class="doc-modal-backdrop" id="doc-modal-backdrop"></div>
+    <div class="doc-modal-dialog" role="dialog" aria-modal="true" aria-label="Document preview">
+      <button type="button" class="doc-modal-close" id="doc-modal-close" aria-label="Close preview">&#10005;</button>
+      <div class="doc-modal-body" id="doc-modal-body"></div>
+      <div class="doc-modal-footer">
+        <button type="button" class="btn-secondary" id="doc-modal-remove">Remove document</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <div class="doc-modal" id="child-modal" hidden>
+    <div class="doc-modal-backdrop" id="child-modal-backdrop"></div>
+    <div class="doc-modal-dialog" role="dialog" aria-modal="true" aria-label="Add child" style="max-width: 420px;">
+      <button type="button" class="doc-modal-close" id="child-modal-close" aria-label="Close">&#10005;</button>
+      <div class="doc-modal-body" style="text-align: left;">
+        <h3 style="margin: 0 0 24px; font-size: 20px;">Add Child</h3>
+        <label class="child-modal-label">Child's name<input type="text" id="childModalName" placeholder="Enter child's name"></label>
+        <label class="child-modal-label" style="margin-bottom: 0;">Date of birth<input type="date" id="childModalDob"></label>
+        <p id="childModalError" class="child-modal-error" hidden></p>
+      </div>
+      <div class="doc-modal-footer" style="justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn-secondary" id="child-modal-cancel">Cancel</button>
+        <button type="button" class="btn-primary" id="child-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-modal" id="org-modal" hidden>
+    <div class="doc-modal-backdrop" id="org-modal-backdrop"></div>
+    <div class="doc-modal-dialog" role="dialog" aria-modal="true" aria-label="Add organization" style="max-width: 420px;">
+      <button type="button" class="doc-modal-close" id="org-modal-close" aria-label="Close">&#10005;</button>
+      <div class="doc-modal-body" style="text-align: left;">
+        <h3 style="margin: 0 0 24px; font-size: 20px;">Add Organization</h3>
+        <label class="child-modal-label">Organization name<input type="text" id="orgModalName" placeholder="Enter company/organization name"></label>
+        <label class="child-modal-label">Duration<input type="text" id="orgModalDuration" placeholder="e.g. Jan 2020 - Dec 2023"></label>
+        <label class="child-modal-label">Role / Info (optional)<input type="text" id="orgModalInfo" placeholder="e.g. Software Engineer"></label>
+        <label class="child-modal-label" style="margin-bottom: 0; flex-direction: row; align-items: center; gap: 12px; text-transform: none; letter-spacing: normal; font-size: 14px;">
+          <input type="checkbox" id="orgModalCurrent" style="width: 18px; height: 18px;">
+          <span>I currently work here</span>
+        </label>
+        <p id="orgModalError" class="child-modal-error" hidden></p>
+      </div>
+      <div class="doc-modal-footer" style="justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn-secondary" id="org-modal-cancel">Cancel</button>
+        <button type="button" class="btn-primary" id="org-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/vendor/three.min.js"></script>
+  <script src="js/bundle-b.js"></script>
+  <script src="js/onboarding-form.js"></script>
+
+</body>
+</html>
