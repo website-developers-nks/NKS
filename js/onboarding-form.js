@@ -18,7 +18,8 @@
     key_mismatch: "This verification session doesn't match your onboarding link.",
     ttl_expired: 'Your verification session has expired.',
     expired: 'This onboarding link has expired. Please contact HR for assistance.',
-    link_expired: 'This onboarding link has expired. Please contact HR for assistance.'
+    link_expired: 'This onboarding link has expired. Please contact HR for assistance.',
+    session_inactive: 'Your session has expired due to inactivity. Please verify your identity again.'
   };
 
   function getParam(name) {
@@ -387,7 +388,7 @@
   // ignored so the newer value doesn't get incorrectly marked saved.
 
   var SYNC_FORM_ENDPOINT = '/api/onboarding/sync-form';
-  var SYNC_DEBOUNCE_MS = 1500;
+  var SYNC_DEBOUNCE_MS = 5000;
   var dirtyFields = {};
   var syncTimer = null;
   var syncInProgress = false;
@@ -400,6 +401,13 @@
 
   function hasDirtyFields() {
     return Object.keys(dirtyFields).length > 0;
+  }
+
+  // Update submit button state based on unsaved changes
+  function updateSubmitButtonState() {
+    if (sessionExpired || submitInProgress) return;
+    // Disable submit if there are unsaved changes or sync is in progress
+    submitBtn.disabled = hasDirtyFields() || syncInProgress;
   }
 
   // For a checkbox (inside a .consent-row label), the border highlight goes on
@@ -491,6 +499,7 @@
       setFieldUnsaved(field, true);
     }
 
+    updateSubmitButtonState();
     clearTimeout(syncTimer);
     syncTimer = setTimeout(runSync, SYNC_DEBOUNCE_MS);
   }
@@ -508,9 +517,7 @@
     syncInProgress = true;
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
-    // Submit owns the button's disabled/text state during its own flow (it
-    // already flushes pending sync itself) - don't fight over it here.
-    if (!submitInProgress) submitBtn.disabled = true;
+    updateSubmitButtonState();
 
     var snapshot = {};
     Object.keys(dirtyFields).forEach(function (name) {
@@ -611,7 +618,7 @@
         syncInProgress = false;
         saveBtn.disabled = false;
         saveBtn.textContent = saveBtnDefaultText;
-        if (!submitInProgress) submitBtn.disabled = false;
+        updateSubmitButtonState();
         if (sessionExpired) return;
         // Only auto-retry when something explicitly asked for another sync while
         // this one was in flight - not just because fields are still dirty, which
@@ -1225,6 +1232,13 @@
   });
   form.addEventListener('change', function (e) {
     if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name);
+  });
+  // Sync immediately on blur (focus out) if there are pending changes
+  form.addEventListener('focusout', function (e) {
+    if (e.target && e.target.name && e.target.type !== 'file' && hasDirtyFields()) {
+      clearTimeout(syncTimer);
+      runSync();
+    }
   });
 
   // Reserve the sync-message slot under every syncable field up front, so its
