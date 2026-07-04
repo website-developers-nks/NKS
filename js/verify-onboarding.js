@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var API_BASE = '/api/onboarding';
+  var API_BASE = 'https://api-nk.vercel.app/api/onboarding';
 
   function getParam(name) {
     try {

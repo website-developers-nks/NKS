@@ -19,7 +19,7 @@
   //   GET  /api/admin/get-user-list     -> requireAdminAuth
   //                                        200 [{ id, email, firstName, lastName, createdAt }, ...]
   //                                        (isAdmin: false users only, authKey never exposed)
-  var API_BASE = '/api/admin';
+  var API_BASE = 'https://api-nk.vercel.app/api/admin';
 
   function parseJson(res) {
     return res.json().catch(function () { return {}; }).then(function (data) {

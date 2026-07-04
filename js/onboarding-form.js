@@ -1,12 +1,13 @@
 (function () {
   'use strict';
 
-  var VERIFY_ENDPOINT = '/api/onboarding/verify';
-  var PROGRESS_DATA_ENDPOINT = '/api/onboarding/progress-data';
-  var SUBMIT_ENDPOINT = '/api/onboarding/submit-data';
-  var DOC_UPLOAD_ENDPOINT = '/api/docs/upload';
-  var DOC_REMOVE_ENDPOINT = '/api/docs/remove_doc';
-  var DOC_PRESIGN_ENDPOINT = '/api/docs/presign';
+  var API_BASE = 'https://api-nk.vercel.app';
+  var VERIFY_ENDPOINT = API_BASE + '/api/onboarding/verify';
+  var PROGRESS_DATA_ENDPOINT = API_BASE + '/api/onboarding/progress-data';
+  var SUBMIT_ENDPOINT = API_BASE + '/api/onboarding/submit-data';
+  var DOC_UPLOAD_ENDPOINT = API_BASE + '/api/docs/upload';
+  var DOC_REMOVE_ENDPOINT = API_BASE + '/api/docs/remove_doc';
+  var DOC_PRESIGN_ENDPOINT = API_BASE + '/api/docs/presign';
   var MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
   var DOC_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 
@@ -386,7 +387,7 @@
   // request is still in flight, the confirmation for the stale value is
   // ignored so the newer value doesn't get incorrectly marked saved.
 
-  var SYNC_FORM_ENDPOINT = '/api/onboarding/sync-form';
+  var SYNC_FORM_ENDPOINT = API_BASE + '/api/onboarding/sync-form';
   var SYNC_DEBOUNCE_MS = 1500;
   var dirtyFields = {};
   var syncTimer = null;
