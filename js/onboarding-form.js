@@ -382,32 +382,49 @@
 
   // ---- Background form sync (non-document fields only) ----
   //
-  // A field stays "dirty" until the backend explicitly confirms it with
-  // { field_name, saved: true }. If a field changes again while its sync
-  // request is still in flight, the confirmation for the stale value is
-  // ignored so the newer value doesn't get incorrectly marked saved.
+  // Uses interval-based sync with timestamp conflict resolution:
+  // - changedFields tracks fields with their last change timestamp
+  // - erroredFields tracks fields that failed to sync (user must fix)
+  // - Sync runs every 5s after previous response if there are changes
+  // - Only applies response to fields whose change time < sync start time
 
   var SYNC_FORM_ENDPOINT = '/api/onboarding/sync-form';
-  var SYNC_DEBOUNCE_MS = 5000;
-  var dirtyFields = {};
-  var syncTimer = null;
+  var SYNC_INTERVAL_MS = 5000; // 5 seconds after last response
+  var changedFields = {}; // { fieldName: { value: any, changedAt: number } }
+  var erroredFields = {}; // { fieldName: errorMessage }
+  var syncIntervalId = null;
   var syncInProgress = false;
-  var syncQueued = false;
+  var lastSyncStartedAt = null;
 
   function getFieldValue(field) {
     if (field.type === 'checkbox') return field.checked;
     return field.value || '';
   }
 
-  function hasDirtyFields() {
-    return Object.keys(dirtyFields).length > 0;
+  function hasChangedFields() {
+    return Object.keys(changedFields).length > 0;
   }
 
-  // Update submit button state based on unsaved changes
+  function hasErroredFields() {
+    return Object.keys(erroredFields).length > 0;
+  }
+
+  // Get submit button disabled reason for tooltip
+  function getSubmitDisabledReason() {
+    if (sessionExpired) return 'Session expired';
+    if (submitInProgress) return 'Submitting...';
+    if (syncInProgress) return 'Saving changes...';
+    if (hasErroredFields()) return 'Please fix the fields with errors';
+    if (hasChangedFields()) return 'Please wait for changes to be saved';
+    return '';
+  }
+
+  // Update submit button state based on unsaved/errored changes
   function updateSubmitButtonState() {
     if (sessionExpired || submitInProgress) return;
-    // Disable submit if there are unsaved changes or sync is in progress
-    submitBtn.disabled = hasDirtyFields() || syncInProgress;
+    var shouldDisable = hasChangedFields() || hasErroredFields() || syncInProgress;
+    submitBtn.disabled = shouldDisable;
+    submitBtn.title = shouldDisable ? getSubmitDisabledReason() : '';
   }
 
   // For a checkbox (inside a .consent-row label), the border highlight goes on
@@ -489,49 +506,93 @@
     updateSidebarStatus();
   }
 
-  function markFieldDirty(name) {
+  function markFieldChanged(name) {
     if (!name || sessionExpired) return;
-    dirtyFields[name] = true;
 
     var field = form.elements[name];
+    var value;
+    if (name === 'childs_info') {
+      value = getChildrenData();
+    } else if (name === 'orgs') {
+      value = getOrgsData();
+    } else if (field) {
+      value = getFieldValue(field);
+    } else {
+      return;
+    }
+
+    // Add to changed fields with timestamp
+    changedFields[name] = { value: value, changedAt: Date.now() };
+
+    // Remove from errored fields (user is fixing it)
+    if (erroredFields[name]) {
+      delete erroredFields[name];
+      if (field) setFieldSyncError(field, null);
+    }
+
     if (field) {
-      setFieldSyncError(field, null);
       setFieldUnsaved(field, true);
     }
 
     updateSubmitButtonState();
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(runSync, SYNC_DEBOUNCE_MS);
+    startSyncInterval();
   }
 
-  function runSync() {
-    clearTimeout(syncTimer);
-    if (sessionExpired) return;
-    if (!hasDirtyFields()) return;
+  // Start the sync interval if not already running
+  function startSyncInterval() {
+    if (syncIntervalId !== null) return; // Already running
+    syncIntervalId = setTimeout(checkAndSync, SYNC_INTERVAL_MS);
+  }
 
-    if (syncInProgress) {
-      syncQueued = true;
+  // Stop the sync interval
+  function stopSyncInterval() {
+    if (syncIntervalId !== null) {
+      clearTimeout(syncIntervalId);
+      syncIntervalId = null;
+    }
+  }
+
+  // Check if sync is needed and run it
+  function checkAndSync() {
+    syncIntervalId = null; // Clear the interval ID
+
+    if (sessionExpired) {
+      stopSyncInterval();
       return;
     }
 
+    if (!hasChangedFields()) {
+      // No changes to sync, don't schedule next check
+      return;
+    }
+
+    if (syncInProgress) {
+      // Sync already in progress, schedule next check
+      syncIntervalId = setTimeout(checkAndSync, SYNC_INTERVAL_MS);
+      return;
+    }
+
+    runSync();
+  }
+
+  function runSync() {
+    if (sessionExpired) return;
+    if (!hasChangedFields()) return;
+    if (syncInProgress) return;
+
     syncInProgress = true;
+    lastSyncStartedAt = Date.now();
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     updateSubmitButtonState();
 
+    // Build snapshot of fields to sync
     var snapshot = {};
-    Object.keys(dirtyFields).forEach(function (name) {
-      if (name === 'childs_info') {
-        // Use getChildrenData() to get only complete child entries
-        snapshot[name] = getChildrenData();
-      } else if (name === 'orgs') {
-        // Use getOrgsData() to get organization entries
-        snapshot[name] = getOrgsData();
-      } else {
-        var field = form.elements[name];
-        if (field) snapshot[name] = getFieldValue(field);
-      }
+    Object.keys(changedFields).forEach(function (name) {
+      snapshot[name] = changedFields[name].value;
     });
+
+    var syncStartTime = lastSyncStartedAt;
 
     fetch(SYNC_FORM_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
@@ -562,44 +623,36 @@
         results.forEach(function (result) {
           if (!result || !result.field_name) return;
 
-          // Handle childs_info specially (no form field)
-          if (result.field_name === 'childs_info') {
-            if (result.saved) {
-              delete dirtyFields['childs_info'];
-            } else {
-              console.error('[onboarding-form] childs_info sync rejected:', result.error);
-              rejected.push({ name: 'childs_info', error: result.error });
-            }
+          var fieldName = result.field_name;
+          var fieldData = changedFields[fieldName];
+
+          // Only apply response if field wasn't changed after sync started
+          if (!fieldData || fieldData.changedAt >= syncStartTime) {
+            // Field was changed after sync started, ignore this response
             return;
           }
 
-          // Handle orgs specially (no form field)
-          if (result.field_name === 'orgs') {
-            if (result.saved) {
-              delete dirtyFields['orgs'];
-            } else {
-              console.error('[onboarding-form] orgs sync rejected:', result.error);
-              rejected.push({ name: 'orgs', error: result.error });
-            }
-            return;
-          }
-
-          var field = form.elements[result.field_name];
+          var field = form.elements[fieldName];
 
           if (!result.saved) {
-            console.error('[onboarding-form] field sync rejected:', result.field_name, result.error);
-            if (field) setFieldSyncError(field, result.error || 'Could not save this field.');
-            rejected.push({ name: result.field_name, error: result.error });
+            // Field failed to save - add to errored fields, remove from changed
+            console.error('[onboarding-form] field sync rejected:', fieldName, result.error);
+            var errorMsg = result.error || 'Could not save this field.';
+            erroredFields[fieldName] = errorMsg;
+            delete changedFields[fieldName];
+            if (field) {
+              setFieldSyncError(field, errorMsg);
+              setFieldUnsaved(field, false);
+            }
+            rejected.push({ name: fieldName, error: result.error });
             return;
           }
 
-          var stillMatches = field && getFieldValue(field) === snapshot[result.field_name];
-          if (stillMatches) {
-            delete dirtyFields[result.field_name];
-            if (field) {
-              setFieldSyncError(field, null);
-              setFieldUnsaved(field, false);
-            }
+          // Field saved successfully - remove from changed fields
+          delete changedFields[fieldName];
+          if (field) {
+            setFieldSyncError(field, null);
+            setFieldUnsaved(field, false);
           }
         });
 
@@ -619,21 +672,21 @@
         saveBtn.disabled = false;
         saveBtn.textContent = saveBtnDefaultText;
         updateSubmitButtonState();
-        if (sessionExpired) return;
-        // Only auto-retry when something explicitly asked for another sync while
-        // this one was in flight - not just because fields are still dirty, which
-        // would otherwise hammer the backend in a tight loop on persistent failure.
-        // Leftover dirty fields (rejected or errored) retry on the next real
-        // change or Save Progress click instead.
-        if (syncQueued) {
-          syncQueued = false;
-          runSync();
+
+        if (sessionExpired) {
+          stopSyncInterval();
+          return;
+        }
+
+        // Schedule next sync check 5s after this response
+        if (hasChangedFields()) {
+          syncIntervalId = setTimeout(checkAndSync, SYNC_INTERVAL_MS);
         }
       });
   }
 
   function scheduleSync(fieldName) {
-    markFieldDirty(fieldName);
+    markFieldChanged(fieldName);
   }
 
   // Submitting must see the latest edits, not whatever was last confirmed -
@@ -642,12 +695,12 @@
   // will report exactly what's still missing regardless.
   function flushPendingSync() {
     return new Promise(function (resolve) {
-      if (!hasDirtyFields() && !syncInProgress) {
+      if (!hasChangedFields() && !syncInProgress) {
         resolve();
         return;
       }
 
-      clearTimeout(syncTimer);
+      stopSyncInterval();
       runSync();
 
       var settled = false;
@@ -658,7 +711,7 @@
       }, 6000);
       var poll = setInterval(function () {
         if (settled) return;
-        if (!syncInProgress && !hasDirtyFields()) {
+        if (!syncInProgress && !hasChangedFields()) {
           settled = true;
           clearInterval(poll);
           clearTimeout(giveUp);
@@ -682,10 +735,23 @@
   function submitOnboarding() {
     if (sessionExpired || submitInProgress) return;
 
+    if (hasErroredFields()) {
+      showSubmitMessage('Please fix the fields with errors before submitting.', 'error');
+      return;
+    }
+
+    if (hasChangedFields()) {
+      showSubmitMessage('Please wait for your changes to be saved before submitting.', 'error');
+      return;
+    }
+
     if (syncInProgress) {
       showSubmitMessage('Please wait for your changes to finish saving, then try again.', 'error');
       return;
     }
+
+    // Stop the sync interval during submission
+    stopSyncInterval();
 
     submitInProgress = true;
     submitBtn.disabled = true;
@@ -1233,11 +1299,13 @@
   form.addEventListener('change', function (e) {
     if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name);
   });
-  // Sync immediately on blur (focus out) if there are pending changes
-  form.addEventListener('focusout', function (e) {
-    if (e.target && e.target.name && e.target.type !== 'file' && hasDirtyFields()) {
-      clearTimeout(syncTimer);
-      runSync();
+
+  // Warn user about unsaved changes before leaving
+  window.addEventListener('beforeunload', function (e) {
+    if (hasChangedFields() || hasErroredFields()) {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
     }
   });
 
@@ -1352,9 +1420,7 @@
   }
 
   function syncChildrenToBackend() {
-    dirtyFields['childs_info'] = true;
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(runSync, SYNC_DEBOUNCE_MS);
+    markFieldChanged('childs_info');
   }
 
   function openChildModal() {
@@ -1502,9 +1568,7 @@
   }
 
   function syncOrgsToBackend() {
-    dirtyFields['orgs'] = true;
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(runSync, SYNC_DEBOUNCE_MS);
+    markFieldChanged('orgs');
   }
 
   function openOrgModal() {
@@ -1593,7 +1657,7 @@
     });
     localStorage.setItem('nk-onboarding-form-progress', JSON.stringify(data));
 
-    if (hasDirtyFields()) {
+    if (hasChangedFields()) {
       runSync();
       return;
     }
