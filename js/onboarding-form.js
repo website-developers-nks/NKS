@@ -2,6 +2,16 @@
   'use strict';
 
   var API_BASE = 'https://api-nk.vercel.app';
+
+  // Secure fetch wrapper - only sends credentials to our API
+  function apiFetch(url, options) {
+    options = options || {};
+    if (url.indexOf(API_BASE) === 0) {
+      options.credentials = 'include';
+    }
+    return fetch(url, options);
+  }
+
   var VERIFY_ENDPOINT = API_BASE + '/api/onboarding/verify';
   var PROGRESS_DATA_ENDPOINT = API_BASE + '/api/onboarding/progress-data';
   var SUBMIT_ENDPOINT = API_BASE + '/api/onboarding/submit-data';
@@ -94,9 +104,8 @@
   function runVerification() {
     showStatePanel(verifyLoadingPanel);
 
-    fetch(VERIFY_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+    apiFetch(VERIFY_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'GET',
-      credentials: 'include',
       headers: { 'Accept': 'application/json' }
     })
       .then(function (res) {
@@ -527,9 +536,8 @@
       }
     });
 
-    fetch(SYNC_FORM_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+    apiFetch(SYNC_FORM_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: snapshot })
     })
@@ -688,9 +696,8 @@
 
     flushPendingSync()
       .then(function () {
-        return fetch(SUBMIT_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+        return apiFetch(SUBMIT_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
           method: 'GET',
-          credentials: 'include',
           headers: { 'Accept': 'application/json' }
         });
       })
@@ -863,9 +870,8 @@
   // documents instead of a blank form. Runs after the localStorage restore so
   // backend-confirmed data always wins.
   function loadProgressData() {
-    fetch(PROGRESS_DATA_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
-      method: 'GET',
-      credentials: 'include'
+    apiFetch(PROGRESS_DATA_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+      method: 'GET'
     })
       .then(function (res) {
         if (res.status === 401) {
@@ -971,9 +977,8 @@
     formData.append('file', file);
     formData.append('docType', docType);
 
-    fetch(DOC_UPLOAD_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+    apiFetch(DOC_UPLOAD_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
-      credentials: 'include',
       body: formData
     })
       .then(function (res) { return res.json().then(function (data) { return { status: res.status, ok: res.ok, data: data }; }); })
@@ -1035,9 +1040,8 @@
       }
     }
 
-    fetch(DOC_REMOVE_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+    apiFetch(DOC_REMOVE_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ docType: input.dataset.docType })
     })
@@ -1164,7 +1168,7 @@
       '&docType=' + encodeURIComponent(docType) +
       '&docId=' + encodeURIComponent(docId);
 
-    fetch(url, { method: 'GET', credentials: 'include' })
+    apiFetch(url, { method: 'GET' })
       .then(function (res) {
         if (res.status === 401) {
           return res.json().catch(function () { return {}; }).then(function (body) {

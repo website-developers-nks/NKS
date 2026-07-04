@@ -3,6 +3,15 @@
 
   var API_BASE = 'https://api-nk.vercel.app/api/onboarding';
 
+  // Secure fetch wrapper - only sends credentials to our API
+  function apiFetch(url, options) {
+    options = options || {};
+    if (url.indexOf('https://api-nk.vercel.app') === 0) {
+      options.credentials = 'include';
+    }
+    return fetch(url, options);
+  }
+
   function getParam(name) {
     try {
       return new URLSearchParams(window.location.search).get(name);
@@ -98,9 +107,8 @@
     function runVerification() {
       showPanel('panel-loading');
 
-      fetch(API_BASE + '/verify?id=' + encodeURIComponent(onboardingKey), {
+      apiFetch(API_BASE + '/verify?id=' + encodeURIComponent(onboardingKey), {
         method: 'GET',
-        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(function (res) {
@@ -130,9 +138,8 @@
     }
 
     function checkOtpStatus() {
-      fetch(API_BASE + '/check-otp-status?onboardingKey=' + encodeURIComponent(onboardingKey), {
+      apiFetch(API_BASE + '/check-otp-status?onboardingKey=' + encodeURIComponent(onboardingKey), {
         method: 'GET',
-        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(function (res) {
@@ -248,9 +255,8 @@
       triggerBtn.textContent = isResend ? 'Sending…' : 'Generating…';
       clearOtpStatus();
 
-      fetch(API_BASE + '/send_otp', {
+      apiFetch(API_BASE + '/send_otp', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ onboardingKey: onboardingKey })
       })
@@ -332,9 +338,8 @@
       verifyBtn.textContent = 'Verifying…';
       clearOtpStatus();
 
-      fetch(API_BASE + '/verify_otp', {
+      apiFetch(API_BASE + '/verify_otp', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ onboardingKey: onboardingKey, otp: code })
       })

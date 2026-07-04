@@ -21,6 +21,16 @@
   //                                        (isAdmin: false users only, authKey never exposed)
   var API_BASE = 'https://api-nk.vercel.app/api/admin';
 
+  // Secure fetch wrapper - only sends credentials to our API
+  function apiFetch(url, options) {
+    options = options || {};
+    // Only include credentials if request is to our API
+    if (url.indexOf('https://api-nk.vercel.app') === 0) {
+      options.credentials = 'include';
+    }
+    return fetch(url, options);
+  }
+
   function parseJson(res) {
     return res.json().catch(function () { return {}; }).then(function (data) {
       return { status: res.status, data: data };
@@ -160,9 +170,8 @@
     function loadUserList() {
       setUserSelectMessage('Loading users…');
 
-      fetch(API_BASE + '/get-user-list', {
+      apiFetch(API_BASE + '/get-user-list', {
         method: 'GET',
-        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
@@ -195,9 +204,8 @@
     function checkAuth() {
       showPanel('admin-loading-panel');
 
-      fetch(API_BASE + '/auth', {
+      apiFetch(API_BASE + '/auth', {
         method: 'GET',
-        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
@@ -389,9 +397,8 @@
         loginSubmitBtn.disabled = true;
         loginSubmitBtn.textContent = 'Signing in…';
 
-        fetch(API_BASE + '/login', {
+        apiFetch(API_BASE + '/login', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, password: password })
         })
@@ -437,9 +444,8 @@
         createUserSubmitBtn.disabled = true;
         createUserSubmitBtn.textContent = 'Creating…';
 
-        fetch(API_BASE + '/create-user', {
+        apiFetch(API_BASE + '/create-user', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, firstName: firstName, lastName: lastName })
         })
@@ -502,9 +508,8 @@
         registerOnboardingSubmitBtn.disabled = true;
         registerOnboardingSubmitBtn.textContent = 'Registering…';
 
-        fetch(API_BASE + '/register-onboarding', {
+        apiFetch(API_BASE + '/register-onboarding', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
