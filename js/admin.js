@@ -19,17 +19,7 @@
   //   GET  /api/admin/get-user-list     -> requireAdminAuth
   //                                        200 [{ id, email, firstName, lastName, createdAt }, ...]
   //                                        (isAdmin: false users only, authKey never exposed)
-  var API_BASE = 'https://api-nk.vercel.app/api/admin';
-
-  // Secure fetch wrapper - only sends credentials to our API
-  function apiFetch(url, options) {
-    options = options || {};
-    // Only include credentials if request is to our API
-    if (url.indexOf('https://api-nk.vercel.app') === 0) {
-      options.credentials = 'include';
-    }
-    return fetch(url, options);
-  }
+  var API_BASE = '/api/admin';
 
   function parseJson(res) {
     return res.json().catch(function () { return {}; }).then(function (data) {
@@ -170,8 +160,9 @@
     function loadUserList() {
       setUserSelectMessage('Loading users…');
 
-      apiFetch(API_BASE + '/get-user-list', {
+      fetch(API_BASE + '/get-user-list', {
         method: 'GET',
+        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
@@ -204,8 +195,9 @@
     function checkAuth() {
       showPanel('admin-loading-panel');
 
-      apiFetch(API_BASE + '/auth', {
+      fetch(API_BASE + '/auth', {
         method: 'GET',
+        credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
@@ -397,8 +389,9 @@
         loginSubmitBtn.disabled = true;
         loginSubmitBtn.textContent = 'Signing in…';
 
-        apiFetch(API_BASE + '/login', {
+        fetch(API_BASE + '/login', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, password: password })
         })
@@ -444,8 +437,9 @@
         createUserSubmitBtn.disabled = true;
         createUserSubmitBtn.textContent = 'Creating…';
 
-        apiFetch(API_BASE + '/create-user', {
+        fetch(API_BASE + '/create-user', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email, firstName: firstName, lastName: lastName })
         })
@@ -508,8 +502,9 @@
         registerOnboardingSubmitBtn.disabled = true;
         registerOnboardingSubmitBtn.textContent = 'Registering…';
 
-        apiFetch(API_BASE + '/register-onboarding', {
+        fetch(API_BASE + '/register-onboarding', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
