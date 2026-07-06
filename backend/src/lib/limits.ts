@@ -1,0 +1,7 @@
+export const Limits = {
+  MAX_DOC_UPLOADS: 50,
+  MAX_PRESIGN_PER_DOC: 20,
+  MAX_SYNC_REQUESTS: 5000,
+  MAX_FIELD_UPDATES: 50,
+  MAX_SUBMIT_ATTEMPTS: 10,
+} as const;

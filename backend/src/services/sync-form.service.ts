@@ -1,0 +1,229 @@
+import { Types } from 'mongoose';
+import { OnboardingData, BirthdayPref, MaritalStatus, BloodGroup, InsuranceCoverage, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
+import { OnboardingAuth } from '../db/models/onboarding-auth.model';
+import { Limits } from '../lib/limits';
+
+export type FieldResult =
+  | { field_name: string; saved: true }
+  | { field_name: string; saved: false; error: string };
+
+type ValidateOk = { ok: true; coerced: unknown };
+type ValidateFail = { ok: false; error: string };
+type Validator = (value: unknown) => ValidateOk | ValidateFail;
+
+interface FieldDef {
+  modelField: string;
+  validate: Validator;
+}
+
+function stringValidator(maxLen: number): Validator {
+  return (v) => {
+    if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
+    const trimmed = v.trim();
+    if (trimmed.length === 0) return { ok: false, error: 'Cannot be empty' };
+    if (trimmed.length > maxLen) return { ok: false, error: `Max ${maxLen} characters` };
+    return { ok: true, coerced: trimmed };
+  };
+}
+
+function boolValidator(): Validator {
+  return (v) => {
+    if (typeof v !== 'boolean') return { ok: false, error: 'Must be a boolean' };
+    return { ok: true, coerced: v };
+  };
+}
+
+function emailValidator(): Validator {
+  return (v) => {
+    if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
+    const trimmed = v.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { ok: false, error: 'Invalid email format' };
+    return { ok: true, coerced: trimmed };
+  };
+}
+
+function dobValidator(): Validator {
+  return (v) => {
+    if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return { ok: false, error: 'Invalid date' };
+    if (d >= new Date()) return { ok: false, error: 'Date of birth must be in the past' };
+    return { ok: true, coerced: d };
+  };
+}
+
+function ifscValidator(): Validator {
+  return (v) => {
+    if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
+    const upper = v.trim().toUpperCase();
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(upper)) return { ok: false, error: 'Invalid IFSC format' };
+    return { ok: true, coerced: upper };
+  };
+}
+
+function enumValidator(values: string[], label: string): Validator {
+  const valid = new Set(values);
+  return (v) => {
+    if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
+    if (!valid.has(v)) return { ok: false, error: `Invalid ${label}` };
+    return { ok: true, coerced: v };
+  };
+}
+
+function pastDateValidator(label: string): Validator {
+  return (v) => {
+    if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return { ok: false, error: 'Invalid date' };
+    if (d >= new Date()) return { ok: false, error: `${label} must be in the past` };
+    return { ok: true, coerced: d };
+  };
+}
+
+function orgsValidator(): Validator {
+  return (v) => {
+    if (!Array.isArray(v)) return { ok: false, error: 'Must be an array' };
+    const coerced: IOrg[] = [];
+    for (const [i, org] of v.entries()) {
+      if (typeof org !== 'object' || org === null) return { ok: false, error: `Item ${i}: must be an object` };
+      if (typeof org.name !== 'string' || !org.name.trim()) return { ok: false, error: `Item ${i}: name is required` };
+      if (typeof org.duration !== 'string' || !org.duration.trim()) return { ok: false, error: `Item ${i}: duration is required` };
+      if (typeof org.current !== 'boolean') return { ok: false, error: `Item ${i}: current must be a boolean` };
+      if (org.info !== undefined && typeof org.info !== 'string') return { ok: false, error: `Item ${i}: info must be a string` };
+      coerced.push({ name: org.name.trim(), duration: org.duration.trim(), current: org.current, ...(org.info ? { info: org.info.trim() } : {}) });
+    }
+    return { ok: true, coerced };
+  };
+}
+
+function childsInfoValidator(): Validator {
+  return (v) => {
+    if (!Array.isArray(v)) return { ok: false, error: 'Must be an array' };
+    const coerced: IChildInfo[] = [];
+    for (const [i, child] of v.entries()) {
+      if (typeof child !== 'object' || child === null) return { ok: false, error: `Item ${i}: must be an object` };
+      if (typeof child.name !== 'string' || !child.name.trim()) return { ok: false, error: `Item ${i}: name is required` };
+      const d = new Date(child.dob);
+      if (isNaN(d.getTime())) return { ok: false, error: `Item ${i}: valid dob is required` };
+      coerced.push({ name: child.name.trim(), dob: d });
+    }
+    return { ok: true, coerced };
+  };
+}
+
+const FIELD_DEFS: Record<string, FieldDef> = {
+  // Core
+  welcome_ack:              { modelField: 'welcomeAck',            validate: boolValidator() },
+
+  // Personal
+  full_name:                { modelField: 'fullName',              validate: stringValidator(200) },
+  preferred_name:           { modelField: 'preferredName',         validate: stringValidator(100) },
+  email:                    { modelField: 'personalEmail',         validate: emailValidator() },
+  mobile:                   { modelField: 'mobile',                validate: stringValidator(20) },
+  dob:                      { modelField: 'dob',                   validate: dobValidator() },
+  nationality:              { modelField: 'nationality',           validate: stringValidator(100) },
+  marital_status:           { modelField: 'maritalStatus',         validate: enumValidator(Object.values(MaritalStatus), 'marital status') },
+  blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group') },
+  emergency:                { modelField: 'emergencyContact',      validate: stringValidator(300) },
+  address:                  { modelField: 'address',               validate: stringValidator(1000) },
+  present_address:          { modelField: 'presentAddress',        validate: stringValidator(1000) },
+
+  // Family
+  fathers_name:             { modelField: 'fathersName',           validate: stringValidator(200) },
+  fathers_dob:              { modelField: 'fathersDob',            validate: pastDateValidator('Date of birth') },
+  mothers_name:             { modelField: 'mothersName',           validate: stringValidator(200) },
+  mothers_dob:              { modelField: 'mothersDob',            validate: pastDateValidator('Date of birth') },
+  spouse_name:              { modelField: 'spouseName',            validate: stringValidator(200) },
+  spouse_dob:               { modelField: 'spouseDob',             validate: pastDateValidator('Date of birth') },
+  childs_info:              { modelField: 'childsInfo',            validate: childsInfoValidator() },
+
+  // Insurance
+  insurance_coverage:       { modelField: 'insuranceCoverage',     validate: enumValidator(Object.values(InsuranceCoverage), 'insurance coverage') },
+
+  // Education & Employment
+  campus_name:              { modelField: 'campusName',            validate: stringValidator(300) },
+  orgs:                     { modelField: 'orgs',                  validate: orgsValidator() },
+
+  // Bank
+  bank_name:                { modelField: 'bankName',              validate: stringValidator(200) },
+  account_holder:           { modelField: 'accountHolder',         validate: stringValidator(200) },
+  account_number:           { modelField: 'accountNumber',         validate: stringValidator(30) },
+  ifsc:                     { modelField: 'ifsc',                  validate: ifscValidator() },
+
+  // About
+  intro_line:               { modelField: 'introLine',             validate: stringValidator(300) },
+  birthday_pref:            { modelField: 'birthdayPref',          validate: enumValidator(Object.values(BirthdayPref), 'birthday preference') },
+  drink_order:              { modelField: 'drinkOrder',            validate: stringValidator(200) },
+  hobbies:                  { modelField: 'hobbies',               validate: stringValidator(500) },
+  fun_fact:                 { modelField: 'funFact',               validate: stringValidator(1000) },
+
+  // Policies
+  policy_code:              { modelField: 'policyCode',            validate: boolValidator() },
+  policy_confidentiality:   { modelField: 'policyConfidentiality', validate: boolValidator() },
+  policy_it:                { modelField: 'policyIt',              validate: boolValidator() },
+  policy_hr:                { modelField: 'policyHr',              validate: boolValidator() },
+};
+
+export type SyncResult = {
+  results: FieldResult[];
+  limitExceeded?: 'sync_requests' | 'field_updates';
+};
+
+export async function syncFormFields(
+  onboardingAuthId: Types.ObjectId,
+  fields: Record<string, unknown>,
+): Promise<SyncResult> {
+  const authUpdate = await OnboardingAuth.findByIdAndUpdate(
+    onboardingAuthId,
+    { $inc: { syncRequestCount: 1 } },
+    { returnDocument: 'after' },
+  );
+
+  if (authUpdate && authUpdate.syncRequestCount >= Limits.MAX_SYNC_REQUESTS) {
+    await OnboardingAuth.updateOne({ _id: onboardingAuthId }, { $set: { expired: true } });
+    return { results: [], limitExceeded: 'sync_requests' };
+  }
+
+  const results: FieldResult[] = [];
+  const $set: Record<string, unknown> = {};
+  const fieldIncrements: Record<string, number> = {};
+
+  for (const [fieldName, value] of Object.entries(fields)) {
+    const def = FIELD_DEFS[fieldName];
+    if (!def) {
+      results.push({ field_name: fieldName, saved: false, error: 'Unknown field' });
+      continue;
+    }
+
+    const validation = def.validate(value);
+    if (!validation.ok) {
+      results.push({ field_name: fieldName, saved: false, error: validation.error });
+      continue;
+    }
+
+    $set[def.modelField] = validation.coerced;
+    fieldIncrements[`fieldUpdateCounts.${fieldName}`] = 1;
+    results.push({ field_name: fieldName, saved: true });
+  }
+
+  if (Object.keys($set).length > 0) {
+    const updated = await OnboardingData.findOneAndUpdate(
+      { onboardingAuthId },
+      { $set, $inc: fieldIncrements },
+      { returnDocument: 'after' },
+    );
+
+    if (updated?.fieldUpdateCounts) {
+      for (const [fieldName] of Object.entries(fieldIncrements)) {
+        const field = fieldName.replace('fieldUpdateCounts.', '');
+        const count = updated.fieldUpdateCounts.get(field) ?? 0;
+        if (count >= Limits.MAX_FIELD_UPDATES) {
+          await OnboardingAuth.updateOne({ _id: onboardingAuthId }, { $set: { expired: true } });
+          return { results, limitExceeded: 'field_updates' };
+        }
+      }
+    }
+  }
+
+  return { results };
+}
