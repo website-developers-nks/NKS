@@ -12,13 +12,23 @@
   //   POST /api/admin/create-user       -> requireAdminAuth, body { email, firstName, lastName }
   //                                        201 { id, email, firstName, lastName }
   //                                        400/409/401/403/500 { error: string }
-  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, cc?, bcc?, extraContent? }
+  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, company, expirationDate, cc?, bcc?, extraContent? }
   //                                        location: OfficeLocation enum - 'gurugram' | 'gift_city' | 'dubai'
-  //                                        201 { id, onboardingKey, userId, ttl, location }
-  //                                        400 { error, validLocations? } / 404/401/403/500 { error: string }
+  //                                        company: Company enum - 'nksecurities' | 'nk securities research & tech'
+  //                                        expirationDate: ISO date string, must be in the future
+  //                                        201 { id, onboardingKey, userId, ttl, location, company, expirationDate }
+  //                                        400 { error, validLocations?, validCompanies? } / 404/401/403/500 { error: string }
   //   GET  /api/admin/get-user-list     -> requireAdminAuth
   //                                        200 [{ id, email, firstName, lastName, createdAt }, ...]
   //                                        (isAdmin: false users only, authKey never exposed)
+  //   GET  /api/admin/onboardings       -> requireAdminAuth, query { search?, status? }
+  //                                        status: 'pending' | 'completed' | 'expired'
+  //                                        200 [{ id, onboardingKey, userId, fullName, email, location, company,
+  //                                               status, ttl, expirationDate, createdAt }, ...]
+  //                                        sorted pending -> expired -> completed, newest first within each
+  //   GET  /api/admin/onboardings/:id/data -> requireAdminAuth
+  //                                        200 { user, location, fields: {...}, docs: {...}, submittedAt }
+  //                                        400/404/500 { error: string }
   var API_BASE = '/api/admin';
 
   function parseJson(res) {
@@ -192,6 +202,297 @@
       });
     }
 
+    // ---- View Onboardings (search/filter list + submitted-data viewer) ----
+
+    var LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai' };
+    function formatLocation(loc) { return LOCATION_LABELS[loc] || loc; }
+
+    var viewOnboardingsCard = document.getElementById('admin-view-onboardings-card');
+    var voSearchInput = document.getElementById('vo-search');
+    var voStatusFilter = document.getElementById('vo-status-filter');
+    var voList = document.getElementById('vo-list');
+    var onboardingsCache = [];
+
+    function setOnboardingsMessage(message) {
+      voList.innerHTML = '';
+      var p = document.createElement('p');
+      p.className = 'onboardings-message';
+      p.textContent = message;
+      voList.appendChild(p);
+    }
+
+    function renderOnboardingRow(item) {
+      var row = document.createElement('div');
+      row.className = 'onboarding-row' + (item.status === 'completed' ? ' is-clickable' : '');
+
+      var info = document.createElement('div');
+      info.className = 'onboarding-row-info';
+
+      var name = document.createElement('div');
+      name.className = 'onboarding-row-name';
+      name.textContent = item.fullName || item.email || 'Unknown user';
+      info.appendChild(name);
+
+      var metaParts = [];
+      if (item.email) metaParts.push(item.email);
+      if (item.location) metaParts.push(formatLocation(item.location));
+      if (item.createdAt) metaParts.push('Registered ' + new Date(item.createdAt).toLocaleDateString());
+
+      var meta = document.createElement('div');
+      meta.className = 'onboarding-row-meta';
+      meta.textContent = metaParts.join(' · ');
+      info.appendChild(meta);
+
+      row.appendChild(info);
+
+      var badge = document.createElement('span');
+      badge.className = 'onboarding-badge status-' + item.status;
+      badge.textContent = item.status.charAt(0).toUpperCase() + item.status.slice(1);
+      row.appendChild(badge);
+
+      if (item.status === 'completed') {
+        row.addEventListener('click', function () { openOnboardingData(item); });
+      }
+
+      return row;
+    }
+
+    function applyOnboardingsFilter() {
+      var term = voSearchInput.value.trim().toLowerCase();
+      var statusFilter = voStatusFilter.value;
+
+      var filtered = onboardingsCache.filter(function (item) {
+        if (statusFilter && item.status !== statusFilter) return false;
+        if (term) {
+          var haystack = ((item.fullName || '') + ' ' + (item.email || '')).toLowerCase();
+          if (haystack.indexOf(term) === -1) return false;
+        }
+        return true;
+      });
+
+      voList.innerHTML = '';
+      if (!filtered.length) {
+        setOnboardingsMessage('No onboardings found.');
+        return;
+      }
+      filtered.forEach(function (item) { voList.appendChild(renderOnboardingRow(item)); });
+    }
+
+    function loadOnboardings() {
+      setOnboardingsMessage('Loading onboardings…');
+
+      fetch(API_BASE + '/onboardings', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (isSessionExpired(result.status)) {
+            closeModal();
+            checkAuth();
+            return;
+          }
+          if (result.status !== 200 || !Array.isArray(result.data)) {
+            setOnboardingsMessage('Could not load onboardings.');
+            return;
+          }
+          onboardingsCache = result.data;
+          applyOnboardingsFilter();
+        })
+        .catch(function (err) {
+          console.error('[admin] onboardings fetch failed:', err);
+          setOnboardingsMessage('Could not load onboardings.');
+        });
+    }
+
+    if (viewOnboardingsCard) {
+      viewOnboardingsCard.addEventListener('click', function () {
+        showModal('admin-view-onboardings-modal');
+        voSearchInput.value = '';
+        voStatusFilter.value = '';
+        loadOnboardings();
+      });
+    }
+
+    if (voSearchInput) voSearchInput.addEventListener('input', applyOnboardingsFilter);
+    if (voStatusFilter) voStatusFilter.addEventListener('change', applyOnboardingsFilter);
+
+    var FIELD_LABELS = {
+      full_name: 'Full Name',
+      preferred_name: 'Preferred Name',
+      email: 'Personal Email',
+      mobile: 'Mobile',
+      dob: 'Date of Birth',
+      nationality: 'Nationality',
+      marital_status: 'Marital Status',
+      blood_group: 'Blood Group',
+      emergency: 'Emergency Contact',
+      address: 'Address',
+      present_address: 'Present Address',
+      fathers_name: "Father's Name",
+      fathers_dob: "Father's DOB",
+      mothers_name: "Mother's Name",
+      mothers_dob: "Mother's DOB",
+      spouse_name: 'Spouse Name',
+      spouse_dob: 'Spouse DOB',
+      insurance_coverage: 'Insurance Coverage',
+      campus_name: 'Campus Name',
+      bank_name: 'Bank Name',
+      account_holder: 'Account Holder',
+      account_number: 'Account Number',
+      ifsc: 'IFSC',
+      intro_line: 'Intro Line',
+      birthday_pref: 'Birthday Preference',
+      drink_order: 'Drink Order',
+      hobbies: 'Hobbies',
+      fun_fact: 'Fun Fact'
+    };
+
+    var BOOLEAN_FIELDS = {
+      welcome_ack: 'Welcome Acknowledged',
+      policy_code: 'Code of Conduct Policy',
+      policy_confidentiality: 'Confidentiality Policy',
+      policy_it: 'IT Policy',
+      policy_hr: 'HR Policy'
+    };
+
+    var DOC_LABELS = {
+      pan_doc: 'PAN Card',
+      id_doc: 'ID Proof',
+      address_doc: 'Address Proof',
+      photo_doc: 'Photo',
+      higher_secondary_doc: 'Higher Secondary Certificate',
+      highest_degree_doc: 'Highest Degree Certificate',
+      resume_doc: 'Resume',
+      offer_letter_doc: 'Offer Letter',
+      last_increment_doc: 'Last Increment Letter',
+      salary_slip_doc: 'Salary Slip',
+      bonus_letter_doc: 'Bonus Letter',
+      experience_letter_doc: 'Experience Letter',
+      relieving_letter_doc: 'Relieving Letter',
+      bank_doc: 'Bank Document'
+    };
+
+    function appendDataField(grid, label, value) {
+      var fieldEl = document.createElement('div');
+      fieldEl.className = 'onboarding-data-field';
+      var labelEl = document.createElement('label');
+      labelEl.textContent = label;
+      var span = document.createElement('span');
+      span.textContent = (value === null || value === undefined || value === '') ? '—' : String(value);
+      fieldEl.appendChild(labelEl);
+      fieldEl.appendChild(span);
+      grid.appendChild(fieldEl);
+    }
+
+    function renderOnboardingData(container, data) {
+      container.innerHTML = '';
+
+      var user = data.user;
+      var summaryParts = [];
+      if (user) summaryParts.push(user.fullName + ' (' + user.email + ')');
+      if (data.location) summaryParts.push(formatLocation(data.location));
+      if (data.submittedAt) summaryParts.push('Submitted ' + new Date(data.submittedAt).toLocaleString());
+
+      var summary = document.createElement('p');
+      summary.className = 'body-text';
+      summary.textContent = summaryParts.join(' · ');
+      container.appendChild(summary);
+
+      var fieldsSection = document.createElement('div');
+      fieldsSection.className = 'onboarding-data-section';
+      var fieldsHeading = document.createElement('h4');
+      fieldsHeading.textContent = 'Details';
+      fieldsSection.appendChild(fieldsHeading);
+
+      var grid = document.createElement('div');
+      grid.className = 'onboarding-data-grid';
+      var fields = data.fields || {};
+
+      Object.keys(FIELD_LABELS).forEach(function (key) {
+        appendDataField(grid, FIELD_LABELS[key], fields[key]);
+      });
+
+      Object.keys(BOOLEAN_FIELDS).forEach(function (key) {
+        var value = fields[key];
+        appendDataField(grid, BOOLEAN_FIELDS[key], value === null || value === undefined ? null : (value ? 'Yes' : 'No'));
+      });
+
+      if (fields.childs_info && fields.childs_info.length) {
+        appendDataField(grid, 'Children', fields.childs_info.map(function (c) {
+          return c.name + (c.dob ? ' (' + c.dob + ')' : '');
+        }).join(', '));
+      }
+
+      if (fields.orgs && fields.orgs.length) {
+        appendDataField(grid, 'Employment History', fields.orgs.map(function (o) {
+          return o.name + ' (' + o.duration + ')';
+        }).join('; '));
+      }
+
+      fieldsSection.appendChild(grid);
+      container.appendChild(fieldsSection);
+
+      var docsSection = document.createElement('div');
+      docsSection.className = 'onboarding-data-section';
+      var docsHeading = document.createElement('h4');
+      docsHeading.textContent = 'Documents';
+      docsSection.appendChild(docsHeading);
+
+      var docsGrid = document.createElement('div');
+      docsGrid.className = 'onboarding-data-grid';
+      var docs = data.docs || {};
+
+      Object.keys(DOC_LABELS).forEach(function (key) {
+        var doc = docs[key];
+        appendDataField(docsGrid, DOC_LABELS[key], doc ? doc.name : null);
+      });
+
+      docsSection.appendChild(docsGrid);
+      container.appendChild(docsSection);
+    }
+
+    function openOnboardingData(item) {
+      showModal('admin-onboarding-data-modal');
+
+      var title = document.getElementById('vod-title');
+      var body = document.getElementById('vod-body');
+      title.textContent = (item.fullName || item.email || 'Onboarding') + ' — Submitted Data';
+      body.innerHTML = '<p class="onboardings-message">Loading…</p>';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/data', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (isSessionExpired(result.status)) {
+            closeModal();
+            checkAuth();
+            return;
+          }
+          if (result.status !== 200 || !result.data) {
+            body.innerHTML = '';
+            var p = document.createElement('p');
+            p.className = 'onboardings-message';
+            p.textContent = (result.data && result.data.error) || 'Could not load onboarding data.';
+            body.appendChild(p);
+            return;
+          }
+          renderOnboardingData(body, result.data);
+        })
+        .catch(function (err) {
+          console.error('[admin] onboarding data fetch failed:', err);
+          body.innerHTML = '';
+          var p = document.createElement('p');
+          p.className = 'onboardings-message';
+          p.textContent = 'Could not load onboarding data.';
+          body.appendChild(p);
+        });
+    }
+
     function checkAuth() {
       showPanel('admin-loading-panel');
 
@@ -234,6 +535,12 @@
     function clearFormStatus(el) {
       el.classList.remove('is-visible', 'is-success', 'is-error');
       el.textContent = '';
+    }
+
+    function sessionLengthToSeconds(value) {
+      var match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value || '');
+      if (!match) return null;
+      return parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60;
     }
 
     // register-onboarding's cc/bcc accept a single address string or an array -
@@ -474,16 +781,46 @@
     var registerOnboardingSubmitBtn = document.getElementById('admin-register-onboarding-submit');
     var registerOnboardingStatus = document.getElementById('admin-register-onboarding-status');
 
+    // Expiration must be at least tomorrow - set min so the date picker itself
+    // blocks today/past dates instead of only catching it on submit.
+    var expirationDateInput = document.getElementById('ro-expiration-date');
+    if (expirationDateInput) {
+      var tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      var minYear = tomorrow.getFullYear();
+      var minMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      var minDay = String(tomorrow.getDate()).padStart(2, '0');
+      expirationDateInput.min = minYear + '-' + minMonth + '-' + minDay;
+    }
+
+    // <input type="time"/date"> only open their picker when the calendar/clock
+    // icon itself is clicked - showPicker() lets a click anywhere in the field do it.
+    ['ro-ttl', 'ro-expiration-date'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && typeof el.showPicker === 'function') {
+        el.addEventListener('click', function () {
+          try { el.showPicker(); } catch (e) {}
+        });
+      }
+    });
+
     if (registerOnboardingForm) {
       registerOnboardingForm.addEventListener('submit', function (event) {
         event.preventDefault();
         clearFormStatus(registerOnboardingStatus);
 
+        var company = document.getElementById('ro-company').value.trim();
         var userId = document.getElementById('ro-user-id').value.trim();
         var location = document.getElementById('ro-location').value.trim();
-        var ttl = parseInt(document.getElementById('ro-ttl').value, 10);
-        if (!userId || !location || !ttl || ttl <= 0) {
-          setFormStatus(registerOnboardingStatus, 'Please select a user, a location, and enter a positive TTL in seconds.', 'error');
+        var ttl = sessionLengthToSeconds(document.getElementById('ro-ttl').value);
+        var expirationDate = document.getElementById('ro-expiration-date').value;
+        if (!company || !userId || !location || !ttl || ttl <= 0 || !expirationDate) {
+          setFormStatus(registerOnboardingStatus, 'Please select a company, a user, a location, enter a valid session length (HH:MM), and choose an expiration date.', 'error');
+          return;
+        }
+
+        if (new Date(expirationDate).getTime() <= Date.now()) {
+          setFormStatus(registerOnboardingStatus, 'Expiration date must be in the future.', 'error');
           return;
         }
 
@@ -491,7 +828,7 @@
         var bcc = parseEmailListInput(document.getElementById('ro-bcc').value);
         var extraContentRaw = document.getElementById('ro-extra-content').value.trim();
 
-        var payload = { userId: userId, location: location, ttl: ttl };
+        var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
         if (cc) payload.cc = cc;
         if (bcc) payload.bcc = bcc;
         // Sent as already-safe HTML (markdown converted client-side) - see

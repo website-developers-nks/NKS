@@ -1,8 +1,8 @@
-export { BaseEmail, getSenderByLocation } from './base.email';
+export { BaseEmail, getSenderByCompany } from './base.email';
 export type { EmailAddress, BaseEmailInit } from './base.email';
 
-export { emailEngine, emailEngineIndia, emailEngineDubai, getEmailEngineByLocation, EmailEngine } from './email.engine';
-export type { SendResult, EmailPreview, EmailRegion } from './email.engine';
+export { emailEngine, emailEngineNKSR,emailEngineNKSRT, getEmailEngineByCompany, EmailEngine } from './email.engine';
+export type { SendResult, EmailPreview } from './email.engine';
 
 export { WelcomeEmail } from './emails/welcome.email';
 export type { WelcomeEmailData } from './emails/welcome.email';

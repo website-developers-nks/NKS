@@ -3,14 +3,26 @@ import { randomUUID, timingSafeEqual } from 'crypto';
 import { Types } from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
-import { User } from '../db/models/user.model';
-import { OnboardingAuth, OfficeLocation } from '../db/models/onboarding-auth.model';
+import { User, IUser } from '../db/models/user.model';
+import { OnboardingAuth, OfficeLocation, Company } from '../db/models/onboarding-auth.model';
+import { OnboardingData } from '../db/models/onboarding-data.model';
 import { requireAdminAuth } from '../middleware/admin-auth.middleware';
-import { getEmailEngineByLocation, getSenderByLocation } from '../email';
+import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingInviteEmail } from '../email/emails/onboarding-invite.email';
 import { getCompanyName } from '../email/base.email';
 
 const router = Router();
+
+const ONBOARDING_DOC_FIELDS = [
+  'panDoc', 'idDoc', 'addressDoc', 'photoDoc',
+  'higherSecondaryDoc', 'highestDegreeDoc',
+  'resumeDoc', 'offerLetterDoc', 'lastIncrementDoc',
+  'salarySlipDoc', 'bonusLetterDoc', 'experienceLetterDoc', 'relievingLetterDoc',
+  'bankDoc',
+];
+
+type OnboardingStatus = 'pending' | 'completed' | 'expired';
+const ONBOARDING_STATUS_ORDER: Record<OnboardingStatus, number> = { pending: 0, expired: 1, completed: 2 };
 
 const EXTRA_CONTENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -86,24 +98,43 @@ router.post('/create-user', requireAdminAuth, async (req: Request, res: Response
 });
 
 router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: Response) => {
-  const { userId, ttl, location, cc, bcc, extraContent } = req.body as {
+  const { userId, ttl, location, company, cc, bcc, extraContent, expirationDate } = req.body as {
     userId?: string;
     ttl?: number;
     location?: string;
+    company?: string;
     cc?: string | string[];
     bcc?: string | string[];
     extraContent?: string;
+    expirationDate?: string;
   };
 
   const validLocations = Object.values(OfficeLocation);
+  const validCompanies = Object.values(Company);
 
   if (!userId || !ttl || typeof ttl !== 'number' || ttl <= 0) {
     res.status(400).json({ error: 'userId and a positive numeric ttl are required.' });
     return;
   }
 
+  if (!company || !validCompanies.includes(company as Company)) {
+    res.status(400).json({ error: 'company is required.', validCompanies });
+    return;
+  }
+
   if (!location || !validLocations.includes(location as OfficeLocation)) {
     res.status(400).json({ error: 'location is required.', validLocations });
+    return;
+  }
+
+  if (!expirationDate || Number.isNaN(Date.parse(expirationDate))) {
+    res.status(400).json({ error: 'A valid expirationDate is required.' });
+    return;
+  }
+
+  const parsedExpirationDate = new Date(expirationDate);
+  if (parsedExpirationDate.getTime() <= Date.now()) {
+    res.status(400).json({ error: 'expirationDate must be in the future.' });
     return;
   }
 
@@ -120,17 +151,24 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
 
   try {
     const onboardingKey = randomUUID();
-    const auth = await OnboardingAuth.create({ onboardingKey, user: user._id, ttl, location: location as OfficeLocation });
+    const auth = await OnboardingAuth.create({
+      onboardingKey,
+      user: user._id,
+      ttl,
+      location: location as OfficeLocation,
+      company: company as Company,
+      expirationDate: parsedExpirationDate,
+    });
 
-    const baseUrl = location == OfficeLocation.Dubai ? (process.env.ONBOARDING_BASE_URL_DUBAI??"https://nksresearchtech.com")  : (process.env.ONBOARDING_BASE_URL ?? 'https://nksecurities.com');
+    const baseUrl = company == Company.NKSRT ? (process.env.ONBOARDING_BASE_URL_DUBAI??"https://nksresearchtech.com")  : (process.env.ONBOARDING_BASE_URL ?? 'https://nksecurities.com');
     const onboardingUrl = `${baseUrl}/verify-onboarding.html?id=${onboardingKey}`;
 
     const toAddr = (v: string) => ({ address: v });
     const normalizeAddr = (v: string | string[] | undefined) =>
       v ? (Array.isArray(v) ? v.map(toAddr) : toAddr(v)) : undefined;
 
-    const sender = getSenderByLocation(auth.location);
-    await getEmailEngineByLocation(auth.location).send(
+    const sender = getSenderByCompany(auth.company);
+    await getEmailEngineByCompany(auth.company).send(
       new OnboardingInviteEmail(
         { name: `${user.firstName} ${user.lastName}`, address: user.email },
         {
@@ -138,7 +176,7 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
           onboardingUrl,
           extraContent: extraContent ? sanitizeHtml(extraContent, EXTRA_CONTENT_SANITIZE_OPTIONS) : undefined,
         },
-        { from: sender, cc: normalizeAddr(cc), bcc: normalizeAddr(bcc), subject:`Complete your onboarding - ${getCompanyName(auth.location)}` },
+        { from: sender, cc: normalizeAddr(cc), bcc: normalizeAddr(bcc), subject:`Complete your onboarding - ${getCompanyName(auth.company)}` },
       ),
     );
 
@@ -148,6 +186,8 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
       userId: (user._id as object).toString(),
       ttl: auth.ttl,
       location: auth.location,
+      company: auth.company,
+      expirationDate: auth.expirationDate,
     });
   } catch (err: unknown) {
     console.error('[admin/register-onboarding]', err);
@@ -175,7 +215,7 @@ const ADMIN_COOKIE = 'admin-auth';
 const ADMIN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.COOKIE_SECURE === 'true',
-  sameSite: 'strict' as const,
+  sameSite: (process.env.COOKIE_SAME_SITE_NONE==='true' ? 'none' : 'strict') as ('none' | 'strict'),
   path: '/',
   maxAge: 8 * 60 * 60 * 1000,
 };
@@ -222,6 +262,165 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[admin/login]', err);
     res.status(500).json({ error: 'Login failed.' });
+  }
+});
+
+router.get('/onboardings', requireAdminAuth, async (req: Request, res: Response) => {
+  const { search, status } = req.query as { search?: string; status?: string };
+
+  try {
+    const auths = await OnboardingAuth.find()
+      .populate<{ user: IUser }>('user', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const now = Date.now();
+    const computeStatus = (auth: (typeof auths)[number]): OnboardingStatus => {
+      if (auth.completed) return 'completed';
+      const isExpired = auth.expired || (!!auth.expirationDate && new Date(auth.expirationDate).getTime() < now);
+      return isExpired ? 'expired' : 'pending';
+    };
+
+    const searchTerm = search?.trim().toLowerCase();
+
+    const list = auths
+      .map((auth) => {
+        const user = auth.user as IUser | undefined;
+        return {
+          id: (auth._id as object).toString(),
+          onboardingKey: auth.onboardingKey,
+          userId: user ? (user._id as object).toString() : null,
+          fullName: user ? `${user.firstName} ${user.lastName}` : null,
+          email: user ? user.email : null,
+          location: auth.location,
+          company: auth.company,
+          status: computeStatus(auth),
+          ttl: auth.ttl,
+          expirationDate: auth.expirationDate,
+          createdAt: auth.createdAt,
+        };
+      })
+      .filter((item) => {
+        if (status && item.status !== status) return false;
+        if (searchTerm) {
+          const haystack = `${item.fullName ?? ''} ${item.email ?? ''}`.toLowerCase();
+          if (!haystack.includes(searchTerm)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const orderDiff = ONBOARDING_STATUS_ORDER[a.status] - ONBOARDING_STATUS_ORDER[b.status];
+        if (orderDiff !== 0) return orderDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+    res.json(list);
+  } catch (err) {
+    console.error('[admin/onboardings]', err);
+    res.status(500).json({ error: 'Failed to fetch onboardings.' });
+  }
+});
+
+router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+
+  if (!Types.ObjectId.isValid(id)) {
+    res.status(400).json({ error: 'Invalid onboarding id.' });
+    return;
+  }
+
+  try {
+    const auth = await OnboardingAuth.findById(id).populate<{ user: IUser }>('user', 'firstName lastName email');
+    if (!auth) {
+      res.status(404).json({ error: 'Onboarding not found.' });
+      return;
+    }
+
+    const data = await OnboardingData.findOne({ onboardingAuthId: auth._id })
+      .populate(ONBOARDING_DOC_FIELDS, '_id originalName')
+      .lean();
+
+    if (!data) {
+      res.status(404).json({ error: 'No onboarding data found.' });
+      return;
+    }
+
+    const formatDate = (d: Date | undefined): string | null => (d ? new Date(d).toISOString().slice(0, 10) : null);
+
+    const docEntry = (ref: unknown): { id: string; name: string } | null => {
+      if (ref && typeof ref === 'object' && 'originalName' in (ref as object)) {
+        const d = ref as { _id: object; originalName: string };
+        return { id: d._id.toString(), name: d.originalName };
+      }
+      return null;
+    };
+
+    const user = auth.user as IUser | undefined;
+
+    res.json({
+      user: user
+        ? { id: (user._id as object).toString(), fullName: `${user.firstName} ${user.lastName}`, email: user.email }
+        : null,
+      location: auth.location,
+      company: auth.company,
+      fields: {
+        welcome_ack:            data.welcomeAck ?? null,
+        full_name:              data.fullName ?? null,
+        preferred_name:         data.preferredName ?? null,
+        email:                  data.personalEmail ?? null,
+        mobile:                 data.mobile ?? null,
+        dob:                    formatDate(data.dob),
+        nationality:            data.nationality ?? null,
+        marital_status:         data.maritalStatus ?? null,
+        blood_group:            data.bloodGroup ?? null,
+        emergency:              data.emergencyContact ?? null,
+        address:                data.address ?? null,
+        present_address:        data.presentAddress ?? null,
+        fathers_name:           data.fathersName ?? null,
+        fathers_dob:            formatDate(data.fathersDob),
+        mothers_name:           data.mothersName ?? null,
+        mothers_dob:            formatDate(data.mothersDob),
+        spouse_name:            data.spouseName ?? null,
+        spouse_dob:             formatDate(data.spouseDob),
+        childs_info:            data.childsInfo?.map(c => ({ name: c.name, dob: formatDate(c.dob) })) ?? null,
+        insurance_coverage:     data.insuranceCoverage ?? null,
+        campus_name:            data.campusName ?? null,
+        orgs:                   data.orgs ?? null,
+        bank_name:              data.bankName ?? null,
+        account_holder:         data.accountHolder ?? null,
+        account_number:         data.accountNumber ?? null,
+        ifsc:                   data.ifsc ?? null,
+        intro_line:             data.introLine ?? null,
+        birthday_pref:          data.birthdayPref ?? null,
+        drink_order:            data.drinkOrder ?? null,
+        hobbies:                data.hobbies ?? null,
+        fun_fact:               data.funFact ?? null,
+        policy_code:            data.policyCode ?? null,
+        policy_confidentiality: data.policyConfidentiality ?? null,
+        policy_it:              data.policyIt ?? null,
+        policy_hr:              data.policyHr ?? null,
+      },
+      docs: {
+        pan_doc:               docEntry(data.panDoc),
+        id_doc:                docEntry(data.idDoc),
+        address_doc:           docEntry(data.addressDoc),
+        photo_doc:             docEntry(data.photoDoc),
+        higher_secondary_doc:  docEntry(data.higherSecondaryDoc),
+        highest_degree_doc:    docEntry(data.highestDegreeDoc),
+        resume_doc:            docEntry(data.resumeDoc),
+        offer_letter_doc:      docEntry(data.offerLetterDoc),
+        last_increment_doc:    docEntry(data.lastIncrementDoc),
+        salary_slip_doc:       docEntry(data.salarySlipDoc),
+        bonus_letter_doc:      docEntry(data.bonusLetterDoc),
+        experience_letter_doc: docEntry(data.experienceLetterDoc),
+        relieving_letter_doc:  docEntry(data.relievingLetterDoc),
+        bank_doc:              docEntry(data.bankDoc),
+      },
+      submittedAt: data.submittedAt ?? null,
+    });
+  } catch (err) {
+    console.error('[admin/onboardings/:id/data]', err);
+    res.status(500).json({ error: 'Failed to fetch onboarding data.' });
   }
 });
 

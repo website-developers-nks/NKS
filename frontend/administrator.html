@@ -270,6 +270,7 @@
     }
 
     .admin-action-card h3 {
+      font-size: 22px;
       margin-bottom: 8px;
     }
 
@@ -309,6 +310,11 @@
       padding: 40px 32px 32px;
       z-index: 1;
       text-align: left;
+    }
+
+    .admin-modal-dialog h3 {
+      font-size: 28px;
+      margin-bottom: 8px;
     }
 
     .admin-modal-dialog .form-group input::placeholder,
@@ -582,6 +588,179 @@
         max-width: none;
       }
     }
+
+    .onboardings-toolbar {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .onboardings-toolbar #vo-search {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    .onboardings-toolbar #vo-search:focus {
+      border-color: var(--accent);
+    }
+
+    .onboardings-filter {
+      width: 180px;
+      flex-shrink: 0;
+    }
+
+    .onboardings-filter select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px 10px 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      color: var(--text-primary);
+      transition: border-color 0.3s ease;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .onboardings-filter select:focus {
+      border-color: var(--accent);
+    }
+
+    .onboardings-filter select option {
+      color: var(--text-primary);
+      background: var(--surface);
+    }
+
+    .onboardings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+
+    .onboardings-message {
+      text-align: center;
+      padding: 24px 0;
+      color: var(--text-secondary);
+    }
+
+    .onboarding-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+    }
+
+    .onboarding-row.is-clickable {
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .onboarding-row.is-clickable:hover {
+      border-color: var(--accent);
+    }
+
+    .onboarding-row-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .onboarding-row-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .onboarding-row-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .onboarding-badge {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .onboarding-badge.status-pending {
+      background: rgba(230, 160, 20, 0.15);
+      color: #b8860b;
+    }
+
+    .onboarding-badge.status-completed {
+      background: rgba(46, 125, 50, 0.12);
+      color: #2e7d32;
+    }
+
+    .onboarding-badge.status-expired {
+      background: rgba(200, 35, 35, 0.12);
+      color: #c62828;
+    }
+
+    .onboarding-data-body {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .onboarding-data-section + .onboarding-data-section {
+      margin-top: 24px;
+    }
+
+    .onboarding-data-section h4 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      font-family: 'Instrument Serif', Georgia, serif;
+      color: var(--text-primary);
+    }
+
+    .onboarding-data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px 24px;
+    }
+
+    .onboarding-data-field label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .onboarding-data-field span {
+      display: block;
+      font-size: 14px;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -696,6 +875,18 @@
             <h3>Register Onboarding</h3>
             <p class="body-text">Generate an onboarding link for an existing user.</p>
           </button>
+
+          <button type="button" class="admin-action-card" id="admin-view-onboardings-card">
+            <div class="admin-action-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/>
+                <path d="M3.5 9h17"/>
+                <path d="M7 4.5v-2M17 4.5v-2"/>
+              </svg>
+            </div>
+            <h3>View Onboardings</h3>
+            <p class="body-text">Search and review onboarding links and their status.</p>
+          </button>
         </div>
       </div>
 
@@ -749,6 +940,16 @@
       <form class="admin-form register-onboarding-form-grid" id="admin-register-onboarding-form" novalidate>
         <div class="ro-form-left">
           <div class="form-group">
+            <label for="ro-company">Company</label>
+            <div class="select-wrapper">
+              <select id="ro-company" name="company" required>
+                <option value="" disabled selected>Select a company…</option>
+                <option value="nksecurities">NK Securities (NKSR)</option>
+                <option value="nk securities research & tech">NK Securities Research &amp; Tech (NKSRT)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
             <label for="ro-user-id">User</label>
             <div class="select-wrapper">
               <select id="ro-user-id" name="userId" required>
@@ -768,8 +969,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="ro-ttl">TTL (seconds)</label>
-            <input type="number" id="ro-ttl" name="ttl" min="1" step="1" required>
+            <label for="ro-ttl">Session Length (HH:MM)</label>
+            <input type="time" id="ro-ttl" name="sessionLength" min="00:01" max="23:59" step="60" value="10:00" required>
+          </div>
+          <div class="form-group">
+            <label for="ro-expiration-date">Expiration Date</label>
+            <input type="date" id="ro-expiration-date" name="expirationDate" required>
           </div>
           <div class="form-group">
             <label for="ro-cc">CC (optional)</label>
@@ -801,6 +1006,38 @@
         <button type="submit" class="form-submit" id="admin-register-onboarding-submit">Register Onboarding</button>
         <div class="form-status" id="admin-register-onboarding-status" role="alert" aria-live="polite"></div>
       </form>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-view-onboardings-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="View onboardings">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3>Onboardings</h3>
+      <p class="body-text">Search and filter registered onboarding links. Click a completed onboarding to view its submitted data.</p>
+
+      <div class="onboardings-toolbar">
+        <input type="text" id="vo-search" placeholder="Search by name or email…">
+        <div class="select-wrapper onboardings-filter">
+          <select id="vo-status-filter">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="expired">Expired</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="onboardings-list" id="vo-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-onboarding-data-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Onboarding data">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="vod-title">Onboarding Data</h3>
+      <div class="onboarding-data-body" id="vod-body"></div>
     </div>
   </div>
 

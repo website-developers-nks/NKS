@@ -60,6 +60,12 @@ export async function requireOnboardingAuth(
     return;
   }
 
+  if (record.expirationDate && record.expirationDate.getTime() < Date.now()) {
+    await OnboardingAuth.updateOne({ _id: record._id }, { $set: { expired: true } });
+    res.status(401).json({ error: 'Unauthorized.', reason: 'expired' });
+    return;
+  }
+
   const elapsedSeconds = (Date.now() - record.lastVerified.getTime()) / 1000;
   if (elapsedSeconds > record.ttl) {
     res.status(401).json({ error: 'Unauthorized.', reason: 'ttl_expired' });

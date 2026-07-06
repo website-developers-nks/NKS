@@ -1,8 +1,6 @@
 import nodemailer, { Transporter, SentMessageInfo } from 'nodemailer';
 import { BaseEmail } from './base.email';
-import { OfficeLocation } from '../db/models/onboarding-auth.model';
-
-export type EmailRegion = 'india' | 'dubai';
+import { Company, OfficeLocation } from '../db/models/onboarding-auth.model';
 
 export interface SendResult {
   messageId: string;
@@ -29,8 +27,8 @@ interface SmtpConfig {
   fromAddress: string;
 }
 
-function getSmtpConfig(region: EmailRegion): SmtpConfig {
-  if (region === 'dubai') {
+function getSmtpConfig(company: Company): SmtpConfig {
+  if (company === Company.NKSRT) {
     return {
       host: process.env.SMTP_DUBAI_HOST ?? '',
       port: Number(process.env.SMTP_DUBAI_PORT ?? 587),
@@ -52,9 +50,9 @@ function getSmtpConfig(region: EmailRegion): SmtpConfig {
   };
 }
 
-function buildTransport(region: EmailRegion): Transporter {
+function buildTransport(company: Company): Transporter {
   const isDev = process.env.NODE_ENV !== 'production';
-  const config = getSmtpConfig(region);
+  const config = getSmtpConfig(company);
 
   if (isDev && !config.host) {
     // Ethereal test account — logs preview URL to console in development
@@ -81,12 +79,12 @@ function buildTransport(region: EmailRegion): Transporter {
 
 export class EmailEngine {
   private readonly transporter: Transporter;
-  public readonly region: EmailRegion;
+  public readonly company: Company;
 
-  constructor(region: EmailRegion = 'india') {
-    this.region = region;
-    this.transporter = buildTransport(region);
-    const config = getSmtpConfig(region);
+  constructor(company: Company = Company.NKSR) {
+    this.company = company;
+    this.transporter = buildTransport(company);
+    const config = getSmtpConfig(company);
   }
 
   /**
@@ -100,13 +98,13 @@ export class EmailEngine {
       bcc: email.bcc,
       replyTo: email.replyTo,
       subject: email.subject,
-      html: email.buildHtml(this.region),
-      text: email.buildText(this.region),
+      html: email.buildHtml(this.company),
+      text: email.buildText(this.company),
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (previewUrl) {
-      console.log(`[EmailEngine:${this.region}] Preview: ${previewUrl}`);
+      console.log(`[EmailEngine:${this.company}] Preview: ${previewUrl}`);
     }
 
     return {
@@ -137,21 +135,21 @@ export class EmailEngine {
 }
 
 // Singleton instances for each region
-export const emailEngineIndia = new EmailEngine('india');
-export const emailEngineDubai = new EmailEngine('dubai');
+export const emailEngineNKSR = new EmailEngine(Company.NKSR);
+export const emailEngineNKSRT = new EmailEngine(Company.NKSRT);
 
 // Default export (India) for backward compatibility
-export const emailEngine = emailEngineIndia;
+export const emailEngine = emailEngineNKSR;
 
 /**
  * Get the appropriate email engine based on location.
  * @param location - Office location string (gurugram, gift_city, dubai)
  * @returns The email engine for the corresponding region
  */
-export function getEmailEngineByLocation(location: OfficeLocation): EmailEngine {
-  if (location === OfficeLocation.Dubai) {
-    return emailEngineDubai;
+export function getEmailEngineByCompany(company:Company): EmailEngine {
+  if (company === Company.NKSRT) {
+    return emailEngineNKSRT;
   }
   // Gurugram, Gift City, or any other location defaults to India
-  return emailEngineIndia;
+  return emailEngineNKSR;
 }

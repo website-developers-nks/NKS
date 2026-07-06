@@ -1,3 +1,4 @@
+import { Company } from '../../db/models/onboarding-auth.model';
 import { BaseEmail, BaseEmailInit, EmailAddress, getSupportEmail } from '../base.email';
 import { divider, emailLayout } from '../layout';
 
@@ -30,9 +31,9 @@ export class OtpEmail extends BaseEmail {
     this.data = data;
   }
 
-  buildHtml(region?:string): string {
+  buildHtml(company:Company): string {
     const label = PURPOSE_LABEL[this.data.purpose] ?? this.data.purpose;
-    const supportEmail = getSupportEmail(region)
+    const supportEmail = getSupportEmail(company)
     const content = `
       <h2 style="margin:0 0 8px;font-size:22px;color:#0a0a0a;">Verification Code</h2>
       <p style="margin:0 0 32px;color:#555;">
@@ -67,7 +68,7 @@ export class OtpEmail extends BaseEmail {
 
     return emailLayout(content, {
       preheader: `Your one-time verification code: ${this.data.otp}`,
-      region:region
+      company
     });
   }
 }

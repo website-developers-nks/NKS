@@ -1,3 +1,4 @@
+import { Company } from '../../db/models/onboarding-auth.model';
 import { BaseEmail, BaseEmailInit, EmailAddress } from '../base.email';
 import { divider, emailLayout } from '../layout';
 
@@ -19,7 +20,7 @@ export class OnboardingSubmittedEmail extends BaseEmail {
     this.data = data;
   }
 
-  buildHtml(region?:string): string {
+  buildHtml(company:Company): string {
     const content = `
       <h2 style="margin:0 0 8px;font-size:24px;color:#0a0a0a;">You're all set, ${this.data.firstName}.</h2>
       <p style="margin:0 0 16px;color:#555;">
@@ -29,7 +30,7 @@ export class OnboardingSubmittedEmail extends BaseEmail {
     `;
     return emailLayout(content, {
       preheader: `Your onboarding is complete, ${this.data.firstName}. We have everything we need.`,
-      region:region
+      company
     });
   }
 }

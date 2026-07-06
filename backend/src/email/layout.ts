@@ -1,21 +1,22 @@
+import { Company } from "../db/models/onboarding-auth.model";
 import { getCompanyName } from "./base.email";
 
 const YEAR = new Date().getFullYear();
 
 interface LayoutOptions {
   preheader?: string;
-  region?:string;
+  company?:Company;
 }
 
 /**
  * Wraps email body content in the shared NK Securities HTML shell.
  * All templates call this — keeps branding consistent and avoids boilerplate.
  */
-export function emailLayout(content: string, { preheader,region }: LayoutOptions = {}): string {
+export function emailLayout(content: string, { preheader, company }: LayoutOptions = {}): string {
   const preheaderHtml = preheader
     ? `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${preheader}&nbsp;</div>`
     : '';
-  const company = getCompanyName(region);
+  const companyName = getCompanyName(company);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -42,7 +43,7 @@ export function emailLayout(content: string, { preheader,region }: LayoutOptions
           <tr>
             <td style="background:#0a0a0a;padding:24px 40px;">
               <span style="color:#e2b94b;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;">
-                ${company}
+                ${companyName}
               </span>
             </td>
           </tr>
@@ -58,7 +59,7 @@ export function emailLayout(content: string, { preheader,region }: LayoutOptions
           <tr>
             <td style="background:#fafafa;border-top:1px solid #ebebeb;padding:24px 40px;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#888;line-height:1.6;">
-                &copy; ${YEAR} ${company}. All rights reserved.<br />
+                &copy; ${YEAR} ${companyName}. All rights reserved.<br />
                 This is an automated message — please do not reply directly to this email.
               </p>
             </td>

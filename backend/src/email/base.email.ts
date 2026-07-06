@@ -1,3 +1,5 @@
+import { Company } from "../db/models/onboarding-auth.model";
+
 export interface EmailAddress {
   name?: string;
   address: string;
@@ -13,34 +15,30 @@ export interface BaseEmailInit {
 }
 
 
-export function getCompanyName(region?:string):string{
-  if(region && region=='dubai'){
+export function getCompanyName(company?:Company):string{
+  if(company && company===Company.NKSRT){
     return "NKS Research & Technology"
   }
-  return "NK Securities"
+  return "NK Securities Research"
 }
 
 
-export function getSupportEmail(location?:string):string{
-  if(location && location==='dubain'){
+export function getSupportEmail(company?:Company):string{
+  if(company && company===Company.NKSRT){
     return process.env.SUPPORT_EMAIL_DUBAI ?? "-"
   }
   return process.env.SUPPORT_EMAIL_INDIA ?? "-"
 }
 
 
-/**
- * Get sender address based on region/location.
- * @param location - Office location (gurugram, gift_city, dubai) or region (india, dubai)
- */
-export function getSenderByLocation(location?: string): EmailAddress {
-  if (location === 'dubai') {
+
+export function getSenderByCompany(company?:Company): EmailAddress {
+  if (company === Company.NKSRT) {
     return {
       name: process.env.SMTP_DUBAI_FROM_NAME ?? 'NKS Research & Technology',
       address: process.env.SMTP_DUBAI_FROM_ADDRESS ?? 'no-reply@nksecurities.ae',
     };
   }
-  // Default to India (gurugram, gift_city, or any other)
   return {
     name: process.env.SMTP_INDIA_FROM_NAME ?? 'NK Securities Research',
     address: process.env.SMTP_INDIA_FROM_ADDRESS ?? 'no-reply@nksecurities.com',
@@ -48,8 +46,7 @@ export function getSenderByLocation(location?: string): EmailAddress {
 }
 
 function defaultSender(): EmailAddress {
-  // Default to India sender for backward compatibility
-  return getSenderByLocation('india');
+  return getSenderByCompany(Company.NKSR);
 }
 
 export abstract class BaseEmail {

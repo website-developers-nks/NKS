@@ -6,7 +6,7 @@ import { syncFormFields } from '../services/sync-form.service';
 import { OnboardingAuth, OfficeLocation } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
-import { getEmailEngineByLocation, getSenderByLocation } from '../email';
+import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingSubmittedEmail } from '../email/emails/onboarding-submitted.email';
 import { IUser } from '../db/models/user.model';
 import { Limits } from '../lib/limits';
@@ -17,7 +17,7 @@ const COOKIE_NAME = 'onboarding-auth';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.COOKIE_SECURE === 'true',
-  sameSite: 'strict' as const,
+  sameSite: (process.env.COOKIE_SAME_SITE_NONE==='true' ? 'none' : 'strict') as ('none' | 'strict'),
   path: '/',
 };
 
@@ -245,8 +245,8 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     ]);
 
     const u = req.onboarding!.user as IUser;
-    const sender = getSenderByLocation(auth.auth.location);
-    await getEmailEngineByLocation(auth.auth.location).send(
+    const sender = getSenderByCompany(auth.auth.company);
+    await getEmailEngineByCompany(auth.auth.company).send(
       new OnboardingSubmittedEmail(
         { name: `${u.firstName} ${u.lastName}`, address: u.email },
         { firstName: u.firstName },

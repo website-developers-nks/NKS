@@ -7,11 +7,18 @@ export enum OfficeLocation {
   Dubai = 'dubai',
 }
 
+export enum Company {
+  NKSR = 'nksecurities',
+  NKSRT = 'nk securities research & tech',
+}
+
 export interface IOnboardingAuth extends Document {
   authKey?: string;
   onboardingKey: string;
   user: Types.ObjectId | IUser;
   ttl: number;
+  expirationDate?: Date;
+  company: Company;
   lastVerified?: Date;
   otpSendCount: number;
   onboardingDataId?: Types.ObjectId;
@@ -31,6 +38,8 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     authKey: { type: String, unique: true, sparse: true },
     onboardingKey: { type: String, required: true, unique: true, index:true },
     ttl: { type: Number, required: true },
+    expirationDate: { type: Date },
+    company: { type: String, enum: Object.values(Company), required: true },
     otpSendCount: { type: Number, default: 0 },
     lastVerified: { type: Date },
     onboardingDataId: { type: Schema.Types.ObjectId, ref: 'OnboardingData' },

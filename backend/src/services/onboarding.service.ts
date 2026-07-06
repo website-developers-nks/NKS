@@ -2,7 +2,7 @@ import { randomBytes, randomInt, randomUUID } from 'crypto';
 import { OnboardingAuth } from '../db/models/onboarding-auth.model';
 import { Otp, OtpType } from '../db/models/otp.model';
 import { IUser } from '../db/models/user.model';
-import { getEmailEngineByLocation, getSenderByLocation } from '../email';
+import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OtpEmail } from '../email/emails/otp.email';
 
 const OTP_TTL_SECONDS = Number(process.env.OTP_TTL ?? 600);
@@ -51,6 +51,10 @@ export async function verifyOnboardingAuth(
   if (!record) return { auth: false, reason: 'not_found' };
   if (record.onboardingKey !== id) return { auth: false, reason: 'key_mismatch' };
   if (record.expired) return { auth: false, reason: 'expired' };
+  if (record.expirationDate && record.expirationDate.getTime() < Date.now()) {
+    await OnboardingAuth.updateOne({ _id: record._id }, { expired: true });
+    return { auth: false, reason: 'expired' };
+  }
   if (!record.lastVerified) return { auth: false, reason: 'unverified' };
   const elapsedSeconds = (Date.now() - record.lastVerified.getTime()) / 1000;
   if (elapsedSeconds > record.ttl) return { auth: false, reason: 'ttl_expired' };
@@ -208,8 +212,8 @@ export async function sendOnboardingOtp(onboardingKey: string): Promise<SendOtpR
   await OnboardingAuth.updateOne({ _id: auth._id }, { $set: { otpSendCount: newSendCount }, $unset: { authKey: 1 } });
 
   const user = auth.user as IUser;
-  const sender = getSenderByLocation(auth.location);
-  await getEmailEngineByLocation(auth.location).send(
+  const sender = getSenderByCompany(auth.company);
+  await getEmailEngineByCompany(auth.company).send(
     new OtpEmail(
       { name: `${user.firstName} ${user.lastName}`, address: user.email },
       { otp: otpCode, expiresInMinutes: Math.floor(OTP_TTL_SECONDS / 60), purpose: 'onboarding' },
