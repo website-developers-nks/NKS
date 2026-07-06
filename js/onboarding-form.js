@@ -208,6 +208,7 @@
     salary_slip_doc: 'Salary Slip (3 Months Zipped)',
     bonus_letter_doc: 'Bonus Letter',
     experience_letter_doc: 'Experience Letter',
+    relieving_letter_doc: 'Relieving Letter',
     campus_name: 'Campus Name',
     bank_name: 'Bank name',
     account_holder: 'Account holder name',
