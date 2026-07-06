@@ -1,4 +1,4 @@
-import app, { initDB } from '../src/app';
+import app, { initDB } from '../backend/src/app';
 
 // Initialize database connection for serverless
 let dbInitialized = false;
