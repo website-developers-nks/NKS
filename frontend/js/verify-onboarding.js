@@ -25,6 +25,20 @@
     return res.json().then(function (data) { return { status: res.status, data: data }; });
   }
 
+  var EXPIRY_REASON_MESSAGES = {
+    too_many_doc_uploads: 'This happened because too many documents were uploaded using this link.',
+    too_many_presign_requests: 'This happened because one of your documents was accessed too many times.',
+    too_many_sync_requests: 'This happened because too many save requests were made using this link.',
+    too_many_field_edits: 'This happened because one field was edited too many times.',
+    too_many_submit_attempts: 'This happened because too many submission attempts were made.',
+    link_expiration_date_passed: 'This link’s expiration date has passed.',
+    admin_expired: 'This link was manually expired by an administrator.'
+  };
+
+  function formatExpiryReason(expiredReason) {
+    return EXPIRY_REASON_MESSAGES[expiredReason] || '';
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var onboardingKey = sanitize(getParam('id'));
 
@@ -46,6 +60,12 @@
         if (showSupportingSections) revealFadeUps(howItWorksSection);
       }
       if (securityNote) securityNote.hidden = !showSupportingSections;
+    }
+
+    function showExpiredPanel(expiredReason) {
+      var reasonEl = document.getElementById('panel-expired-reason');
+      if (reasonEl) reasonEl.textContent = formatExpiryReason(expiredReason);
+      showPanel('panel-expired');
     }
 
     var ONBOARDING_FORM_URL = 'onboarding-form.html';
@@ -118,7 +138,7 @@
           } else if (data.reason === 'completed') {
             showPanel('panel-completed');
           } else if (data.reason === 'expired') {
-            showPanel('panel-expired');
+            showExpiredPanel(data.expiredReason);
           } else {
             checkOtpStatus();
           }
@@ -141,7 +161,7 @@
         })
         .then(function (data) {
           if (data.linkExpired) {
-            showPanel('panel-expired');
+            showExpiredPanel(data.expiredReason);
             return;
           }
           if (data.completed) {
@@ -294,7 +314,7 @@
           }
 
           if (data.reason === 'expired') {
-            showPanel('panel-expired');
+            showExpiredPanel(data.expiredReason);
             return;
           }
 
@@ -349,7 +369,7 @@
 
           // Onboarding link expired - show dedicated panel
           if (data.reason === 'link_expired') {
-            showPanel('panel-expired');
+            showExpiredPanel(data.expiredReason);
             return;
           }
 

@@ -12,10 +12,12 @@
   //   POST /api/admin/create-user       -> requireAdminAuth, body { email, firstName, lastName }
   //                                        201 { id, email, firstName, lastName }
   //                                        400/409/401/403/500 { error: string }
-  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, company, expirationDate, cc?, bcc?, extraContent? }
+  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, company, expirationDate, cc?, bcc?, extraContent?, extraContentMarkdown? }
   //                                        location: OfficeLocation enum - 'gurugram' | 'gift_city' | 'dubai'
   //                                        company: Company enum - 'nksecurities' | 'nk securities research & tech'
   //                                        expirationDate: ISO date string, must be in the future
+  //                                        extraContent: sanitized HTML actually emailed; extraContentMarkdown: raw
+  //                                        source text, persisted only so "Send Again" can repopulate the form
   //                                        201 { id, onboardingKey, userId, ttl, location, company, expirationDate }
   //                                        400 { error, validLocations?, validCompanies? } / 404/401/403/500 { error: string }
   //   GET  /api/admin/get-user-list     -> requireAdminAuth
@@ -28,6 +30,13 @@
   //                                        sorted pending -> expired -> completed, newest first within each
   //   GET  /api/admin/onboardings/:id/data -> requireAdminAuth
   //                                        200 { user, location, fields: {...}, docs: {...}, submittedAt }
+  //                                        400/404/500 { error: string }
+  //   GET  /api/admin/onboardings/:id/register-data -> requireAdminAuth
+  //                                        200 { id, userId, company, location, ttl, cc, bcc, extraContent }
+  //                                        (extraContent here is the raw markdown source, for "Send Again")
+  //                                        400/404/500 { error: string }
+  //   PATCH /api/admin/onboardings/:id/expire -> requireAdminAuth
+  //                                        200 { id, expired: true }
   //                                        400/404/500 { error: string }
   var API_BASE = '/api/admin';
 
@@ -167,7 +176,7 @@
       });
     }
 
-    function loadUserList() {
+    function loadUserList(selectUserId) {
       setUserSelectMessage('Loading users…');
 
       fetch(API_BASE + '/get-user-list', {
@@ -187,6 +196,7 @@
             return;
           }
           populateUserOptions(result.data);
+          if (selectUserId) userIdSelect.value = selectUserId;
         })
         .catch(function (err) {
           console.error('[admin] get-user-list failed:', err);
@@ -206,6 +216,17 @@
 
     var LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai' };
     function formatLocation(loc) { return LOCATION_LABELS[loc] || loc; }
+
+    var EXPIRY_REASON_LABELS = {
+      too_many_doc_uploads: 'Too many document uploads',
+      too_many_presign_requests: 'Too many presign requests for a document',
+      too_many_sync_requests: 'Too many sync requests',
+      too_many_field_edits: 'Too many edits to a field',
+      too_many_submit_attempts: 'Too many submission attempts',
+      link_expiration_date_passed: 'Expiration date passed',
+      admin_expired: 'Manually expired by admin'
+    };
+    function formatExpiryReason(reason) { return EXPIRY_REASON_LABELS[reason] || reason; }
 
     var viewOnboardingsCard = document.getElementById('admin-view-onboardings-card');
     var voSearchInput = document.getElementById('vo-search');
@@ -237,24 +258,136 @@
       if (item.email) metaParts.push(item.email);
       if (item.location) metaParts.push(formatLocation(item.location));
       if (item.createdAt) metaParts.push('Registered ' + new Date(item.createdAt).toLocaleDateString());
+      if (item.status === 'expired' && item.expiredReason) metaParts.push(formatExpiryReason(item.expiredReason));
 
       var meta = document.createElement('div');
       meta.className = 'onboarding-row-meta';
       meta.textContent = metaParts.join(' · ');
       info.appendChild(meta);
 
+      if (item.onboardingKey) {
+        var key = document.createElement('div');
+        key.className = 'onboarding-row-key';
+        key.textContent = 'Key: ' + item.onboardingKey;
+        info.appendChild(key);
+      }
+
       row.appendChild(info);
+
+      var actions = document.createElement('div');
+      actions.className = 'onboarding-row-actions';
 
       var badge = document.createElement('span');
       badge.className = 'onboarding-badge status-' + item.status;
       badge.textContent = item.status.charAt(0).toUpperCase() + item.status.slice(1);
-      row.appendChild(badge);
+      actions.appendChild(badge);
+
+      if (item.status === 'pending') {
+        var expireBtn = document.createElement('button');
+        expireBtn.type = 'button';
+        expireBtn.className = 'onboarding-row-btn';
+        expireBtn.textContent = 'Mark Expired';
+        expireBtn.addEventListener('click', function (event) {
+          event.stopPropagation();
+          expireOnboarding(item, expireBtn);
+        });
+        actions.appendChild(expireBtn);
+      } else if (item.status === 'expired') {
+        var resendBtn = document.createElement('button');
+        resendBtn.type = 'button';
+        resendBtn.className = 'onboarding-row-btn';
+        resendBtn.textContent = 'Send Again';
+        resendBtn.addEventListener('click', function (event) {
+          event.stopPropagation();
+          openResendOnboarding(item);
+        });
+        actions.appendChild(resendBtn);
+      }
+
+      row.appendChild(actions);
 
       if (item.status === 'completed') {
         row.addEventListener('click', function () { openOnboardingData(item); });
       }
 
       return row;
+    }
+
+    function expireOnboarding(item, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Expiring…';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/expire', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (isSessionExpired(result.status)) {
+            closeModal();
+            checkAuth();
+            return;
+          }
+          if (result.status !== 200) {
+            showToast((result.data && result.data.error) || 'Could not expire onboarding.', 'error');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+          item.status = 'expired';
+          applyOnboardingsFilter();
+          showToast('Onboarding marked as expired.', 'success');
+        })
+        .catch(function (err) {
+          console.error('[admin] expire onboarding failed:', err);
+          showToast('Could not expire onboarding.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+    }
+
+    
+    function openResendOnboarding(item) {
+      registerOnboardingForm.reset();
+      clearFormStatus(registerOnboardingStatus);
+      showModal('admin-register-onboarding-modal');
+      loadUserList(item.userId);
+
+      document.getElementById('ro-company').value = item.company || '';
+      document.getElementById('ro-location').value = item.location || '';
+      if (item.ttl) document.getElementById('ro-ttl').value = secondsToSessionLength(item.ttl);
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/register-data', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (isSessionExpired(result.status)) {
+            closeModal();
+            checkAuth();
+            return;
+          }
+          if (result.status !== 200 || !result.data) {
+            showToast((result.data && result.data.error) || 'Could not load onboarding details.', 'error');
+            return;
+          }
+
+          var data = result.data;
+          if (data.company) document.getElementById('ro-company').value = data.company;
+          if (data.location) document.getElementById('ro-location').value = data.location;
+          if (data.ttl) document.getElementById('ro-ttl').value = secondsToSessionLength(data.ttl);
+          document.getElementById('ro-cc').value = (Array.isArray(data.cc) ? data.cc.join(', ') : data.cc) || '';
+          document.getElementById('ro-bcc').value = (Array.isArray(data.bcc) ? data.bcc.join(', ') : data.bcc) || '';
+          document.getElementById('ro-extra-content').value = data.extraContent || '';
+        })
+        .catch(function (err) {
+          console.error('[admin] register-data fetch failed:', err);
+          showToast('Could not load onboarding details.', 'error');
+        });
     }
 
     function applyOnboardingsFilter() {
@@ -327,9 +460,10 @@
       nationality: 'Nationality',
       marital_status: 'Marital Status',
       blood_group: 'Blood Group',
-      emergency: 'Emergency Contact',
-      address: 'Address',
-      present_address: 'Present Address',
+      emergency_contact_name: 'Emergency Contact Name',
+      emergency_contact_number: 'Emergency Contact Number',
+      passport_number: 'Passport Number',
+      ssn: 'SSN',
       fathers_name: "Father's Name",
       fathers_dob: "Father's DOB",
       mothers_name: "Mother's Name",
@@ -344,24 +478,22 @@
       ifsc: 'IFSC',
       intro_line: 'Intro Line',
       birthday_pref: 'Birthday Preference',
-      drink_order: 'Drink Order',
+      meal_preference: 'Meal Preference',
       hobbies: 'Hobbies',
       fun_fact: 'Fun Fact'
     };
 
     var BOOLEAN_FIELDS = {
       welcome_ack: 'Welcome Acknowledged',
-      policy_code: 'Code of Conduct Policy',
-      policy_confidentiality: 'Confidentiality Policy',
-      policy_it: 'IT Policy',
-      policy_hr: 'HR Policy'
+      declaration: 'Declaration',
+      consent: 'Consent'
     };
 
     var DOC_LABELS = {
       pan_doc: 'PAN Card',
       id_doc: 'ID Proof',
       address_doc: 'Address Proof',
-      photo_doc: 'Photo',
+      photo_doc: 'Personal Photo',
       higher_secondary_doc: 'Higher Secondary Certificate',
       highest_degree_doc: 'Highest Degree Certificate',
       resume_doc: 'Resume',
@@ -394,6 +526,7 @@
       if (user) summaryParts.push(user.fullName + ' (' + user.email + ')');
       if (data.location) summaryParts.push(formatLocation(data.location));
       if (data.submittedAt) summaryParts.push('Submitted ' + new Date(data.submittedAt).toLocaleString());
+      if (data.expired && data.expiredReason) summaryParts.push('Expired: ' + formatExpiryReason(data.expiredReason));
 
       var summary = document.createElement('p');
       summary.className = 'body-text';
@@ -409,10 +542,22 @@
       var grid = document.createElement('div');
       grid.className = 'onboarding-data-grid';
       var fields = data.fields || {};
+      var isDubai = data.location === 'dubai';
 
       Object.keys(FIELD_LABELS).forEach(function (key) {
-        appendDataField(grid, FIELD_LABELS[key], fields[key]);
+        var label = FIELD_LABELS[key];
+        if (key === 'passport_number') label = isDubai ? 'Passport Number' : 'Aadhar Number';
+        appendDataField(grid, label, fields[key]);
       });
+
+      function formatAddress(a) {
+        if (!a || typeof a !== 'object') return null;
+        var parts = [a.address, a.city, a.country, a.pincode].filter(Boolean);
+        return parts.length ? parts.join(', ') : null;
+      }
+
+      appendDataField(grid, 'Permanent Address', formatAddress(fields.address));
+      appendDataField(grid, 'Present Address', formatAddress(fields.present_address));
 
       Object.keys(BOOLEAN_FIELDS).forEach(function (key) {
         var value = fields[key];
@@ -427,7 +572,10 @@
 
       if (fields.orgs && fields.orgs.length) {
         appendDataField(grid, 'Employment History', fields.orgs.map(function (o) {
-          return o.name + ' (' + o.duration + ')';
+          var parts = [o.name + ' (' + o.duration + ')'];
+          if (o.role) parts.push(o.role);
+          if (o.info) parts.push(o.info);
+          return parts.join(' — ');
         }).join('; '));
       }
 
@@ -446,7 +594,9 @@
 
       Object.keys(DOC_LABELS).forEach(function (key) {
         var doc = docs[key];
-        appendDataField(docsGrid, DOC_LABELS[key], doc ? doc.name : null);
+        var label = DOC_LABELS[key];
+        if (key === 'id_doc') label = 'ID Proof (' + (isDubai ? 'Passport' : 'Aadhar') + ')';
+        appendDataField(docsGrid, label, doc ? doc.name : null);
       });
 
       docsSection.appendChild(docsGrid);
@@ -541,6 +691,12 @@
       var match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value || '');
       if (!match) return null;
       return parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60;
+    }
+
+    function secondsToSessionLength(totalSeconds) {
+      var hours = Math.floor(totalSeconds / 3600);
+      var minutes = Math.floor((totalSeconds % 3600) / 60);
+      return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
     }
 
     // register-onboarding's cc/bcc accept a single address string or an array -
@@ -831,9 +987,10 @@
         var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
         if (cc) payload.cc = cc;
         if (bcc) payload.bcc = bcc;
-        // Sent as already-safe HTML (markdown converted client-side) - see
-        // markdownToHtml() above for why this is safe to embed as-is.
-        if (extraContentRaw) payload.extraContent = markdownToHtml(extraContentRaw);
+        if (extraContentRaw) {
+          payload.extraContent = markdownToHtml(extraContentRaw);
+          payload.extraContentMarkdown = extraContentRaw;
+        }
 
         var originalText = registerOnboardingSubmitBtn.textContent;
         registerOnboardingSubmitBtn.disabled = true;

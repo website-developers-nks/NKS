@@ -701,6 +701,47 @@
       white-space: nowrap;
     }
 
+    .onboarding-row-key {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .onboarding-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .onboarding-row-btn {
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .onboarding-row-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .onboarding-row-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .onboarding-badge {
       flex-shrink: 0;
       font-size: 12px;

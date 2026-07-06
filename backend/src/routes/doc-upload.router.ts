@@ -9,7 +9,7 @@ import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware'
 import { uploadDoc, DOC_TYPE_CONFIG } from '../services/doc-upload.service';
 import { Doc, DocType } from '../db/models/doc.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
-import { OnboardingAuth } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 
 const router = Router();
 
@@ -93,7 +93,7 @@ router.post(
     const authId = auth.auth._id as unknown as Types.ObjectId;
 
     if (auth.auth.expired) {
-      res.status(403).json({ uploaded: false, reason: 'onboarding_expired', message: 'Document upload limit exceeded' });
+      res.status(403).json({ uploaded: false, reason: 'onboarding_expired', expiredReason: auth.auth.expiredReason, message: 'Document upload limit exceeded' });
       return;
     }
 
@@ -120,7 +120,10 @@ router.post(
         { returnDocument: 'after' }
       );
       if (updated && updated.docCount >= Limits.MAX_DOC_UPLOADS) {
-        await OnboardingAuth.updateOne({ _id: authId }, { $set: { expired: true } });
+        await OnboardingAuth.updateOne(
+          { _id: authId },
+          { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManyDocUploads } },
+        );
       }
 
       res.status(201).json(result);
@@ -196,7 +199,10 @@ router.get(
 
       // Check if presign limit exceeded and mark onboarding as expired
       if (doc.presignUrlCount >= Limits.MAX_PRESIGN_PER_DOC) {
-        await OnboardingAuth.updateOne({ _id: authId }, { $set: { expired: true } });
+        await OnboardingAuth.updateOne(
+          { _id: authId },
+          { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManyPresignRequests } },
+        );
       }
 
       const url = await getSignedUrl(

@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, randomUUID } from 'crypto';
-import { OnboardingAuth } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { Otp, OtpType } from '../db/models/otp.model';
 import { IUser } from '../db/models/user.model';
 import { getEmailEngineByCompany, getSenderByCompany } from '../email';
@@ -29,6 +29,7 @@ export interface VerifyResult {
 export interface VerifyFailure {
   auth: false;
   reason: 'no_cookie' | 'not_found' | 'ttl_expired' | 'expired' | 'key_mismatch' | 'unverified' | 'completed';
+  expiredReason?: OnboardingExpiryReason;
 }
 
 export type OnboardingVerifyOutcome = VerifyResult | VerifyFailure;
@@ -37,7 +38,7 @@ export type SendOtpResult =
   | { sent: true; resendCount: number; nextResendAt: string }
   | { sent: false; reason: 'too_soon'; nextResendAt: string; resendCount: number }
   | { sent: false; reason: 'max_resends'; resendCount: number }
-  | { sent: false; reason: 'expired' }
+  | { sent: false; reason: 'expired'; expiredReason?: OnboardingExpiryReason }
   | { sent: false; reason: 'completed' };
 
 export async function verifyOnboardingAuth(
@@ -46,14 +47,13 @@ export async function verifyOnboardingAuth(
 ): Promise<OnboardingVerifyOutcome> {
   if (!cookieKey) return { auth: false, reason: 'no_cookie' };
 
-  const record = await OnboardingAuth.findOne({ authKey: cookieKey }).populate<{ user: IUser }>('user');
-  
+  const record = await OnboardingAuth.findOne({ authKey: cookieKey, onboardingKey: id }).populate<{ user: IUser }>('user');
+
   if (!record) return { auth: false, reason: 'not_found' };
-  if (record.onboardingKey !== id) return { auth: false, reason: 'key_mismatch' };
-  if (record.expired) return { auth: false, reason: 'expired' };
+  if (record.expired) return { auth: false, reason: 'expired', expiredReason: record.expiredReason };
   if (record.expirationDate && record.expirationDate.getTime() < Date.now()) {
-    await OnboardingAuth.updateOne({ _id: record._id }, { expired: true });
-    return { auth: false, reason: 'expired' };
+    await OnboardingAuth.updateOne({ _id: record._id }, { expired: true, expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed });
+    return { auth: false, reason: 'expired', expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed };
   }
   if (!record.lastVerified) return { auth: false, reason: 'unverified' };
   const elapsedSeconds = (Date.now() - record.lastVerified.getTime()) / 1000;
@@ -82,7 +82,7 @@ export async function verifyOnboardingAuth(
 
 export type VerifyOtpResult =
   | { verified: true; authKey: string }
-  | { verified: false; reason: 'not_found' | 'completed' | 'link_expired' | 'expired' | 'max_attempts' | 'invalid_otp' };
+  | { verified: false; reason: 'not_found' | 'completed' | 'link_expired' | 'expired' | 'max_attempts' | 'invalid_otp'; expiredReason?: OnboardingExpiryReason };
 
 export async function verifyOnboardingOtp(
   onboardingKey: string,
@@ -90,7 +90,7 @@ export async function verifyOnboardingOtp(
 ): Promise<VerifyOtpResult> {
   const auth = await OnboardingAuth.findOne({ onboardingKey });
   if (!auth) return { verified: false, reason: 'not_found' };
-  if (auth.expired) return { verified: false, reason: 'link_expired' };
+  if (auth.expired) return { verified: false, reason: 'link_expired', expiredReason: auth.expiredReason };
   if (auth.completed) return { verified: false, reason: 'completed' };
 
   const validOtps = await Otp.find({
@@ -124,12 +124,12 @@ export type OtpStatusResult =
   | { hasActiveOtp: true; expiresAt: string; resendCount: number; nextResendAt: string | null }
   | { hasActiveOtp: false }
   | { completed: true }
-  | { linkExpired: true };
+  | { linkExpired: true; expiredReason?: OnboardingExpiryReason };
 
 export async function checkOtpStatus(onboardingKey: string): Promise<OtpStatusResult> {
   const auth = await OnboardingAuth.findOne({ onboardingKey });
   if(!auth) return { linkExpired: true };
-  if (auth?.expired) return { linkExpired: true };
+  if (auth?.expired) return { linkExpired: true, expiredReason: auth.expiredReason };
   if (auth?.completed) return { completed: true };
 
   const latestOtp = await Otp.findOne({
@@ -163,7 +163,7 @@ export async function sendOnboardingOtp(onboardingKey: string): Promise<SendOtpR
   const now = Date.now();
 
   if (auth.expired) {
-    return { sent: false, reason: 'expired' };
+    return { sent: false, reason: 'expired', expiredReason: auth.expiredReason };
   }
 
   if (auth.completed) {

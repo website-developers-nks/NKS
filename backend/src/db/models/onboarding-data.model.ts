@@ -9,11 +9,17 @@ export enum BirthdayPref {
   SmallCelebration = 'small_celebration',
 }
 
+export enum MealPreference {
+  Vegetarian = 'vegetarian',
+  Vegan = 'vegan',
+  NonVegetarian = 'non_vegetarian',
+  Other = 'other',
+}
+
 export enum MaritalStatus {
-  Single = 'single',
+  Unmarried = 'unmarried',
   Married = 'married',
-  Divorced = 'divorced',
-  Widowed = 'widowed',
+  Other = 'other',
 }
 
 export enum BloodGroup {
@@ -40,8 +46,16 @@ export interface IChildInfo {
 export interface IOrg {
   name: string;
   duration: string;
+  role?: string;
   info?: string;
   current: boolean;
+}
+
+export interface IAddressDetails {
+  address: string;
+  city: string;
+  country: string;
+  pincode: string;
 }
 
 export interface IOnboardingData extends Document {
@@ -59,9 +73,12 @@ export interface IOnboardingData extends Document {
   nationality?: string;
   maritalStatus?: MaritalStatus;
   bloodGroup?: BloodGroup;
-  emergencyContact: string;
-  address: string;
-  presentAddress?: string;
+  emergencyContactName: string;
+  emergencyContactNumber: string;
+  passportNumber: string;
+  ssn: string;
+  address: IAddressDetails;
+  presentAddress?: IAddressDetails;
 
   // Family
   fathersName?: string;
@@ -108,15 +125,13 @@ export interface IOnboardingData extends Document {
   // About
   introLine?: string;
   birthdayPref?: BirthdayPref;
-  drinkOrder?: string;
+  mealPreference?: MealPreference;
   hobbies?: string;
   funFact?: string;
 
-  // Policies
-  policyCode: boolean;
-  policyConfidentiality: boolean;
-  policyIt: boolean;
-  policyHr: boolean;
+  // Declaration & Consent
+  declaration: boolean;
+  consent: boolean;
 
   // Tracking
   fieldUpdateCounts: Map<string, number>;
@@ -127,7 +142,8 @@ export interface IOnboardingData extends Document {
 }
 
 const ChildInfoSchema = new Schema<IChildInfo>({ name: { type: String, trim: true, required: true }, dob: { type: Date, required: true } }, { _id: false });
-const OrgSchema = new Schema<IOrg>({ name: { type: String, trim: true, required: true }, duration: { type: String, trim: true, required: true }, info: { type: String, trim: true }, current: { type: Boolean, required: true } }, { _id: false });
+const OrgSchema = new Schema<IOrg>({ name: { type: String, trim: true, required: true }, duration: { type: String, trim: true, required: true }, role: { type: String, trim: true }, info: { type: String, trim: true }, current: { type: Boolean, required: true } }, { _id: false });
+const AddressDetailsSchema = new Schema<IAddressDetails>({ address: { type: String, trim: true }, city: { type: String, trim: true }, country: { type: String, trim: true }, pincode: { type: String, trim: true } }, { _id: false });
 
 const OnboardingDataSchema = new Schema<IOnboardingData>(
   {
@@ -145,9 +161,12 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     nationality: { type: String, trim: true },
     maritalStatus: { type: String, enum: Object.values(MaritalStatus) },
     bloodGroup: { type: String, enum: Object.values(BloodGroup) },
-    emergencyContact: { type: String, trim: true },
-    address: { type: String, trim: true },
-    presentAddress: { type: String, trim: true },
+    emergencyContactName: { type: String, trim: true },
+    emergencyContactNumber: { type: String, trim: true },
+    passportNumber: { type: String, trim: true },
+    ssn: { type: String, trim: true },
+    address: { type: AddressDetailsSchema },
+    presentAddress: { type: AddressDetailsSchema },
 
     // Family
     fathersName: { type: String, trim: true },
@@ -194,15 +213,13 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     // About
     introLine: { type: String, trim: true },
     birthdayPref: { type: String, enum: Object.values(BirthdayPref) },
-    drinkOrder: { type: String, trim: true },
+    mealPreference: { type: String, enum: Object.values(MealPreference) },
     hobbies: { type: String, trim: true },
     funFact: { type: String, trim: true },
 
-    // Policies
-    policyCode: { type: Boolean, default: false },
-    policyConfidentiality: { type: Boolean, default: false },
-    policyIt: { type: Boolean, default: false },
-    policyHr: { type: Boolean, default: false },
+    // Declaration & Consent
+    declaration: { type: Boolean, default: false },
+    consent: { type: Boolean, default: false },
 
     // Tracking
     fieldUpdateCounts: { type: Map, of: Number, default: new Map() },

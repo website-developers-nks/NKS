@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { OnboardingAuth, IOnboardingAuth } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, IOnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { IUser } from '../db/models/user.model';
 
 export interface OnboardingAuthPayload {
@@ -25,7 +25,7 @@ export async function requireOnboardingAuth(
 ): Promise<void> {
   const cookieKey = req.cookies?.[COOKIE_NAME];
   const { id } = req.query;
-  if (!id){
+  if (!id || typeof id !== 'string') {
     res.status(401).json({ error: 'Unauthorized.', reason: 'no_onboarding_key' });
     return;
   }
@@ -34,7 +34,7 @@ export async function requireOnboardingAuth(
     return;
   }
 
-  const record = await OnboardingAuth.findOne({ authKey: cookieKey }).populate<{ user: IUser }>('user');
+  const record = await OnboardingAuth.findOne({ authKey: cookieKey, onboardingKey: id }).populate<{ user: IUser }>('user');
   if (!record) {
     res.status(401).json({ error: 'Unauthorized.', reason: 'not_found' });
     return;
@@ -50,19 +50,17 @@ export async function requireOnboardingAuth(
     return;
   }
 
-  if (record.onboardingKey !== id) {
-    res.status(401).json({ error: 'Unauthorized.', reason: 'key_mismatch' });
-    return;
-  }
-
   if(record.expired){
-    res.status(401).json({ error: 'Unauthorized.', reason: 'expired' });
+    res.status(401).json({ error: 'Unauthorized.', reason: 'expired', expiredReason: record.expiredReason });
     return;
   }
 
   if (record.expirationDate && record.expirationDate.getTime() < Date.now()) {
-    await OnboardingAuth.updateOne({ _id: record._id }, { $set: { expired: true } });
-    res.status(401).json({ error: 'Unauthorized.', reason: 'expired' });
+    await OnboardingAuth.updateOne(
+      { _id: record._id },
+      { $set: { expired: true, expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed } },
+    );
+    res.status(401).json({ error: 'Unauthorized.', reason: 'expired', expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed });
     return;
   }
 

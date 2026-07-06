@@ -3,15 +3,27 @@ import rateLimit from 'express-rate-limit';
 import { Types } from 'mongoose';
 import { verifyOnboardingAuth, sendOnboardingOtp, verifyOnboardingOtp, checkOtpStatus } from '../services/onboarding.service';
 import { syncFormFields } from '../services/sync-form.service';
-import { OnboardingAuth, OfficeLocation } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, OfficeLocation, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
-import { getEmailEngineByCompany, getSenderByCompany } from '../email';
+import { EmailAddress, getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingSubmittedEmail } from '../email/emails/onboarding-submitted.email';
 import { IUser } from '../db/models/user.model';
 import { Limits } from '../lib/limits';
 
 const router = Router();
+
+
+const CONTACT_ONBOARDING_SUBMIT:EmailAddress[] = [
+  {
+    'name':"Heena Sharma",
+    'address': 'heena.sharma@nksecurities.com'
+  },
+  {
+    name:'HR',
+    address:'hr@nksecurities.com'
+  }
+]
 
 const COOKIE_NAME = 'onboarding-auth';
 const COOKIE_OPTIONS = {
@@ -58,7 +70,7 @@ router.get('/verify', async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ auth: false, reason: result.reason });
+    res.json({ auth: false, reason: result.reason, expiredReason: result.expiredReason });
   } catch (err) {
     console.error('[onboarding/verify]', err);
     res.status(500).json({ error: 'Verification failed.' });
@@ -103,7 +115,7 @@ router.post('/verify_otp', otpLimiter, async (req: Request, res: Response) => {
     }
 
     const status = result.reason === 'max_attempts' ? 429 : 400;
-    res.status(status).json({ verified: false, reason: result.reason });
+    res.status(status).json({ verified: false, reason: result.reason, expiredReason: result.expiredReason });
   } catch (err) {
     console.error('[onboarding/verify_otp]', err);
     res.status(500).json({ error: 'OTP verification failed.' });
@@ -124,7 +136,7 @@ router.get('/check-otp-status', async (req: Request, res: Response) => {
     const result = await checkOtpStatus(onboardingKey);
 
     if ('linkExpired' in result && result.linkExpired) {
-      res.json({ linkExpired: true });
+      res.json({ linkExpired: true, expiredReason: result.expiredReason });
       return;
     }
 
@@ -158,8 +170,16 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     );
 
     if (authUpdate && authUpdate.submitAttempts >= Limits.MAX_SUBMIT_ATTEMPTS) {
-      await OnboardingAuth.updateOne({ _id: authId }, { $set: { expired: true } });
-      res.status(429).json({ submitted: false, error: 'Too many submission attempts.' });
+      await OnboardingAuth.updateOne(
+        { _id: authId },
+        { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManySubmitAttempts } },
+      );
+      res.status(429).json({
+        submitted: false,
+        error: 'Too many submission attempts.',
+        reason: 'expired',
+        expiredReason: OnboardingExpiryReason.TooManySubmitAttempts,
+      });
       return;
     }
 
@@ -181,6 +201,9 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     const requireDoc = (val: unknown, name: string) => {
       if (!val) missing.push(name);
     };
+    const requireAddress = (val: { address?: string; city?: string; country?: string; pincode?: string } | undefined, name: string) => {
+      if (!val || !val.address?.trim() || !val.city?.trim() || !val.country?.trim() || !val.pincode?.trim()) missing.push(name);
+    };
 
     const location = auth.auth.location;
     const isDubai = location === OfficeLocation.Dubai;
@@ -194,10 +217,12 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireDoc(data.dob,                    'dob');
     requireStr(data.nationality,            'nationality');
     requireStr(data.maritalStatus,            'marital_status');
-    requireStr(data.emergencyContact,       'emergency');
-    requireStr(data.address,               'address');
+    requireStr(data.emergencyContactName,   'emergency_contact_name');
+    requireStr(data.emergencyContactNumber, 'emergency_contact_number');
+    requireStr(data.passportNumber,        'passport_number');
+    requireStr(data.ssn,                   'ssn');
+    requireAddress(data.address,           'address');
     requireDoc(data.idDoc,                 'id_doc');
-    requireDoc(data.addressDoc,            'address_doc');
     requireDoc(data.photoDoc,              'photo_doc');
     requireDoc(data.highestDegreeDoc,      'highest_degree_doc');
     requireDoc(data.bankDoc,               'bank_doc');
@@ -207,10 +232,8 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.accountNumber,         'account_number');
     requireStr(data.ifsc,                  'ifsc');
     requireStr(data.introLine,             'intro_line');
-    requireTrue(data.policyCode,           'policy_code');
-    requireTrue(data.policyConfidentiality,'policy_confidentiality');
-    requireTrue(data.policyIt,             'policy_it');
-    requireTrue(data.policyHr,             'policy_hr');
+    requireTrue(data.declaration,          'declaration');
+    requireTrue(data.consent,              'consent');
     requireStr(data.fathersName,             'fathers_name');
     requireDoc(data.fathersDob,             'fathers_dob');
     requireStr(data.mothersName,             'mothers_name');
@@ -250,7 +273,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       new OnboardingSubmittedEmail(
         { name: `${u.firstName} ${u.lastName}`, address: u.email },
         { firstName: u.firstName },
-        { from: sender },
+        { from: sender, cc:CONTACT_ONBOARDING_SUBMIT },
       ),
     ).catch((err) => console.error('[onboarding/submit-data] email failed:', err));
 
@@ -336,7 +359,10 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         nationality:            data.nationality ?? null,
         marital_status:         data.maritalStatus ?? null,
         blood_group:            data.bloodGroup ?? null,
-        emergency:              data.emergencyContact ?? null,
+        emergency_contact_name:   data.emergencyContactName ?? null,
+        emergency_contact_number: data.emergencyContactNumber ?? null,
+        passport_number:        data.passportNumber ?? null,
+        ssn:                    data.ssn ?? null,
         address:                data.address ?? null,
         present_address:        data.presentAddress ?? null,
         // Family
@@ -360,14 +386,12 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         // About
         intro_line:             data.introLine ?? null,
         birthday_pref:          data.birthdayPref ?? null,
-        drink_order:            data.drinkOrder ?? null,
+        meal_preference:        data.mealPreference ?? null,
         hobbies:                data.hobbies ?? null,
         fun_fact:               data.funFact ?? null,
-        // Policies
-        policy_code:            data.policyCode ?? null,
-        policy_confidentiality: data.policyConfidentiality ?? null,
-        policy_it:              data.policyIt ?? null,
-        policy_hr:              data.policyHr ?? null,
+        // Declaration & Consent
+        declaration:            data.declaration ?? null,
+        consent:                data.consent ?? null,
       },
       docs: {
         pan_doc:               docEntry(data.panDoc),

@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
-import { OnboardingData, BirthdayPref, MaritalStatus, BloodGroup, InsuranceCoverage, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
-import { OnboardingAuth } from '../db/models/onboarding-auth.model';
+import { OnboardingData, BirthdayPref, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
+import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { Limits } from '../lib/limits';
 
 export type FieldResult =
@@ -89,8 +89,32 @@ function orgsValidator(): Validator {
       if (typeof org.name !== 'string' || !org.name.trim()) return { ok: false, error: `Item ${i}: name is required` };
       if (typeof org.duration !== 'string' || !org.duration.trim()) return { ok: false, error: `Item ${i}: duration is required` };
       if (typeof org.current !== 'boolean') return { ok: false, error: `Item ${i}: current must be a boolean` };
+      if (org.role !== undefined && typeof org.role !== 'string') return { ok: false, error: `Item ${i}: role must be a string` };
       if (org.info !== undefined && typeof org.info !== 'string') return { ok: false, error: `Item ${i}: info must be a string` };
-      coerced.push({ name: org.name.trim(), duration: org.duration.trim(), current: org.current, ...(org.info ? { info: org.info.trim() } : {}) });
+      coerced.push({
+        name: org.name.trim(),
+        duration: org.duration.trim(),
+        current: org.current,
+        ...(org.role ? { role: org.role.trim() } : {}),
+        ...(org.info ? { info: org.info.trim() } : {}),
+      });
+    }
+    return { ok: true, coerced };
+  };
+}
+
+function addressValidator(requireAll: boolean): Validator {
+  return (v) => {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) return { ok: false, error: 'Must be an object' };
+    const src = v as Record<string, unknown>;
+    const keys = ['address', 'city', 'country', 'pincode'] as const;
+    const coerced: Record<string, string> = {};
+    for (const key of keys) {
+      const val = src[key];
+      if (val !== undefined && typeof val !== 'string') return { ok: false, error: `${key} must be a string` };
+      const trimmed = typeof val === 'string' ? val.trim() : '';
+      if (requireAll && !trimmed) return { ok: false, error: `${key} is required` };
+      coerced[key] = trimmed;
     }
     return { ok: true, coerced };
   };
@@ -124,9 +148,12 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   nationality:              { modelField: 'nationality',           validate: stringValidator(100) },
   marital_status:           { modelField: 'maritalStatus',         validate: enumValidator(Object.values(MaritalStatus), 'marital status') },
   blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group') },
-  emergency:                { modelField: 'emergencyContact',      validate: stringValidator(300) },
-  address:                  { modelField: 'address',               validate: stringValidator(1000) },
-  present_address:          { modelField: 'presentAddress',        validate: stringValidator(1000) },
+  emergency_contact_name:   { modelField: 'emergencyContactName',  validate: stringValidator(200) },
+  emergency_contact_number: { modelField: 'emergencyContactNumber', validate: stringValidator(20) },
+  passport_number:          { modelField: 'passportNumber',        validate: stringValidator(50) },
+  ssn:                      { modelField: 'ssn',                   validate: stringValidator(50) },
+  address:                  { modelField: 'address',               validate: addressValidator(true) },
+  present_address:          { modelField: 'presentAddress',        validate: addressValidator(false) },
 
   // Family
   fathers_name:             { modelField: 'fathersName',           validate: stringValidator(200) },
@@ -153,15 +180,13 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   // About
   intro_line:               { modelField: 'introLine',             validate: stringValidator(300) },
   birthday_pref:            { modelField: 'birthdayPref',          validate: enumValidator(Object.values(BirthdayPref), 'birthday preference') },
-  drink_order:              { modelField: 'drinkOrder',            validate: stringValidator(200) },
+  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference') },
   hobbies:                  { modelField: 'hobbies',               validate: stringValidator(500) },
   fun_fact:                 { modelField: 'funFact',               validate: stringValidator(1000) },
 
-  // Policies
-  policy_code:              { modelField: 'policyCode',            validate: boolValidator() },
-  policy_confidentiality:   { modelField: 'policyConfidentiality', validate: boolValidator() },
-  policy_it:                { modelField: 'policyIt',              validate: boolValidator() },
-  policy_hr:                { modelField: 'policyHr',              validate: boolValidator() },
+  // Declaration & Consent
+  declaration:              { modelField: 'declaration',           validate: boolValidator() },
+  consent:                  { modelField: 'consent',               validate: boolValidator() },
 };
 
 export type SyncResult = {
@@ -180,7 +205,10 @@ export async function syncFormFields(
   );
 
   if (authUpdate && authUpdate.syncRequestCount >= Limits.MAX_SYNC_REQUESTS) {
-    await OnboardingAuth.updateOne({ _id: onboardingAuthId }, { $set: { expired: true } });
+    await OnboardingAuth.updateOne(
+      { _id: onboardingAuthId },
+      { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManySyncRequests } },
+    );
     return { results: [], limitExceeded: 'sync_requests' };
   }
 
@@ -218,7 +246,10 @@ export async function syncFormFields(
         const field = fieldName.replace('fieldUpdateCounts.', '');
         const count = updated.fieldUpdateCounts.get(field) ?? 0;
         if (count >= Limits.MAX_FIELD_UPDATES) {
-          await OnboardingAuth.updateOne({ _id: onboardingAuthId }, { $set: { expired: true } });
+          await OnboardingAuth.updateOne(
+            { _id: onboardingAuthId },
+            { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManyFieldEdits } },
+          );
           return { results, limitExceeded: 'field_updates' };
         }
       }

@@ -1,12 +1,13 @@
 (function () {
   'use strict';
 
-  var VERIFY_ENDPOINT = '/api/onboarding/verify';
-  var PROGRESS_DATA_ENDPOINT = '/api/onboarding/progress-data';
-  var SUBMIT_ENDPOINT = '/api/onboarding/submit-data';
-  var DOC_UPLOAD_ENDPOINT = '/api/docs/upload';
-  var DOC_REMOVE_ENDPOINT = '/api/docs/remove_doc';
-  var DOC_PRESIGN_ENDPOINT = '/api/docs/presign';
+  var API_BASE = ""
+  var VERIFY_ENDPOINT = API_BASE+'/api/onboarding/verify';
+  var PROGRESS_DATA_ENDPOINT = API_BASE+'/api/onboarding/progress-data';
+  var SUBMIT_ENDPOINT = API_BASE+'/api/onboarding/submit-data';
+  var DOC_UPLOAD_ENDPOINT = API_BASE+'/api/docs/upload';
+  var DOC_REMOVE_ENDPOINT = API_BASE+'/api/docs/remove_doc';
+  var DOC_PRESIGN_ENDPOINT = API_BASE+'/api/docs/presign';
   var MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
   var DOC_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 
@@ -21,6 +22,20 @@
     link_expired: 'This onboarding link has expired. Please contact HR for assistance.',
     session_inactive: 'Your session has expired due to inactivity. Please verify your identity again.'
   };
+
+  var EXPIRY_REASON_MESSAGES = {
+    too_many_doc_uploads: 'This happened because too many documents were uploaded using this link.',
+    too_many_presign_requests: 'This happened because one of your documents was accessed too many times.',
+    too_many_sync_requests: 'This happened because too many save requests were made using this link.',
+    too_many_field_edits: 'This happened because one field was edited too many times.',
+    too_many_submit_attempts: 'This happened because too many submission attempts were made.',
+    link_expiration_date_passed: 'This link’s expiration date has passed.',
+    admin_expired: 'This link was manually expired by an administrator.'
+  };
+
+  function formatExpiryReason(expiredReason) {
+    return EXPIRY_REASON_MESSAGES[expiredReason] || '';
+  }
 
   function getParam(name) {
     try {
@@ -55,7 +70,7 @@
     return;
   }
 
-  function showVerifyFailed(reason) {
+  function showVerifyFailed(reason, expiredReason) {
     // "completed" means the onboarding was already submitted - there's nothing
     // to re-verify, so it gets its own panel instead of the "Verify Now" one.
     if (reason === 'completed' && verifyCompletedPanel) {
@@ -65,6 +80,8 @@
 
     // "expired" or "link_expired" means the onboarding link has expired - show dedicated panel
     if ((reason === 'expired' || reason === 'link_expired') && verifyExpiredPanel) {
+      var expiredReasonEl = document.querySelector('#verify-expired-reason');
+      if (expiredReasonEl) expiredReasonEl.textContent = formatExpiryReason(expiredReason);
       showStatePanel(verifyExpiredPanel);
       return;
     }
@@ -85,10 +102,10 @@
   // several in-flight requests all fail with 401 around the same time.
   var sessionExpired = false;
 
-  function handleSessionExpired(reason) {
+  function handleSessionExpired(reason, expiredReason) {
     if (sessionExpired) return;
     sessionExpired = true;
-    showVerifyFailed(reason);
+    showVerifyFailed(reason, expiredReason);
   }
 
   function runVerification() {
@@ -113,7 +130,7 @@
           showStatePanel(onboardingShell);
           initWizard();
         } else {
-          showVerifyFailed(data.reason);
+          showVerifyFailed(data.reason, data.expiredReason);
         }
       })
       .catch(function (err) {
@@ -132,9 +149,9 @@
   // The doc preview modal lives outside #onboarding-shell, so if a session
   // expires while it happens to be open it must be closed explicitly -
   // otherwise it's left stuck floating over a hidden form.
-  function sessionExpiredInWizard(reason) {
+  function sessionExpiredInWizard(reason, expiredReason) {
     closePreviewModal();
-    handleSessionExpired(reason);
+    handleSessionExpired(reason, expiredReason);
   }
 
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.mission-tab'));
@@ -158,7 +175,8 @@
   var reviewSummary = document.querySelector('#reviewSummary');
   var submitMessage = document.querySelector('#submitMessage');
   var currentStep = 0;
-  var STEP_STORAGE_KEY = 'nk-onboarding-form-step';
+  var STEP_STORAGE_KEY = 'nk-onboarding-form-step-' + onboardingKey;
+  var PROGRESS_STORAGE_KEY = 'nk-onboarding-form-progress-' + onboardingKey;
 
   var badges = [
     { min: 0, name: 'Market Explorer' },
@@ -184,7 +202,10 @@
     nationality: 'Nationality',
     marital_status: 'Marital status',
     blood_group: 'Blood group',
-    emergency: 'Emergency contact',
+    emergency_contact_name: 'Emergency contact name',
+    emergency_contact_number: 'Emergency contact number',
+    passport_number: 'Identity number (Aadhar/Passport)',
+    ssn: 'SSN',
     address: 'Permanent address',
     present_address: 'Current address',
     fathers_name: "Father's name",
@@ -199,7 +220,7 @@
     pan_doc: 'PAN Card',
     id_doc: 'ID Proof',
     address_doc: 'Address Proof',
-    photo_doc: 'Passport Photo',
+    photo_doc: 'Personal Photo',
     highest_degree_doc: 'Highest Degree Certificate',
     higher_secondary_doc: 'Higher Secondary Marksheet',
     resume_doc: 'Resume',
@@ -217,13 +238,11 @@
     bank_doc: 'Bank proof file',
     intro_line: 'One line intro',
     birthday_pref: 'Birthday celebration preference',
-    drink_order: 'Coffee / tea order',
+    meal_preference: 'Meal preference',
     hobbies: 'Hobbies',
     fun_fact: 'Fun fact',
-    policy_code: 'Code of Conduct acknowledgement',
-    policy_confidentiality: 'Confidentiality acknowledgement',
-    policy_it: 'IT policy acknowledgement',
-    policy_hr: 'HR policy acknowledgement'
+    declaration: 'Declaration',
+    consent: 'Consent'
   };
 
   function updateLocationVisibility(location) {
@@ -236,6 +255,27 @@
         el.classList.remove('location-visible');
       }
     });
+    updateDocBasisLabels(location);
+  }
+
+  var DOC_BASIS_LABELS = {
+    full_name: { dubai: 'Full name (As per Passport)', default: 'Full name (As per Aadhar)' },
+    dob: { dubai: 'Date of birth (As per Passport)', default: 'Date of birth (As per Aadhar)' },
+    identity_number: { dubai: 'Passport Number', default: 'Aadhar Number' },
+    id_proof_type: { dubai: 'Passport', default: 'Aadhar' }
+  };
+
+  function updateDocBasisLabels(location) {
+    var basis = location === 'dubai' ? 'dubai' : 'default';
+    Object.keys(DOC_BASIS_LABELS).forEach(function (field) {
+      var el = document.querySelector('[data-doc-basis-label="' + field + '"]');
+      if (el) el.textContent = DOC_BASIS_LABELS[field][basis];
+    });
+
+    var identityInput = document.querySelector('input[name="passport_number"]');
+    if (identityInput) {
+      identityInput.placeholder = basis === 'dubai' ? 'Enter passport number' : 'Enter Aadhar number';
+    }
   }
 
   function showStep(index) {
@@ -300,6 +340,29 @@
     progressText.textContent = percent + '%';
     progressCircle.style.strokeDashoffset = 327 - (327 * percent) / 100;
     badgeName.textContent = badges.slice().reverse().find(function (badge) { return percent >= badge.min; }).name;
+    updateSectionProgress();
+  }
+
+  // Shows "completed/total" required-field counts per mission next to its
+  // sidebar tab, so progress is visible without opening every section.
+  function updateSectionProgress() {
+    panels.forEach(function (panel, i) {
+      var tab = tabs[i];
+      var countEl = tab ? tab.querySelector('.mission-progress-count') : null;
+      if (!countEl) return;
+
+      var sectionRequiredFields = Array.prototype.slice.call(panel.querySelectorAll('[data-required="true"]'))
+        .filter(isFieldVisible);
+
+      if (!sectionRequiredFields.length) {
+        countEl.hidden = true;
+        return;
+      }
+
+      var sectionCompleted = sectionRequiredFields.filter(fieldComplete).length;
+      countEl.textContent = sectionCompleted + '/' + sectionRequiredFields.length;
+      countEl.hidden = false;
+    });
   }
 
   function buildReview() {
@@ -389,7 +452,7 @@
   // - Sync runs every 5s after previous response if there are changes
   // - Only applies response to fields whose change time < sync start time
 
-  var SYNC_FORM_ENDPOINT = '/api/onboarding/sync-form';
+  var SYNC_FORM_ENDPOINT = API_BASE+'/api/onboarding/sync-form';
   var SYNC_INTERVAL_MS = 5000; // 5 seconds after last response
   var changedFields = {}; // { fieldName: { value: any, changedAt: number } }
   var erroredFields = {}; // { fieldName: errorMessage }
@@ -480,7 +543,6 @@
 
       dot.classList.toggle('is-error', hasError);
       dot.classList.toggle('is-unsaved', hasUnsaved);
-      dot.hidden = !hasError && !hasUnsaved;
     });
   }
 
@@ -516,6 +578,10 @@
       value = getChildrenData();
     } else if (name === 'orgs') {
       value = getOrgsData();
+    } else if (name === 'address') {
+      value = getPermanentAddressData();
+    } else if (name === 'present_address') {
+      value = getPresentAddressData();
     } else if (field) {
       value = getFieldValue(field);
     } else {
@@ -604,7 +670,7 @@
       .then(function (res) {
         if (res.status === 401) {
           return res.json().catch(function () { return {}; }).then(function (body) {
-            sessionExpiredInWizard(body.reason);
+            sessionExpiredInWizard(body.reason, body.expiredReason);
             return null;
           });
         }
@@ -774,7 +840,14 @@
       })
       .then(function (result) {
         if (result.status === 401) {
-          sessionExpiredInWizard(result.body.reason);
+          sessionExpiredInWizard(result.body.reason, result.body.expiredReason);
+          return;
+        }
+
+        // Too many submit attempts also expires the link server-side, but comes
+        // back as a 429 (not 401) since this request itself is what tripped it.
+        if (result.status === 429 && result.body && result.body.reason === 'expired') {
+          sessionExpiredInWizard(result.body.reason, result.body.expiredReason);
           return;
         }
 
@@ -942,7 +1015,7 @@
     })
       .then(function (res) {
         if (res.status === 401) {
-          return res.json().then(function (body) { sessionExpiredInWizard(body.reason); return null; });
+          return res.json().then(function (body) { sessionExpiredInWizard(body.reason, body.expiredReason); return null; });
         }
         if (res.status === 404) return null;
         if (!res.ok) throw new Error('progress-data request failed: ' + res.status);
@@ -959,6 +1032,7 @@
   function applyProgressData(data) {
     var fields = (data && data.fields) || {};
     Object.keys(fields).forEach(function (name) {
+      if (name === 'address' || name === 'present_address') return;
       var field = form.elements[name];
       if (!field) return;
       var value = fields[name];
@@ -988,17 +1062,20 @@
       updateLocationVisibility(info.location);
     }
 
-    // Check "same as permanent" if addresses match
-    var addrField = form.elements['address'];
-    var presentField = form.elements['present_address'];
+    // Restore structured address records (skipSync=true since data is already saved)
+    if (fields.address && typeof fields.address === 'object') {
+      setPermanentAddress(fields.address, true);
+    }
+    if (fields.present_address && typeof fields.present_address === 'object') {
+      setPresentAddress(fields.present_address, true);
+    }
+
+    // Check "same as permanent" if addresses match (restoring only - no re-sync)
     var sameCheckbox = document.querySelector('#sameAsPermanent');
-    if (addrField && presentField && sameCheckbox && fields.address && fields.present_address) {
-      if (fields.address === fields.present_address) {
-        sameCheckbox.checked = true;
-        presentField.disabled = true;
-        var label = document.querySelector('#presentAddressLabel');
-        if (label) label.style.opacity = '0.5';
-      }
+    if (sameCheckbox && addressesEqual(fields.address, fields.present_address)) {
+      sameCheckbox.checked = true;
+      if (presentAddressSection) presentAddressSection.style.opacity = '0.5';
+      if (addPresentAddressBtn) addPresentAddressBtn.disabled = true;
     }
 
     // Restore children info (skipSync=true since data is already saved)
@@ -1014,7 +1091,7 @@
     if (fields.orgs && Array.isArray(fields.orgs)) {
       fields.orgs.forEach(function (org) {
         if (org && org.name && org.duration) {
-          addOrg(org.name, org.duration, org.info || '', org.current, true);
+          addOrg(org.name, org.duration, org.role || '', org.info || '', org.current, true);
         }
       });
     }
@@ -1054,7 +1131,7 @@
         input.disabled = false;
 
         if (result.status === 401) {
-          sessionExpiredInWizard(result.data.reason);
+          sessionExpiredInWizard(result.data.reason, result.data.expiredReason);
           return;
         }
 
@@ -1123,7 +1200,7 @@
       })
       .then(function (result) {
         if (result.status === 401) {
-          sessionExpiredInWizard(result.data.reason);
+          sessionExpiredInWizard(result.data.reason, result.data.expiredReason);
           return;
         }
 
@@ -1241,7 +1318,7 @@
       .then(function (res) {
         if (res.status === 401) {
           return res.json().catch(function () { return {}; }).then(function (body) {
-            sessionExpiredInWizard(body.reason);
+            sessionExpiredInWizard(body.reason, body.expiredReason);
             return null;
           });
         }
@@ -1318,36 +1395,164 @@
     ensureFieldSyncMessageEl(field);
   });
 
-  // "Same as permanent address" checkbox logic
+  // Address handling (modal-based) - a single structured { address, city,
+  // country, pincode } record for each of permanent/present address.
   var sameAsPermanentCheckbox = document.querySelector('#sameAsPermanent');
   var permanentAddressField = form.elements['address'];
   var presentAddressField = form.elements['present_address'];
-  var presentAddressLabel = document.querySelector('#presentAddressLabel');
+  var presentAddressSection = document.querySelector('#presentAddressSection');
+  var permanentAddressSummary = document.querySelector('#permanentAddressSummary');
+  var presentAddressSummary = document.querySelector('#presentAddressSummary');
+  var addPermanentAddressBtn = document.querySelector('#addPermanentAddressBtn');
+  var addPresentAddressBtn = document.querySelector('#addPresentAddressBtn');
+
+  var addressModal = document.querySelector('#address-modal');
+  var addressModalBackdrop = document.querySelector('#address-modal-backdrop');
+  var addressModalClose = document.querySelector('#address-modal-close');
+  var addressModalCancel = document.querySelector('#address-modal-cancel');
+  var addressModalSave = document.querySelector('#address-modal-save');
+  var addressModalTitle = document.querySelector('#addressModalTitle');
+  var addressModalLine = document.querySelector('#addressModalLine');
+  var addressModalCity = document.querySelector('#addressModalCity');
+  var addressModalCountry = document.querySelector('#addressModalCountry');
+  var addressModalPincode = document.querySelector('#addressModalPincode');
+  var addressModalError = document.querySelector('#addressModalError');
+  var addressModalRequiredMarks = Array.prototype.slice.call(document.querySelectorAll('.address-modal-required'));
+  var addressModalTarget = null; // 'permanent' | 'present'
+
+  var permanentAddressData = null;
+  var presentAddressData = null;
+
+  function hasAddressContent(a) {
+    return !!(a && (a.address || a.city || a.country || a.pincode));
+  }
+
+  function formatAddressSummary(a) {
+    return [a.address, a.city, a.country, a.pincode].filter(Boolean).join(', ');
+  }
+
+  function addressesEqual(a, b) {
+    if (!a || !b) return false;
+    return a.address === b.address && a.city === b.city && a.country === b.country && a.pincode === b.pincode;
+  }
+
+  function renderAddressSummary(summaryEl, triggerBtn, data) {
+    if (!summaryEl || !triggerBtn) return;
+    if (hasAddressContent(data)) {
+      summaryEl.querySelector('.address-summary-text').textContent = formatAddressSummary(data);
+      summaryEl.hidden = false;
+      triggerBtn.textContent = 'Edit address';
+    } else {
+      summaryEl.hidden = true;
+      triggerBtn.textContent = '+ Add address';
+    }
+  }
+
+  function setPermanentAddress(data, skipSync) {
+    permanentAddressData = hasAddressContent(data) ? data : null;
+    renderAddressSummary(permanentAddressSummary, addPermanentAddressBtn, permanentAddressData);
+    if (permanentAddressField) permanentAddressField.value = permanentAddressData ? formatAddressSummary(permanentAddressData) : '';
+    if (!skipSync) {
+      scheduleSync('address');
+      updateProgress();
+    }
+  }
+
+  function setPresentAddress(data, skipSync) {
+    presentAddressData = hasAddressContent(data) ? data : null;
+    renderAddressSummary(presentAddressSummary, addPresentAddressBtn, presentAddressData);
+    if (presentAddressField) presentAddressField.value = presentAddressData ? formatAddressSummary(presentAddressData) : '';
+    if (!skipSync) {
+      scheduleSync('present_address');
+      updateProgress();
+    }
+  }
+
+  function getPermanentAddressData() {
+    return permanentAddressData || {};
+  }
+
+  function getPresentAddressData() {
+    return presentAddressData || {};
+  }
 
   function updatePresentAddressState() {
-    if (!sameAsPermanentCheckbox || !presentAddressField) return;
+    if (!sameAsPermanentCheckbox) return;
     var isSame = sameAsPermanentCheckbox.checked;
-    presentAddressField.disabled = isSame;
-    if (presentAddressLabel) {
-      presentAddressLabel.style.opacity = isSame ? '0.5' : '1';
-    }
-    if (isSame && permanentAddressField) {
-      presentAddressField.value = permanentAddressField.value;
-      scheduleSync('present_address');
-    }
+    if (presentAddressSection) presentAddressSection.style.opacity = isSame ? '0.5' : '1';
+    if (addPresentAddressBtn) addPresentAddressBtn.disabled = isSame;
+    if (isSame) setPresentAddress(permanentAddressData);
   }
 
   if (sameAsPermanentCheckbox) {
     sameAsPermanentCheckbox.addEventListener('change', updatePresentAddressState);
   }
 
-  if (permanentAddressField) {
-    permanentAddressField.addEventListener('input', function () {
-      if (sameAsPermanentCheckbox && sameAsPermanentCheckbox.checked && presentAddressField) {
-        presentAddressField.value = permanentAddressField.value;
-        scheduleSync('present_address');
+  function openAddressModal(target) {
+    if (!addressModal) return;
+    addressModalTarget = target;
+    var data = target === 'permanent' ? permanentAddressData : presentAddressData;
+    if (addressModalTitle) addressModalTitle.textContent = target === 'permanent' ? 'Permanent Address' : 'Current Address';
+    if (addressModalLine) addressModalLine.value = (data && data.address) || '';
+    if (addressModalCity) addressModalCity.value = (data && data.city) || '';
+    if (addressModalCountry) addressModalCountry.value = (data && data.country) || '';
+    if (addressModalPincode) addressModalPincode.value = (data && data.pincode) || '';
+    if (addressModalError) addressModalError.hidden = true;
+    addressModalRequiredMarks.forEach(function (mark) { mark.hidden = target !== 'permanent'; });
+    addressModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    if (addressModalLine) addressModalLine.focus();
+  }
+
+  function closeAddressModal() {
+    if (!addressModal) return;
+    addressModal.hidden = true;
+    document.body.style.overflow = '';
+    addressModalTarget = null;
+  }
+
+  function saveAddressFromModal() {
+    var line = addressModalLine ? addressModalLine.value.trim() : '';
+    var city = addressModalCity ? addressModalCity.value.trim() : '';
+    var country = addressModalCountry ? addressModalCountry.value.trim() : '';
+    var pincode = addressModalPincode ? addressModalPincode.value.trim() : '';
+
+    if (addressModalTarget === 'permanent' && (!line || !city || !country || !pincode)) {
+      if (addressModalError) {
+        addressModalError.textContent = 'Please fill in all address fields.';
+        addressModalError.hidden = false;
       }
-    });
+      return;
+    }
+
+    var data = { address: line, city: city, country: country, pincode: pincode };
+
+    if (addressModalTarget === 'permanent') {
+      setPermanentAddress(data);
+      if (sameAsPermanentCheckbox && sameAsPermanentCheckbox.checked) setPresentAddress(data);
+    } else {
+      setPresentAddress(data);
+    }
+    closeAddressModal();
+  }
+
+  if (addPermanentAddressBtn) {
+    addPermanentAddressBtn.addEventListener('click', function () { openAddressModal('permanent'); });
+  }
+  if (addPresentAddressBtn) {
+    addPresentAddressBtn.addEventListener('click', function () { openAddressModal('present'); });
+  }
+  if (addressModalBackdrop) {
+    addressModalBackdrop.addEventListener('click', closeAddressModal);
+  }
+  if (addressModalClose) {
+    addressModalClose.addEventListener('click', closeAddressModal);
+  }
+  if (addressModalCancel) {
+    addressModalCancel.addEventListener('click', closeAddressModal);
+  }
+  if (addressModalSave) {
+    addressModalSave.addEventListener('click', saveAddressFromModal);
   }
 
   // Children info handling (modal-based)
@@ -1519,10 +1724,11 @@
   var orgModalSave = document.querySelector('#org-modal-save');
   var orgModalName = document.querySelector('#orgModalName');
   var orgModalDuration = document.querySelector('#orgModalDuration');
+  var orgModalRole = document.querySelector('#orgModalRole');
   var orgModalInfo = document.querySelector('#orgModalInfo');
   var orgModalCurrent = document.querySelector('#orgModalCurrent');
   var orgModalError = document.querySelector('#orgModalError');
-  var orgsData = []; // Array of { name, duration, info, current }
+  var orgsData = []; // Array of { name, duration, role, info, current }
 
   function getOrgsData() {
     return orgsData.slice();
@@ -1534,13 +1740,13 @@
     orgsData.forEach(function (org, index) {
       var chip = document.createElement('div');
       chip.className = 'org-chip';
-      var infoHtml = org.info ? '<span class="org-chip-role">' + escapeHtml(org.info) + '</span>' : '';
+      var roleHtml = org.role ? '<span class="org-chip-role">' + escapeHtml(org.role) + '</span>' : '';
       var currentBadge = org.current ? '<span class="org-chip-current">Current</span>' : '';
       chip.innerHTML =
         '<div class="org-chip-info">' +
           '<span class="org-chip-name">' + escapeHtml(org.name) + currentBadge + '</span>' +
           '<span class="org-chip-duration">' + escapeHtml(org.duration) + '</span>' +
-          infoHtml +
+          roleHtml +
         '</div>' +
         '<button type="button" class="child-chip-remove" aria-label="Remove organization" data-index="' + index + '">×</button>';
       orgsChips.appendChild(chip);
@@ -1554,8 +1760,8 @@
     });
   }
 
-  function addOrg(name, duration, info, current, skipSync) {
-    orgsData.push({ name: name, duration: duration, info: info || '', current: !!current });
+  function addOrg(name, duration, role, info, current, skipSync) {
+    orgsData.push({ name: name, duration: duration, role: role || '', info: info || '', current: !!current });
     renderOrgsChips();
     if (!skipSync) {
       syncOrgsToBackend();
@@ -1576,6 +1782,7 @@
     if (!orgModal) return;
     if (orgModalName) orgModalName.value = '';
     if (orgModalDuration) orgModalDuration.value = '';
+    if (orgModalRole) orgModalRole.value = '';
     if (orgModalInfo) orgModalInfo.value = '';
     if (orgModalCurrent) orgModalCurrent.checked = false;
     if (orgModalError) orgModalError.hidden = true;
@@ -1593,6 +1800,7 @@
   function saveOrgFromModal() {
     var name = orgModalName ? orgModalName.value.trim() : '';
     var duration = orgModalDuration ? orgModalDuration.value.trim() : '';
+    var role = orgModalRole ? orgModalRole.value.trim() : '';
     var info = orgModalInfo ? orgModalInfo.value.trim() : '';
     var current = orgModalCurrent ? orgModalCurrent.checked : false;
 
@@ -1611,7 +1819,7 @@
       return;
     }
 
-    addOrg(name, duration, info, current);
+    addOrg(name, duration, role, info, current);
     closeOrgModal();
   }
 
@@ -1656,7 +1864,7 @@
     new FormData(form).forEach(function (value, key) {
       if (!(value instanceof File)) data[key] = value;
     });
-    localStorage.setItem('nk-onboarding-form-progress', JSON.stringify(data));
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(data));
 
     if (hasChangedFields()) {
       runSync();
@@ -1673,7 +1881,7 @@
     submitOnboarding();
   });
 
-  var saved = JSON.parse(localStorage.getItem('nk-onboarding-form-progress') || '{}');
+  var saved = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
   Object.keys(saved).forEach(function (key) {
     var field = form.elements[key];
     if (field && field.type !== 'file') field.value = saved[key];

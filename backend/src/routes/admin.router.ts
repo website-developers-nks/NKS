@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
 import { User, IUser } from '../db/models/user.model';
-import { OnboardingAuth, OfficeLocation, Company } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, OfficeLocation, Company, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { requireAdminAuth } from '../middleware/admin-auth.middleware';
 import { getEmailEngineByCompany, getSenderByCompany } from '../email';
@@ -98,7 +98,7 @@ router.post('/create-user', requireAdminAuth, async (req: Request, res: Response
 });
 
 router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: Response) => {
-  const { userId, ttl, location, company, cc, bcc, extraContent, expirationDate } = req.body as {
+  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate } = req.body as {
     userId?: string;
     ttl?: number;
     location?: string;
@@ -106,6 +106,7 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
     cc?: string | string[];
     bcc?: string | string[];
     extraContent?: string;
+    extraContentMarkdown?: string;
     expirationDate?: string;
   };
 
@@ -151,6 +152,8 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
 
   try {
     const onboardingKey = randomUUID();
+    const toArray = (v: string | string[] | undefined) => (v ? (Array.isArray(v) ? v : [v]) : undefined);
+
     const auth = await OnboardingAuth.create({
       onboardingKey,
       user: user._id,
@@ -158,6 +161,9 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
       location: location as OfficeLocation,
       company: company as Company,
       expirationDate: parsedExpirationDate,
+      cc: toArray(cc),
+      bcc: toArray(bcc),
+      extraContent: extraContentMarkdown,
     });
 
     const baseUrl = company == Company.NKSRT ? (process.env.ONBOARDING_BASE_URL_DUBAI??"https://nksresearchtech.com")  : (process.env.ONBOARDING_BASE_URL ?? 'https://nksecurities.com');
@@ -176,7 +182,7 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
           onboardingUrl,
           extraContent: extraContent ? sanitizeHtml(extraContent, EXTRA_CONTENT_SANITIZE_OPTIONS) : undefined,
         },
-        { from: sender, cc: normalizeAddr(cc), bcc: normalizeAddr(bcc), subject:`Complete your onboarding - ${getCompanyName(auth.company)}` },
+        { from: sender, cc: normalizeAddr(cc), bcc: normalizeAddr(bcc), subject:`${user.firstName} | Complete your onboarding - ${getCompanyName(auth.company)}` },
       ),
     );
 
@@ -295,6 +301,7 @@ router.get('/onboardings', requireAdminAuth, async (req: Request, res: Response)
           location: auth.location,
           company: auth.company,
           status: computeStatus(auth),
+          expiredReason: auth.expiredReason ?? null,
           ttl: auth.ttl,
           expirationDate: auth.expirationDate,
           createdAt: auth.createdAt,
@@ -363,6 +370,8 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
         : null,
       location: auth.location,
       company: auth.company,
+      expired: auth.expired,
+      expiredReason: auth.expiredReason ?? null,
       fields: {
         welcome_ack:            data.welcomeAck ?? null,
         full_name:              data.fullName ?? null,
@@ -373,7 +382,10 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
         nationality:            data.nationality ?? null,
         marital_status:         data.maritalStatus ?? null,
         blood_group:            data.bloodGroup ?? null,
-        emergency:              data.emergencyContact ?? null,
+        emergency_contact_name:   data.emergencyContactName ?? null,
+        emergency_contact_number: data.emergencyContactNumber ?? null,
+        passport_number:        data.passportNumber ?? null,
+        ssn:                    data.ssn ?? null,
         address:                data.address ?? null,
         present_address:        data.presentAddress ?? null,
         fathers_name:           data.fathersName ?? null,
@@ -392,13 +404,11 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
         ifsc:                   data.ifsc ?? null,
         intro_line:             data.introLine ?? null,
         birthday_pref:          data.birthdayPref ?? null,
-        drink_order:            data.drinkOrder ?? null,
+        meal_preference:        data.mealPreference ?? null,
         hobbies:                data.hobbies ?? null,
         fun_fact:               data.funFact ?? null,
-        policy_code:            data.policyCode ?? null,
-        policy_confidentiality: data.policyConfidentiality ?? null,
-        policy_it:              data.policyIt ?? null,
-        policy_hr:              data.policyHr ?? null,
+        declaration:            data.declaration ?? null,
+        consent:                data.consent ?? null,
       },
       docs: {
         pan_doc:               docEntry(data.panDoc),
@@ -421,6 +431,70 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
   } catch (err) {
     console.error('[admin/onboardings/:id/data]', err);
     res.status(500).json({ error: 'Failed to fetch onboarding data.' });
+  }
+});
+
+router.get('/onboardings/:id/register-data', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+
+  if (!Types.ObjectId.isValid(id)) {
+    res.status(400).json({ error: 'Invalid onboarding id.' });
+    return;
+  }
+
+  try {
+    const auth = await OnboardingAuth.findById(id).populate<{ user: IUser }>('user', 'firstName lastName email');
+    if (!auth) {
+      res.status(404).json({ error: 'Onboarding not found.' });
+      return;
+    }
+
+    const user = auth.user as IUser | undefined;
+
+    res.json({
+      id: (auth._id as object).toString(),
+      userId: user ? (user._id as object).toString() : null,
+      company: auth.company,
+      location: auth.location,
+      ttl: auth.ttl,
+      cc: auth.cc ?? null,
+      bcc: auth.bcc ?? null,
+      extraContent: auth.extraContent ?? null,
+    });
+  } catch (err) {
+    console.error('[admin/onboardings/:id/register-data]', err);
+    res.status(500).json({ error: 'Failed to fetch onboarding register data.' });
+  }
+});
+
+router.patch('/onboardings/:id/expire', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+
+  if (!Types.ObjectId.isValid(id)) {
+    res.status(400).json({ error: 'Invalid onboarding id.' });
+    return;
+  }
+
+  try {
+    const auth = await OnboardingAuth.findById(id);
+    if (!auth) {
+      res.status(404).json({ error: 'Onboarding not found.' });
+      return;
+    }
+
+    if (auth.completed) {
+      res.status(400).json({ error: 'Cannot expire a completed onboarding.' });
+      return;
+    }
+
+    auth.expired = true;
+    auth.expiredReason = OnboardingExpiryReason.AdminExpired;
+    await auth.save();
+
+    res.json({ id: (auth._id as object).toString(), expired: true, expiredReason: auth.expiredReason });
+  } catch (err) {
+    console.error('[admin/onboardings/:id/expire]', err);
+    res.status(500).json({ error: 'Failed to expire onboarding.' });
   }
 });
 

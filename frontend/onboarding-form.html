@@ -242,26 +242,48 @@
       color: var(--accent);
     }
 
+    .mission-tab-number {
+      display: flex;
+      align-items: center;
+    }
+
+    .mission-progress-count {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      min-width: 0;
+      margin-left: auto;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .mission-tab.active .mission-progress-count {
+      color: var(--text-muted);
+    }
+
+    .mission-progress-count[hidden] {
+      display: none;
+    }
+
     .mission-status-dot {
       width: 7px;
       height: 7px;
-      min-width: 0;
-      margin-left: auto;
+      min-width: 7px !important;
       border-radius: 50%;
       flex-shrink: 0;
-      min-width: 7px !important;
-    }
-
-    .mission-status-dot[hidden] {
-      display: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
     }
 
     .mission-status-dot.is-unsaved {
       background: #b45309;
+      opacity: 1;
     }
 
     .mission-status-dot.is-error {
       background: #c62828;
+      opacity: 1;
     }
 
     /* ---- Main column ---- */
@@ -328,6 +350,10 @@
     .helper-text {
       font-size: 14px;
       color: var(--text-secondary);
+    }
+
+    .required-mark {
+      color: #c62828;
     }
 
     .starter-grid {
@@ -537,10 +563,61 @@
       border-color: var(--accent);
     }
 
+    .child-modal-label textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.3s ease;
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      min-height: 160px;
+    }
+
+    .child-modal-label textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .org-modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 24px;
+    }
+
+    .org-modal-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (max-width: 480px) {
+      .org-modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .child-modal-error {
       font-size: 13px;
       color: #c62828;
       margin: 0;
+    }
+
+    .address-summary {
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      margin-bottom: 12px;
     }
 
     .orgs-chips {
@@ -670,6 +747,27 @@
       letter-spacing: normal;
       text-transform: none;
       color: var(--text-secondary);
+    }
+
+    .upload-card input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.3s ease;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .upload-card input[type="text"]:focus {
+      border-color: var(--accent);
     }
 
     .upload-card.wide {
@@ -1306,6 +1404,7 @@
         </div>
         <h2 class="display-sm mb-16">Link Expired</h2>
         <p class="body-text">This onboarding link has expired. Please contact HR to request a new link.</p>
+        <p class="body-text" id="verify-expired-reason" style="font-size: 14px; color: var(--text-muted);"></p>
         <a href="contact.html" class="link-arrow accent">Contact HR</a>
       </div>
 
@@ -1351,15 +1450,15 @@
           </div>
 
           <nav class="mission-list" aria-label="Onboarding missions">
-            <button type="button" class="mission-tab active" data-step="0"><span>01</span> Opening Bell<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="1"><span>02</span> KYC Profile<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="2"><span>03</span> Family<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="3"><span>04</span> Document Vault<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="4"><span>05</span> Employment<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="5"><span>06</span> Payroll Ledger<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="6"><span>07</span> Desk Intro<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="7"><span>08</span> Compliance Check<span class="mission-status-dot" hidden></span></button>
-            <button type="button" class="mission-tab" data-step="8"><span>09</span> Closing Bell<span class="mission-status-dot" hidden></span></button>
+            <button type="button" class="mission-tab active" data-step="0"><span class="mission-tab-number"><span>01</span><span class="mission-status-dot"></span></span> Opening Bell<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="1"><span class="mission-tab-number"><span>02</span><span class="mission-status-dot"></span></span> Personal Information<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="2"><span class="mission-tab-number"><span>03</span><span class="mission-status-dot"></span></span> Family<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="3"><span class="mission-tab-number"><span>04</span><span class="mission-status-dot"></span></span> Document Vault<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="4"><span class="mission-tab-number"><span>05</span><span class="mission-status-dot"></span></span> Previous Employment<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="5"><span class="mission-tab-number"><span>06</span><span class="mission-status-dot"></span></span> Payroll Ledger<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="6"><span class="mission-tab-number"><span>07</span><span class="mission-status-dot"></span></span> Culture Intro<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="7"><span class="mission-tab-number"><span>08</span><span class="mission-status-dot"></span></span> Final Checkpoint<span class="mission-progress-count" hidden></span></button>
+            <button type="button" class="mission-tab" data-step="8"><span class="mission-tab-number"><span>09</span><span class="mission-status-dot"></span></span> Closing Bell<span class="mission-progress-count" hidden></span></button>
           </nav>
         </aside>
 
@@ -1381,29 +1480,28 @@
                 </p>
                 <label class="consent-row">
                   <input type="checkbox" data-required="true" name="welcome_ack">
-                  <span>I'm ready to begin my onboarding quest.</span>
+                  <span>I'm ready to begin my onboarding quest. <span class="required-mark">*</span></span>
                 </label>
               </div>
             </section>
 
             <section class="step-panel" data-panel="1">
               <div class="form-panel">
-                <span class="mission-pill">Mission 02 · KYC Profile</span>
+                <span class="mission-pill">Mission 02 · Personal Information</span>
                 <h3>Personal Details</h3>
                 <div class="field-grid">
-                  <label>Full name (As per Aadhar)<input data-required="true" name="full_name" type="text" placeholder="Enter full name"></label>
+                  <label><span><span data-doc-basis-label="full_name">Full name (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="full_name" type="text" placeholder="Enter full name"></label>
                   <label>Preferred name<input name="preferred_name" type="text" placeholder="What should we call you?"></label>
-                  <label>Personal email<input data-required="true" name="email" type="email" placeholder="name@email.com"></label>
-                  <label>Mobile number<input data-required="true" name="mobile" type="tel" placeholder="+91 XXXXX XXXXX"></label>
-                  <label>Date of birth<input data-required="true" name="dob" type="date"></label>
-                  <label>Nationality<input name="nationality" type="text" placeholder="e.g. Indian"></label>
-                  <label>Marital status
-                    <select name="marital_status">
+                  <label><span>Personal email <span class="required-mark">*</span></span><input data-required="true" name="email" type="email" placeholder="name@email.com"></label>
+                  <label><span>Mobile number <span class="required-mark">*</span></span><input data-required="true" name="mobile" type="tel" placeholder="+91 XXXXX XXXXX"></label>
+                  <label><span><span data-doc-basis-label="dob">Date of birth (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="dob" type="date"></label>
+                  <label><span>Nationality <span class="required-mark">*</span></span><input data-required="true" name="nationality" type="text" placeholder="e.g. Indian"></label>
+                  <label><span>Marital status <span class="required-mark">*</span></span>
+                    <select data-required="true" name="marital_status">
                       <option value="">Select</option>
-                      <option value="single">Single</option>
+                      <option value="unmarried">Unmarried</option>
                       <option value="married">Married</option>
-                      <option value="divorced">Divorced</option>
-                      <option value="widowed">Widowed</option>
+                      <option value="other">Other</option>
                     </select>
                   </label>
                   <label>Blood group
@@ -1419,14 +1517,26 @@
                       <option value="O-">O-</option>
                     </select>
                   </label>
-                  <label>Emergency contact<input data-required="true" name="emergency" type="text" placeholder="Name + phone number"></label>
+                  <label><span>Emergency contact name <span class="required-mark">*</span></span><input data-required="true" name="emergency_contact_name" type="text" placeholder="Enter contact's name"></label>
+                  <label><span>Emergency contact number <span class="required-mark">*</span></span><input data-required="true" name="emergency_contact_number" type="tel" placeholder="+91 XXXXX XXXXX"></label>
+                  <label data-location="dubai"><span>Campus Name <span class="required-mark">*</span></span><input data-required="true" name="campus_name" type="text" placeholder="Enter campus/university name"></label>
                 </div>
-                <label>Permanent address<textarea data-required="true" name="address" placeholder="Enter permanent residential address"></textarea></label>
+                <div style="margin-top: 24px;">
+                  <span class="label" style="margin-bottom: 12px;">Permanent Address <span class="required-mark">*</span></span>
+                  <div class="address-summary" id="permanentAddressSummary" hidden><span class="address-summary-text"></span></div>
+                  <button type="button" class="btn-secondary" id="addPermanentAddressBtn" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add address</button>
+                  <input type="hidden" name="address" data-required="true">
+                </div>
                 <label class="consent-row" style="margin-top: 16px;">
                   <input type="checkbox" id="sameAsPermanent">
                   <span>Current address is same as permanent address</span>
                 </label>
-                <label id="presentAddressLabel">Current address<textarea name="present_address" placeholder="Enter current residential address"></textarea></label>
+                <div id="presentAddressSection" style="margin-top: 24px;">
+                  <span class="label" style="margin-bottom: 12px;">Current Address</span>
+                  <div class="address-summary" id="presentAddressSummary" hidden><span class="address-summary-text"></span></div>
+                  <button type="button" class="btn-secondary" id="addPresentAddressBtn" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add address</button>
+                  <input type="hidden" name="present_address">
+                </div>
               </div>
             </section>
 
@@ -1435,10 +1545,10 @@
                 <span class="mission-pill">Mission 03 · Family</span>
                 <h3>Family Details</h3>
                 <div class="field-grid">
-                  <label>Father's name<input name="fathers_name" type="text" placeholder="Enter father's name"></label>
-                  <label>Father's date of birth<input name="fathers_dob" type="date"></label>
-                  <label>Mother's name<input name="mothers_name" type="text" placeholder="Enter mother's name"></label>
-                  <label>Mother's date of birth<input name="mothers_dob" type="date"></label>
+                  <label><span>Father's name <span class="required-mark">*</span></span><input data-required="true" name="fathers_name" type="text" placeholder="Enter father's name"></label>
+                  <label><span>Father's date of birth <span class="required-mark">*</span></span><input data-required="true" name="fathers_dob" type="date"></label>
+                  <label><span>Mother's name <span class="required-mark">*</span></span><input data-required="true" name="mothers_name" type="text" placeholder="Enter mother's name"></label>
+                  <label><span>Mother's date of birth <span class="required-mark">*</span></span><input data-required="true" name="mothers_dob" type="date"></label>
                   <label>Spouse's name<input name="spouse_name" type="text" placeholder="Enter spouse's name (if applicable)"></label>
                   <label>Spouse's date of birth<input name="spouse_dob" type="date"></label>
                 </div>
@@ -1450,7 +1560,7 @@
                   <div id="childrenChips" class="children-chips"></div>
                 </div>
                 <div class="insurance-section" style="margin-top: 24px;">
-                  <span class="label" style="margin-bottom: 12px;">Insurance Coverage</span>
+                  <span class="label" style="margin-bottom: 12px;">Insurance Coverage <span class="required-mark">*</span></span>
                   <div class="radio-group">
                     <label class="radio-row">
                       <input type="radio" name="insurance_coverage" value="employee_spouse_kids">
@@ -1471,16 +1581,15 @@
                 <h3>Document Uploads</h3>
                 <p class="helper-text">Documents upload securely as soon as you choose a file. Accepted formats: JPG, PNG or PDF (photo: JPG/PNG only), up to 10MB each.</p>
                 <div class="upload-grid">
-                  <label class="upload-card" data-location="gurugram,gift_city">PAN Card<input data-required="true" data-doc-type="pan_card" name="pan_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card">ID Proof<input data-required="true" data-doc-type="aadhar_card" name="id_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card">Address Proof<input data-required="true" data-doc-type="address_proof" name="address_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card">Passport Photo<input data-required="true" data-doc-type="profile_photo" name="photo_doc" type="file" accept="image/*"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card">Highest Degree Certificate<input data-doc-type="highest_degree_certificate" name="highest_degree_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="gurugram,gift_city">Higher Secondary Marksheet<input data-doc-type="higher_secondary_marksheet" name="higher_secondary_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card">Resume<input data-doc-type="resume" name="resume_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                </div>
-                <div class="field-grid" style="margin-top: 16px;" data-location="dubai">
-                  <label>Campus Name<input name="campus_name" type="text" placeholder="Enter campus/university name"></label>
+                  <label class="upload-card"><span>Personal Photo <span class="required-mark">*</span></span><input data-required="true" data-doc-type="profile_photo" name="photo_doc" type="file" accept="image/*"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card"><span>SSN (Social Security Number) <span class="required-mark">*</span></span><input data-required="true" name="ssn" type="text" placeholder="Enter SSN"></label>
+                  <label class="upload-card"><span>ID Proof (<span data-doc-basis-label="id_proof_type">Aadhar</span>) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="aadhar_card" name="id_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card"><span><span data-doc-basis-label="identity_number">Aadhar Number</span> <span class="required-mark">*</span></span><input data-required="true" name="passport_number" type="text" placeholder="Enter identity number"></label>
+                  <label class="upload-card">Address Proof<input data-doc-type="address_proof" name="address_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card"><span>Resume <span class="required-mark">*</span></span><input data-required="true" data-doc-type="resume" name="resume_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card"><span>Highest Degree Certificate <span class="required-mark">*</span></span><input data-required="true" data-doc-type="highest_degree_certificate" name="highest_degree_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="gurugram,gift_city"><span>PAN Card <span class="required-mark">*</span></span><input data-required="true" data-doc-type="pan_card" name="pan_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="gurugram,gift_city"><span>Higher Secondary Marksheet <span class="required-mark">*</span></span><input data-required="true" data-doc-type="higher_secondary_marksheet" name="higher_secondary_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                 </div>
               </div>
             </section>
@@ -1490,19 +1599,17 @@
                 <span class="mission-pill">Mission 05 · Employment History</span>
                 <h3>Employment Details</h3>
                 <div class="orgs-section">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span class="label" style="margin: 0;">Previous Organizations</span>
-                    <button type="button" id="addOrgBtn" class="btn-secondary" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add organization</button>
-                  </div>
+                  <span class="label" style="margin-bottom: 12px;">Previous Organizations</span>
+                  <button type="button" id="addOrgBtn" class="btn-secondary" style="height: 36px; padding: 0 16px; font-size: 13px; margin-bottom: 12px;">+ Add organization</button>
                   <div id="orgsChips" class="orgs-chips"></div>
                 </div>
                 <div class="upload-grid" style="margin-top: 24px;" data-location="dubai">
-                  <label class="upload-card">Offer Letter (Last Company)<input data-doc-type="offer_letter_current_org" name="offer_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="dubai">Last Increment Letter<input data-doc-type="last_increment_letter" name="last_increment_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="dubai">Salary Slip (3 Months Zipped)<input data-doc-type="salary_slip" name="salary_slip_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="dubai">Bonus Letter<input data-doc-type="bonus_letter" name="bonus_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="dubai">Experience Letter<input data-doc-type="experience_letter" name="experience_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="dubai">Relieving Letter<input data-doc-type="relieving_letter" name="relieving_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card"><span>Offer Letter (Last Company) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="offer_letter_current_org" name="offer_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai"><span>Last Increment Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="last_increment_letter" name="last_increment_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai"><span>Salary Slip (3 Months Zipped) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="salary_slip" name="salary_slip_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai"><span>Bonus Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="bonus_letter" name="bonus_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai"><span>Experience Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="experience_letter" name="experience_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                  <label class="upload-card" data-location="dubai"><span>Relieving Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="relieving_letter" name="relieving_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                 </div>
               </div>
             </section>
@@ -1512,21 +1619,21 @@
                 <span class="mission-pill">Mission 06 · Payroll Ledger</span>
                 <h3>Bank &amp; Payroll</h3>
                 <div class="field-grid">
-                  <label>Bank name<input data-required="true" name="bank_name" type="text"></label>
-                  <label>Account holder name<input data-required="true" name="account_holder" type="text"></label>
-                  <label>Account number<input data-required="true" name="account_number" type="text"></label>
-                  <label>IFSC code<input data-required="true" name="ifsc" type="text"></label>
+                  <label><span>Bank name <span class="required-mark">*</span></span><input data-required="true" name="bank_name" type="text"></label>
+                  <label><span>Account holder name <span class="required-mark">*</span></span><input data-required="true" name="account_holder" type="text"></label>
+                  <label><span>Account number <span class="required-mark">*</span></span><input data-required="true" name="account_number" type="text"></label>
+                  <label><span>IFSC code <span class="required-mark">*</span></span><input data-required="true" name="ifsc" type="text"></label>
                 </div>
-                <label class="upload-card wide">Cancelled cheque / bank proof<input data-required="true" data-doc-type="bank_proof" name="bank_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                <label class="upload-card wide"><span>Cancelled cheque / bank proof <span class="required-mark">*</span></span><input data-required="true" data-doc-type="bank_proof" name="bank_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
               </div>
             </section>
 
             <section class="step-panel" data-panel="6">
               <div class="form-panel">
-                <span class="mission-pill">Mission 07 · Desk Intro</span>
+                <span class="mission-pill">Mission 07 · Culture Intro</span>
                 <h3>Culture Intro</h3>
                 <div class="field-grid">
-                  <label>One line about you<input data-required="true" name="intro_line" type="text" placeholder="Example: I love markets, music and filter coffee."></label>
+                  <label><span>One line about you <span class="required-mark">*</span></span><input data-required="true" name="intro_line" type="text" placeholder="Example: I love markets, music and filter coffee."></label>
                   <label>Preferred birthday celebration
                     <select name="birthday_pref">
                       <option value="team_wishes">Team wishes are okay</option>
@@ -1534,7 +1641,15 @@
                       <option value="small_celebration">Small celebration is okay</option>
                     </select>
                   </label>
-                  <label>Coffee / tea order<input name="drink_order" type="text" placeholder="Your go-to beverage"></label>
+                  <label>Meal preference
+                    <select name="meal_preference">
+                      <option value="">Select</option>
+                      <option value="vegetarian">Vegetarian</option>
+                      <option value="vegan">Vegan</option>
+                      <option value="non_vegetarian">Non-vegetarian</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
                   <label>Hobbies<input name="hobbies" type="text" placeholder="Reading, sport, travel..."></label>
                 </div>
                 <label>Fun fact<textarea name="fun_fact" placeholder="Share something your team can get to know you by"></textarea></label>
@@ -1543,13 +1658,14 @@
 
             <section class="step-panel" data-panel="7">
               <div class="form-panel">
-                <span class="mission-pill">Mission 08 · Compliance Check</span>
-                <h3>Policy Acknowledgements</h3>
+                <span class="mission-pill">Mission 08 · Final Checkpoint</span>
+                <h3>Declaration and Consent</h3>
+                <p class="body-text">Please take a moment to review the information you've provided before submitting your onboarding.</p>
                 <div class="policy-list">
-                  <label class="consent-row"><input data-required="true" name="policy_code" type="checkbox"><span>I have read and understood the Code of Conduct.</span></label>
-                  <label class="consent-row"><input data-required="true" name="policy_confidentiality" type="checkbox"><span>I agree to the confidentiality and data protection requirements.</span></label>
-                  <label class="consent-row"><input data-required="true" name="policy_it" type="checkbox"><span>I have reviewed the IT and information security guidelines.</span></label>
-                  <label class="consent-row"><input data-required="true" name="policy_hr" type="checkbox"><span>I acknowledge the HR policies shared during onboarding.</span></label>
+                  <span class="label" style="margin-bottom: 12px;">Declaration</span>
+                  <label class="consent-row"><input data-required="true" name="declaration" type="checkbox"><span>I confirm that the information and documents submitted by me are true, accurate and complete to the best of my knowledge. I understand that any false, misleading or incomplete information may affect my employment with the organisation. <span class="required-mark">*</span></span></label>
+                  <span class="label" style="margin: 24px 0 12px;">Consent</span>
+                  <label class="consent-row"><input data-required="true" name="consent" type="checkbox"><span>I consent to the organisation collecting, processing and storing the information and documents provided by me for employment-related purposes, including onboarding, payroll, statutory compliance and integration with internal systems. <span class="required-mark">*</span></span></label>
                 </div>
               </div>
             </section>
@@ -1632,22 +1748,48 @@
 
   <div class="doc-modal" id="org-modal" hidden>
     <div class="doc-modal-backdrop" id="org-modal-backdrop"></div>
-    <div class="doc-modal-dialog" role="dialog" aria-modal="true" aria-label="Add organization" style="max-width: 420px;">
+    <div class="doc-modal-dialog" role="dialog" aria-modal="true" aria-label="Add organization" style="max-width: 640px;">
       <button type="button" class="doc-modal-close" id="org-modal-close" aria-label="Close">&#10005;</button>
       <div class="doc-modal-body" style="text-align: left;">
         <h3 style="margin: 0 0 24px; font-size: 20px;">Add Organization</h3>
-        <label class="child-modal-label">Organization name<input type="text" id="orgModalName" placeholder="Enter company/organization name"></label>
-        <label class="child-modal-label">Duration<input type="text" id="orgModalDuration" placeholder="e.g. Jan 2020 - Dec 2023"></label>
-        <label class="child-modal-label">Role / Info (optional)<input type="text" id="orgModalInfo" placeholder="e.g. Software Engineer"></label>
-        <label class="child-modal-label" style="margin-bottom: 0; flex-direction: row; align-items: center; gap: 12px; text-transform: none; letter-spacing: normal; font-size: 14px;">
-          <input type="checkbox" id="orgModalCurrent" style="width: 18px; height: 18px;">
-          <span>I currently work here</span>
-        </label>
+        <div class="org-modal-grid">
+          <div class="org-modal-col">
+            <label class="child-modal-label"><span>Organization name <span class="required-mark">*</span></span><input type="text" id="orgModalName" placeholder="Enter company/organization name"></label>
+            <label class="child-modal-label"><span>Duration <span class="required-mark">*</span></span><input type="text" id="orgModalDuration" placeholder="e.g. Jan 2020 - Dec 2023"></label>
+            <label class="child-modal-label">Role<input type="text" id="orgModalRole" placeholder="e.g. Software Engineer"></label>
+            <label class="child-modal-label" style="margin-bottom: 0; flex-direction: row; align-items: center; gap: 12px; text-transform: none; letter-spacing: normal; font-size: 14px;">
+              <input type="checkbox" id="orgModalCurrent" style="width: 18px; height: 18px;">
+              <span>I currently work here</span>
+            </label>
+          </div>
+          <div class="org-modal-col">
+            <label class="child-modal-label" style="flex: 1; margin-bottom: 0;">Info<textarea id="orgModalInfo" placeholder="Additional details (optional)" style="flex: 1;"></textarea></label>
+          </div>
+        </div>
         <p id="orgModalError" class="child-modal-error" hidden></p>
       </div>
       <div class="doc-modal-footer" style="justify-content: flex-end; gap: 12px;">
         <button type="button" class="btn-secondary" id="org-modal-cancel">Cancel</button>
         <button type="button" class="btn-primary" id="org-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-modal" id="address-modal" hidden>
+    <div class="doc-modal-backdrop" id="address-modal-backdrop"></div>
+    <div class="doc-modal-dialog" role="dialog" aria-modal="true" aria-label="Address details" style="max-width: 420px;">
+      <button type="button" class="doc-modal-close" id="address-modal-close" aria-label="Close">&#10005;</button>
+      <div class="doc-modal-body" style="text-align: left;">
+        <h3 id="addressModalTitle" style="margin: 0 0 24px; font-size: 20px;">Address</h3>
+        <label class="child-modal-label"><span>Address<span class="required-mark address-modal-required" hidden> *</span></span><textarea id="addressModalLine" placeholder="House / street / area"></textarea></label>
+        <label class="child-modal-label"><span>City<span class="required-mark address-modal-required" hidden> *</span></span><input type="text" id="addressModalCity" placeholder="Enter city"></label>
+        <label class="child-modal-label"><span>Country<span class="required-mark address-modal-required" hidden> *</span></span><input type="text" id="addressModalCountry" placeholder="Enter country"></label>
+        <label class="child-modal-label" style="margin-bottom: 0;"><span>Pincode<span class="required-mark address-modal-required" hidden> *</span></span><input type="text" id="addressModalPincode" placeholder="Enter pincode"></label>
+        <p id="addressModalError" class="child-modal-error" hidden></p>
+      </div>
+      <div class="doc-modal-footer" style="justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn-secondary" id="address-modal-cancel">Cancel</button>
+        <button type="button" class="btn-primary" id="address-modal-save">Save</button>
       </div>
     </div>
   </div>

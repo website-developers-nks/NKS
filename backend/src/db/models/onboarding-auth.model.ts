@@ -12,6 +12,16 @@ export enum Company {
   NKSRT = 'nk securities research & tech',
 }
 
+export enum OnboardingExpiryReason {
+  TooManyDocUploads = 'too_many_doc_uploads',
+  TooManyPresignRequests = 'too_many_presign_requests',
+  TooManySyncRequests = 'too_many_sync_requests',
+  TooManyFieldEdits = 'too_many_field_edits',
+  TooManySubmitAttempts = 'too_many_submit_attempts',
+  LinkExpirationDatePassed = 'link_expiration_date_passed',
+  AdminExpired = 'admin_expired',
+}
+
 export interface IOnboardingAuth extends Document {
   authKey?: string;
   onboardingKey: string;
@@ -26,9 +36,13 @@ export interface IOnboardingAuth extends Document {
   location: OfficeLocation;
   docCount: number;
   expired: boolean;
+  expiredReason?: OnboardingExpiryReason;
   syncRequestCount: number;
   submitAttempts: number;
   lastActivityAt?: Date;
+  cc?: string[];
+  bcc?: string[];
+  extraContent?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,9 +61,13 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     location: { type: String, enum: Object.values(OfficeLocation), required: true },
     docCount: { type: Number, default: 0 },
     expired: { type: Boolean, default: false },
+    expiredReason: { type: String, enum: Object.values(OnboardingExpiryReason) },
     syncRequestCount: { type: Number, default: 0 },
     submitAttempts: { type: Number, default: 0 },
     lastActivityAt: { type: Date },
+    cc: { type: [String] },
+    bcc: { type: [String] },
+    extraContent: { type: String },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true },
