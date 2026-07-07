@@ -234,7 +234,7 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
           from: sender,
           cc: normalizeAddr(cc),
           bcc: normalizeAddr(bcc),
-          subject: `${user.firstName} | Complete your onboarding - ${getCompanyName(auth.company)}`,
+          subject: `${user.firstName} ${user.lastName} | Complete your onboarding - ${getCompanyName(auth.company)}`,
           attachments,
         },
       ),

@@ -27,13 +27,6 @@ export class OnboardingInviteEmail extends BaseEmail {
     const content = `
       <h2 style="margin:0 0 8px;font-size:24px;color:#0a0a0a;">Hi ${this.data.firstName}, you're almost in.</h2>
       <p style="margin:0 0 16px;color:#555;">
-        We've set up your onboarding portal. Complete the short journey below — it takes about 10 minutes.
-      </p>
-      <p style="margin:0 0 24px;color:#555;">
-        You'll be asked to verify your identity, upload a few documents,
-        and share your payroll details so we can get everything ready for day one.
-      </p>
-      <p style="margin:0 0 16px;color:#555;">
         We're excited to have you join us and look forward to welcoming you to the team.
         This onboarding journey has been designed to help you complete the official
         documentation required before your joining date. The information you provide
@@ -51,8 +44,8 @@ export class OnboardingInviteEmail extends BaseEmail {
       <p style="margin:0 0 24px;color:#555;">
         Thank you, and we look forward to welcoming you soon!
       </p>
-      ${ctaButton('Begin Onboarding', this.data.onboardingUrl)}
       ${this.data.extraContent ? `${divider()}<div style="color:#555;">${this.data.extraContent}</div>` : ''}
+      ${ctaButton('Begin Onboarding', this.data.onboardingUrl)}
       ${divider()}
       <p style="margin:0;font-size:13px;color:#888;">
         This link is personal - please don't share it. If you weren't expecting this email,
