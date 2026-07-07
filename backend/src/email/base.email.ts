@@ -5,6 +5,12 @@ export interface EmailAddress {
   address: string;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 export interface BaseEmailInit {
   to: EmailAddress | EmailAddress[];
   subject: string;
@@ -12,6 +18,7 @@ export interface BaseEmailInit {
   replyTo?: EmailAddress;
   cc?: EmailAddress | EmailAddress[];
   bcc?: EmailAddress | EmailAddress[];
+  attachments?: EmailAttachment[];
 }
 
 
@@ -58,14 +65,16 @@ export abstract class BaseEmail {
   readonly replyTo?: EmailAddress;
   readonly cc?: EmailAddress | EmailAddress[];
   readonly bcc?: EmailAddress | EmailAddress[];
+  readonly attachments?: EmailAttachment[];
 
-  constructor({ to, subject, from, replyTo, cc, bcc }: BaseEmailInit) {
+  constructor({ to, subject, from, replyTo, cc, bcc, attachments }: BaseEmailInit) {
     this.to = to;
     this.from = from ?? defaultSender();
     this.subject = subject;
     this.replyTo = replyTo;
     this.cc = cc;
     this.bcc = bcc;
+    this.attachments = attachments;
   }
 
   abstract buildHtml(region?:string): string;

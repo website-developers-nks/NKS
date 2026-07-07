@@ -133,6 +133,10 @@ export interface IOnboardingData extends Document {
   declaration: boolean;
   consent: boolean;
 
+  // Feedback (Closing Bell)
+  experienceRating?: number;
+  experienceFeedback?: string;
+
   // Tracking
   fieldUpdateCounts: Map<string, number>;
 
@@ -220,6 +224,10 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     // Declaration & Consent
     declaration: { type: Boolean, default: false },
     consent: { type: Boolean, default: false },
+
+    // Feedback (Closing Bell)
+    experienceRating: { type: Number, min: 1, max: 5 },
+    experienceFeedback: { type: String, trim: true },
 
     // Tracking
     fieldUpdateCounts: { type: Map, of: Number, default: new Map() },

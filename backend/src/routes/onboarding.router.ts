@@ -13,18 +13,6 @@ import { Limits } from '../lib/limits';
 
 const router = Router();
 
-
-const CONTACT_ONBOARDING_SUBMIT:EmailAddress[] = [
-  {
-    'name':"Heena Sharma",
-    'address': 'heena.sharma@nksecurities.com'
-  },
-  {
-    name:'HR',
-    address:'hr@nksecurities.com'
-  }
-]
-
 const COOKIE_NAME = 'onboarding-auth';
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -273,7 +261,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       new OnboardingSubmittedEmail(
         { name: `${u.firstName} ${u.lastName}`, address: u.email },
         { firstName: u.firstName },
-        { from: sender, cc:CONTACT_ONBOARDING_SUBMIT },
+        { from: sender, cc:auth.auth.cc?.map(x=>({'name':x,'address':x})), bcc:auth.auth.bcc?.map(x=>({'name':x,'address':x})) },
       ),
     ).catch((err) => console.error('[onboarding/submit-data] email failed:', err));
 

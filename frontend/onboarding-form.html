@@ -715,6 +715,37 @@
       accent-color: var(--accent);
     }
 
+    /* Classic CSS-only star rating: radios are laid out 5..1 and reversed
+       with flex-direction, so the `~` sibling selector (which only looks
+       forward in DOM order) lights up the current star and every star to
+       its left when hovered or checked. */
+    .star-rating {
+      flex-direction: row-reverse;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .star-rating input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+
+    .star-rating label {
+      font-size: 30px;
+      line-height: 1;
+      color: var(--border);
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .star-rating input:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: #f5a623;
+    }
+
     @media (max-width: 640px) {
       .upload-grid {
         grid-template-columns: 1fr;
@@ -1674,11 +1705,22 @@
               <div class="form-panel">
                 <span class="mission-pill">Mission 09 · Closing Bell</span>
                 <h3>Review &amp; Submit</h3>
-                <p class="body-text">Check your completion status below, then submit your onboarding or download your answers as a CSV.</p>
+                <p class="body-text">Check your completion status below, then submit your onboarding.</p>
                 <div id="reviewSummary" class="review-grid"></div>
-                <div class="submit-row">
-                  <button type="button" id="downloadCsvBtn" class="btn-secondary">Download CSV</button>
+
+                <div class="rating-section" style="margin-top: 24px;">
+                  <span class="label" style="margin-bottom: 12px;">Rate your onboarding experience <span style="font-weight: 400; text-transform: none; letter-spacing: normal;">(optional)</span></span>
+                  <div class="radio-group star-rating" role="radiogroup" aria-label="Rate your onboarding experience">
+                    <input type="radio" name="experience_rating" id="experience-rating-5" value="5"><label for="experience-rating-5" title="5 stars">★</label>
+                    <input type="radio" name="experience_rating" id="experience-rating-4" value="4"><label for="experience-rating-4" title="4 stars">★</label>
+                    <input type="radio" name="experience_rating" id="experience-rating-3" value="3"><label for="experience-rating-3" title="3 stars">★</label>
+                    <input type="radio" name="experience_rating" id="experience-rating-2" value="2"><label for="experience-rating-2" title="2 stars">★</label>
+                    <input type="radio" name="experience_rating" id="experience-rating-1" value="1"><label for="experience-rating-1" title="1 star">★</label>
+                  </div>
                 </div>
+
+                <label>Feedback (optional)<textarea name="experience_feedback" placeholder="Anything we should know or improve about this onboarding experience?"></textarea></label>
+
                 <p id="submitMessage" class="submit-message" role="status"></p>
               </div>
             </section>

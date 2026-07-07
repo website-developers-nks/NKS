@@ -167,7 +167,6 @@
   var submitInProgress = false;
   var saveBtn = document.querySelector('#saveBtn');
   var saveBtnDefaultText = saveBtn.textContent;
-  var downloadCsvBtn = document.querySelector('#downloadCsvBtn');
   var progressText = document.querySelector('#progressText');
   var progressCircle = document.querySelector('#progressCircle');
   var badgeName = document.querySelector('#badgeName');
@@ -242,7 +241,9 @@
     hobbies: 'Hobbies',
     fun_fact: 'Fun fact',
     declaration: 'Declaration',
-    consent: 'Consent'
+    consent: 'Consent',
+    experience_rating: 'Experience rating',
+    experience_feedback: 'Feedback'
   };
 
   function updateLocationVisibility(location) {
@@ -295,34 +296,6 @@
     if (field.type === 'checkbox') return field.checked;
     if (field.type === 'file') return (field.files && field.files.length > 0) || !!field.dataset.restoredFilename;
     return field.value.trim().length > 0;
-  }
-
-  function getFormPayload() {
-    var payload = {
-      submitted_at: new Date().toISOString(),
-      source: 'NK Onboarding Trading Desk Quest'
-    };
-
-    Array.prototype.forEach.call(form.elements, function (field) {
-      if (!field.name) return;
-      if (field.type === 'button' || field.type === 'submit') return;
-
-      if (field.type === 'checkbox') {
-        payload[field.name] = field.checked ? 'Yes' : 'No';
-        return;
-      }
-
-      if (field.type === 'file') {
-        payload[field.name] = field.files && field.files.length
-          ? Array.prototype.map.call(field.files, function (file) { return file.name; }).join('; ')
-          : '';
-        return;
-      }
-
-      payload[field.name] = field.value || '';
-    });
-
-    return payload;
   }
 
   function isFieldVisible(field) {
@@ -384,31 +357,6 @@
     Array.prototype.forEach.call(reviewSummary.querySelectorAll('.review-item span'), function (el, i) {
       el.textContent = values[i];
     });
-  }
-
-  function escapeCsv(value) {
-    var text = String(value == null ? '' : value);
-    return '"' + text.replace(/"/g, '""') + '"';
-  }
-
-  function downloadCsv() {
-    var payload = getFormPayload();
-    var headers = Object.keys(payload);
-    var csv = [
-      headers.map(function (header) { return escapeCsv(fieldLabels[header] || header); }).join(','),
-      headers.map(function (header) { return escapeCsv(payload[header]); }).join(',')
-    ].join('\n');
-
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    var url = URL.createObjectURL(blob);
-    var link = document.createElement('a');
-    var safeName = (payload.full_name || 'new-joiner').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    link.href = url;
-    link.download = 'nk-onboarding-' + safeName + '.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   }
 
   function showSubmitMessage(message, type) {
@@ -1369,7 +1317,6 @@
   nextBtn.addEventListener('click', function () { showStep(currentStep + 1); });
   form.addEventListener('input', updateProgress);
   form.addEventListener('change', updateProgress);
-  downloadCsvBtn.addEventListener('click', downloadCsv);
 
   form.addEventListener('input', function (e) {
     if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name);

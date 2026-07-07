@@ -16,13 +16,34 @@ interface FieldDef {
   validate: Validator;
 }
 
-function stringValidator(maxLen: number): Validator {
+// `required` mirrors whether GET /submit-data treats this field as
+// mandatory - fields that aren't required there must accept an empty value
+// at sync time too (coerced: undefined tells syncFormFields to $unset the
+// field rather than reject the sync).
+function stringValidator(maxLen: number, required = true): Validator {
   return (v) => {
+    if (v === undefined || v === null) {
+      return required ? { ok: false, error: 'Cannot be empty' } : { ok: true, coerced: undefined };
+    }
     if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
     const trimmed = v.trim();
-    if (trimmed.length === 0) return { ok: false, error: 'Cannot be empty' };
+    if (trimmed.length === 0) {
+      return required ? { ok: false, error: 'Cannot be empty' } : { ok: true, coerced: undefined };
+    }
     if (trimmed.length > maxLen) return { ok: false, error: `Max ${maxLen} characters` };
     return { ok: true, coerced: trimmed };
+  };
+}
+
+function intRangeValidator(min: number, max: number, required = true): Validator {
+  return (v) => {
+    if (v === undefined || v === null || v === '') {
+      return required ? { ok: false, error: 'Cannot be empty' } : { ok: true, coerced: undefined };
+    }
+    const num = typeof v === 'string' ? Number(v) : v;
+    if (typeof num !== 'number' || !Number.isInteger(num)) return { ok: false, error: 'Must be a whole number' };
+    if (num < min || num > max) return { ok: false, error: `Must be between ${min} and ${max}` };
+    return { ok: true, coerced: num };
   };
 }
 
@@ -61,17 +82,23 @@ function ifscValidator(): Validator {
   };
 }
 
-function enumValidator(values: string[], label: string): Validator {
+function enumValidator(values: string[], label: string, required = true): Validator {
   const valid = new Set(values);
   return (v) => {
+    if (v === undefined || v === null || v === '') {
+      return required ? { ok: false, error: `Invalid ${label}` } : { ok: true, coerced: undefined };
+    }
     if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
     if (!valid.has(v)) return { ok: false, error: `Invalid ${label}` };
     return { ok: true, coerced: v };
   };
 }
 
-function pastDateValidator(label: string): Validator {
+function pastDateValidator(label: string, required = true): Validator {
   return (v) => {
+    if (v === undefined || v === null || v === '') {
+      return required ? { ok: false, error: 'Invalid date' } : { ok: true, coerced: undefined };
+    }
     if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
     const d = new Date(v);
     if (isNaN(d.getTime())) return { ok: false, error: 'Invalid date' };
@@ -135,19 +162,22 @@ function childsInfoValidator(): Validator {
   };
 }
 
+// required=false below matches fields GET /submit-data does NOT list in its
+// `missing` checks (or, for campus_name, only requires conditionally by
+// location) - those must accept an empty value here rather than reject the sync.
 const FIELD_DEFS: Record<string, FieldDef> = {
   // Core
   welcome_ack:              { modelField: 'welcomeAck',            validate: boolValidator() },
 
   // Personal
   full_name:                { modelField: 'fullName',              validate: stringValidator(200) },
-  preferred_name:           { modelField: 'preferredName',         validate: stringValidator(100) },
+  preferred_name:           { modelField: 'preferredName',         validate: stringValidator(100, false) },
   email:                    { modelField: 'personalEmail',         validate: emailValidator() },
   mobile:                   { modelField: 'mobile',                validate: stringValidator(20) },
   dob:                      { modelField: 'dob',                   validate: dobValidator() },
   nationality:              { modelField: 'nationality',           validate: stringValidator(100) },
   marital_status:           { modelField: 'maritalStatus',         validate: enumValidator(Object.values(MaritalStatus), 'marital status') },
-  blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group') },
+  blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group', false) },
   emergency_contact_name:   { modelField: 'emergencyContactName',  validate: stringValidator(200) },
   emergency_contact_number: { modelField: 'emergencyContactNumber', validate: stringValidator(20) },
   passport_number:          { modelField: 'passportNumber',        validate: stringValidator(50) },
@@ -160,15 +190,15 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   fathers_dob:              { modelField: 'fathersDob',            validate: pastDateValidator('Date of birth') },
   mothers_name:             { modelField: 'mothersName',           validate: stringValidator(200) },
   mothers_dob:              { modelField: 'mothersDob',            validate: pastDateValidator('Date of birth') },
-  spouse_name:              { modelField: 'spouseName',            validate: stringValidator(200) },
-  spouse_dob:               { modelField: 'spouseDob',             validate: pastDateValidator('Date of birth') },
+  spouse_name:              { modelField: 'spouseName',            validate: stringValidator(200, false) },
+  spouse_dob:               { modelField: 'spouseDob',             validate: pastDateValidator('Date of birth', false) },
   childs_info:              { modelField: 'childsInfo',            validate: childsInfoValidator() },
 
   // Insurance
   insurance_coverage:       { modelField: 'insuranceCoverage',     validate: enumValidator(Object.values(InsuranceCoverage), 'insurance coverage') },
 
   // Education & Employment
-  campus_name:              { modelField: 'campusName',            validate: stringValidator(300) },
+  campus_name:              { modelField: 'campusName',            validate: stringValidator(300, false) },
   orgs:                     { modelField: 'orgs',                  validate: orgsValidator() },
 
   // Bank
@@ -179,14 +209,18 @@ const FIELD_DEFS: Record<string, FieldDef> = {
 
   // About
   intro_line:               { modelField: 'introLine',             validate: stringValidator(300) },
-  birthday_pref:            { modelField: 'birthdayPref',          validate: enumValidator(Object.values(BirthdayPref), 'birthday preference') },
-  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference') },
-  hobbies:                  { modelField: 'hobbies',               validate: stringValidator(500) },
-  fun_fact:                 { modelField: 'funFact',               validate: stringValidator(1000) },
+  birthday_pref:            { modelField: 'birthdayPref',          validate: enumValidator(Object.values(BirthdayPref), 'birthday preference', false) },
+  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference', false) },
+  hobbies:                  { modelField: 'hobbies',               validate: stringValidator(500, false) },
+  fun_fact:                 { modelField: 'funFact',               validate: stringValidator(1000, false) },
 
   // Declaration & Consent
   declaration:              { modelField: 'declaration',           validate: boolValidator() },
   consent:                  { modelField: 'consent',               validate: boolValidator() },
+
+  // Feedback (Closing Bell) - both optional
+  experience_rating:        { modelField: 'experienceRating',      validate: intRangeValidator(1, 5, false) },
+  experience_feedback:      { modelField: 'experienceFeedback',    validate: stringValidator(1000, false) },
 };
 
 export type SyncResult = {
@@ -214,6 +248,7 @@ export async function syncFormFields(
 
   const results: FieldResult[] = [];
   const $set: Record<string, unknown> = {};
+  const $unset: Record<string, ''> = {};
   const fieldIncrements: Record<string, number> = {};
 
   for (const [fieldName, value] of Object.entries(fields)) {
@@ -229,15 +264,26 @@ export async function syncFormFields(
       continue;
     }
 
-    $set[def.modelField] = validation.coerced;
+    // Optional fields can be cleared - the validator signals that with
+    // coerced: undefined, which we turn into $unset instead of $set (setting
+    // an enum/Date field to '' would fail Mongoose's own validation).
+    if (validation.coerced === undefined) {
+      $unset[def.modelField] = '';
+    } else {
+      $set[def.modelField] = validation.coerced;
+    }
     fieldIncrements[`fieldUpdateCounts.${fieldName}`] = 1;
     results.push({ field_name: fieldName, saved: true });
   }
 
-  if (Object.keys($set).length > 0) {
+  if (Object.keys($set).length > 0 || Object.keys($unset).length > 0) {
+    const update: Record<string, unknown> = { $inc: fieldIncrements };
+    if (Object.keys($set).length > 0) update.$set = $set;
+    if (Object.keys($unset).length > 0) update.$unset = $unset;
+
     const updated = await OnboardingData.findOneAndUpdate(
       { onboardingAuthId },
-      { $set, $inc: fieldIncrements },
+      update,
       { returnDocument: 'after' },
     );
 

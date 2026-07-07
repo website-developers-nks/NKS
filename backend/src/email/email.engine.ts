@@ -100,6 +100,7 @@ export class EmailEngine {
       subject: email.subject,
       html: email.buildHtml(this.company),
       text: email.buildText(this.company),
+      attachments: email.attachments,
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);

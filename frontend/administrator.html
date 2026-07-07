@@ -205,6 +205,83 @@
       cursor: not-allowed;
     }
 
+    .form-group input[type="file"] {
+      padding: 8px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .ro-attachments-list {
+      list-style: none;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ro-attachments-list:empty {
+      display: none;
+    }
+
+    .ro-attachment-item {
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+    }
+
+    .ro-attachment-item.is-error {
+      border-color: rgba(200, 35, 35, 0.5);
+      color: #c62828;
+    }
+
+    .ro-attachment-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
+
+    .ro-attachment-size,
+    .ro-attachment-status {
+      flex-shrink: 0;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      font-size: 12px;
+    }
+
+    .ro-attachment-remove {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .ro-attachment-remove:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .ro-attachment-remove:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .form-status {
       display: none;
       padding: 14px 16px;
@@ -1043,6 +1120,12 @@
             <p class="markdown-hint">Full markdown supported: headings, lists, quotes, code, tables, links and more.</p>
             <button type="button" class="markdown-preview-btn" id="ro-preview-btn">Show Preview</button>
           </div>
+          <div class="form-group">
+            <label for="ro-attachments">Attachments (optional)</label>
+            <input type="file" id="ro-attachments" name="attachments" multiple>
+            <p class="markdown-hint">Up to 10 files, 10MB each - sent as attachments on the onboarding email.</p>
+            <ul class="ro-attachments-list" id="ro-attachments-list"></ul>
+          </div>
         </div>
         <button type="submit" class="form-submit" id="admin-register-onboarding-submit">Register Onboarding</button>
         <div class="form-status" id="admin-register-onboarding-status" role="alert" aria-live="polite"></div>
@@ -1077,7 +1160,10 @@
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Onboarding data">
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
-      <h3 id="vod-title">Onboarding Data</h3>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px;">
+        <h3 id="vod-title" style="margin-bottom: 0;">Onboarding Data</h3>
+        <button type="button" class="onboarding-row-btn" id="vod-download-response" style="flex-shrink: 0;">Download Response</button>
+      </div>
       <div class="onboarding-data-body" id="vod-body"></div>
     </div>
   </div>

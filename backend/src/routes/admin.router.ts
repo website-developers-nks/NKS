@@ -1,17 +1,49 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { randomUUID, timingSafeEqual } from 'crypto';
 import { Types } from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
+import multer from 'multer';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { User, IUser } from '../db/models/user.model';
 import { OnboardingAuth, OfficeLocation, Company, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
+import { Doc } from '../db/models/doc.model';
 import { requireAdminAuth } from '../middleware/admin-auth.middleware';
 import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingInviteEmail } from '../email/emails/onboarding-invite.email';
 import { getCompanyName } from '../email/base.email';
+import { r2, R2_BUCKET } from '../lib/r2';
+import { buildOnboardingExportHtml } from '../services/onboarding-export.service';
+import {
+  uploadAdminAttachment,
+  deleteAdminAttachment,
+  resolveAdminAttachments,
+  MAX_ADMIN_ATTACHMENT_BYTES,
+  MAX_ADMIN_ATTACHMENTS_PER_EMAIL,
+} from '../services/admin-attachment.service';
 
 const router = Router();
+
+const attachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_ADMIN_ATTACHMENT_BYTES },
+});
+
+function parseSingleAttachment(req: Request, res: Response, next: NextFunction) {
+  attachmentUpload.single('file')(req, res, (err: unknown) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        res.status(413).json({ error: `File must be ${MAX_ADMIN_ATTACHMENT_BYTES / (1024 * 1024)}MB or smaller.` });
+        return;
+      }
+      next(err);
+      return;
+    }
+    next();
+  });
+}
 
 const ONBOARDING_DOC_FIELDS = [
   'panDoc', 'idDoc', 'addressDoc', 'photoDoc',
@@ -98,7 +130,7 @@ router.post('/create-user', requireAdminAuth, async (req: Request, res: Response
 });
 
 router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: Response) => {
-  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate } = req.body as {
+  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds } = req.body as {
     userId?: string;
     ttl?: number;
     location?: string;
@@ -108,6 +140,7 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
     extraContent?: string;
     extraContentMarkdown?: string;
     expirationDate?: string;
+    attachmentIds?: string[];
   };
 
   const validLocations = Object.values(OfficeLocation);
@@ -115,6 +148,11 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
 
   if (!userId || !ttl || typeof ttl !== 'number' || ttl <= 0) {
     res.status(400).json({ error: 'userId and a positive numeric ttl are required.' });
+    return;
+  }
+
+  if (attachmentIds !== undefined && (!Array.isArray(attachmentIds) || attachmentIds.length > MAX_ADMIN_ATTACHMENTS_PER_EMAIL)) {
+    res.status(400).json({ error: `attachmentIds must be an array of at most ${MAX_ADMIN_ATTACHMENTS_PER_EMAIL} ids.` });
     return;
   }
 
@@ -149,6 +187,16 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
     res.status(404).json({ error: 'User not found.' });
     return;
   }
+  let attachments;
+  if (attachmentIds?.length) {
+    try {
+      attachments = await resolveAdminAttachments(attachmentIds, req.admin!._id as Types.ObjectId);
+    } catch (err) {
+      console.error('[admin/register-onboarding] attachment resolution failed', err);
+      res.status(400).json({ error: 'One or more attachments could not be found. Please re-attach and try again.' });
+      return;
+    }
+  }
 
   try {
     const onboardingKey = randomUUID();
@@ -182,7 +230,13 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
           onboardingUrl,
           extraContent: extraContent ? sanitizeHtml(extraContent, EXTRA_CONTENT_SANITIZE_OPTIONS) : undefined,
         },
-        { from: sender, cc: normalizeAddr(cc), bcc: normalizeAddr(bcc), subject:`${user.firstName} | Complete your onboarding - ${getCompanyName(auth.company)}` },
+        {
+          from: sender,
+          cc: normalizeAddr(cc),
+          bcc: normalizeAddr(bcc),
+          subject: `${user.firstName} | Complete your onboarding - ${getCompanyName(auth.company)}`,
+          attachments,
+        },
       ),
     );
 
@@ -198,6 +252,37 @@ router.post('/register-onboarding', requireAdminAuth, async (req: Request, res: 
   } catch (err: unknown) {
     console.error('[admin/register-onboarding]', err);
     res.status(500).json({ error: 'Failed to register onboarding.' });
+  }
+});
+
+router.post('/attachments', requireAdminAuth, parseSingleAttachment, async (req: Request, res: Response) => {
+  if (!req.file) {
+    res.status(400).json({ error: 'file is required.' });
+    return;
+  }
+
+  try {
+    const result = await uploadAdminAttachment(req.file, req.admin!._id as Types.ObjectId);
+    res.status(201).json(result);
+  } catch (err) {
+    console.error('[admin/attachments]', err);
+    res.status(500).json({ error: 'Failed to upload attachment.' });
+  }
+});
+
+router.delete('/attachments/:id', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+
+  try {
+    const deleted = await deleteAdminAttachment(id, req.admin!._id as Types.ObjectId);
+    if (!deleted) {
+      res.status(404).json({ error: 'Attachment not found.' });
+      return;
+    }
+    res.json({ id, deleted: true });
+  } catch (err) {
+    console.error('[admin/attachments/:id]', err);
+    res.status(500).json({ error: 'Failed to delete attachment.' });
   }
 });
 
@@ -344,7 +429,7 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
     }
 
     const data = await OnboardingData.findOne({ onboardingAuthId: auth._id })
-      .populate(ONBOARDING_DOC_FIELDS, '_id originalName')
+      .populate(ONBOARDING_DOC_FIELDS, '_id originalName mimeType')
       .lean();
 
     if (!data) {
@@ -354,10 +439,10 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
 
     const formatDate = (d: Date | undefined): string | null => (d ? new Date(d).toISOString().slice(0, 10) : null);
 
-    const docEntry = (ref: unknown): { id: string; name: string } | null => {
+    const docEntry = (ref: unknown): { id: string; name: string; mimeType: string } | null => {
       if (ref && typeof ref === 'object' && 'originalName' in (ref as object)) {
-        const d = ref as { _id: object; originalName: string };
-        return { id: d._id.toString(), name: d.originalName };
+        const d = ref as { _id: object; originalName: string; mimeType: string };
+        return { id: d._id.toString(), name: d.originalName, mimeType: d.mimeType };
       }
       return null;
     };
@@ -409,6 +494,8 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
         fun_fact:               data.funFact ?? null,
         declaration:            data.declaration ?? null,
         consent:                data.consent ?? null,
+        experience_rating:      data.experienceRating ?? null,
+        experience_feedback:    data.experienceFeedback ?? null,
       },
       docs: {
         pan_doc:               docEntry(data.panDoc),
@@ -431,6 +518,68 @@ router.get('/onboardings/:id/data', requireAdminAuth, async (req: Request, res: 
   } catch (err) {
     console.error('[admin/onboardings/:id/data]', err);
     res.status(500).json({ error: 'Failed to fetch onboarding data.' });
+  }
+});
+
+router.get('/onboardings/:id/docs/:docId/download', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id, docId } = req.params as { id: string; docId: string };
+
+  if (!Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(docId)) {
+    res.status(400).json({ error: 'Invalid id.' });
+    return;
+  }
+
+  try {
+    const auth = await OnboardingAuth.findById(id);
+    if (!auth) {
+      res.status(404).json({ error: 'Onboarding not found.' });
+      return;
+    }
+
+    const doc = await Doc.findOne({ _id: docId, onboardingKey: auth.onboardingKey });
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found.' });
+      return;
+    }
+
+    const url = await getSignedUrl(
+      r2,
+      new GetObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: doc.path,
+        ResponseContentDisposition: `inline; filename="${doc.originalName}"`,
+      }),
+      { expiresIn: 300 },
+    );
+
+    res.json({ url, expiresIn: 300, originalName: doc.originalName, mimeType: doc.mimeType });
+  } catch (err) {
+    console.error('[admin/onboardings/:id/docs/:docId/download]', err);
+    res.status(500).json({ error: 'Failed to generate download link.' });
+  }
+});
+
+router.get('/onboardings/:id/export', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+
+  if (!Types.ObjectId.isValid(id)) {
+    res.status(400).json({ error: 'Invalid onboarding id.' });
+    return;
+  }
+
+  try {
+    const result = await buildOnboardingExportHtml(id);
+    if (!result) {
+      res.status(404).json({ error: 'Onboarding not found.' });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send(result.html);
+  } catch (err) {
+    console.error('[admin/onboardings/:id/export]', err);
+    res.status(500).json({ error: 'Failed to export onboarding response.' });
   }
 });
 

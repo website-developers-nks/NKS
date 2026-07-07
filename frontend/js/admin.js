@@ -12,14 +12,24 @@
   //   POST /api/admin/create-user       -> requireAdminAuth, body { email, firstName, lastName }
   //                                        201 { id, email, firstName, lastName }
   //                                        400/409/401/403/500 { error: string }
-  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, company, expirationDate, cc?, bcc?, extraContent?, extraContentMarkdown? }
+  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, company,
+  //                                          expirationDate, cc?, bcc?, extraContent?, extraContentMarkdown?, attachmentIds? }
   //                                        location: OfficeLocation enum - 'gurugram' | 'gift_city' | 'dubai'
   //                                        company: Company enum - 'nksecurities' | 'nk securities research & tech'
   //                                        expirationDate: ISO date string, must be in the future
   //                                        extraContent: sanitized HTML actually emailed; extraContentMarkdown: raw
   //                                        source text, persisted only so "Send Again" can repopulate the form
+  //                                        attachmentIds: ids from POST /attachments, up to 10, resolved and emailed
+  //                                        with the invite (400 if any id can't be resolved)
   //                                        201 { id, onboardingKey, userId, ttl, location, company, expirationDate }
   //                                        400 { error, validLocations?, validCompanies? } / 404/401/403/500 { error: string }
+  //   POST /api/admin/attachments        -> requireAdminAuth, multipart/form-data { file }
+  //                                        uploads one file ahead of registering, to link into attachmentIds later
+  //                                        201 { id, originalName, mimeType, sizeBytes }
+  //                                        400/413/401/403/500 { error: string }
+  //   DELETE /api/admin/attachments/:id  -> requireAdminAuth
+  //                                        200 { id, deleted: true }
+  //                                        404/401/403/500 { error: string }
   //   GET  /api/admin/get-user-list     -> requireAdminAuth
   //                                        200 [{ id, email, firstName, lastName, createdAt }, ...]
   //                                        (isAdmin: false users only, authKey never exposed)
@@ -30,6 +40,12 @@
   //                                        sorted pending -> expired -> completed, newest first within each
   //   GET  /api/admin/onboardings/:id/data -> requireAdminAuth
   //                                        200 { user, location, fields: {...}, docs: {...}, submittedAt }
+  //                                        400/404/500 { error: string }
+  //   GET  /api/admin/onboardings/:id/docs/:docId/download -> requireAdminAuth
+  //                                        200 { url, expiresIn, originalName, mimeType } - presigned R2 GET url
+  //                                        400/404/500 { error: string }
+  //   GET  /api/admin/onboardings/:id/export -> requireAdminAuth
+  //                                        200 text/html attachment - full response incl. documents as data URIs
   //                                        400/404/500 { error: string }
   //   GET  /api/admin/onboardings/:id/register-data -> requireAdminAuth
   //                                        200 { id, userId, company, location, ttl, cc, bcc, extraContent }
@@ -209,6 +225,7 @@
       registerOnboardingCard.addEventListener('click', function () {
         showModal('admin-register-onboarding-modal');
         loadUserList();
+        resetAttachments();
       });
     }
 
@@ -351,6 +368,7 @@
     
     function openResendOnboarding(item) {
       registerOnboardingForm.reset();
+      resetAttachments();
       clearFormStatus(registerOnboardingStatus);
       showModal('admin-register-onboarding-modal');
       loadUserList(item.userId);
@@ -480,7 +498,9 @@
       birthday_pref: 'Birthday Preference',
       meal_preference: 'Meal Preference',
       hobbies: 'Hobbies',
-      fun_fact: 'Fun Fact'
+      fun_fact: 'Fun Fact',
+      experience_rating: 'Experience Rating',
+      experience_feedback: 'Feedback'
     };
 
     var BOOLEAN_FIELDS = {
@@ -518,7 +538,71 @@
       grid.appendChild(fieldEl);
     }
 
-    function renderOnboardingData(container, data) {
+    // Opens a document in a new tab via a short-lived presigned R2 URL -
+    // fetched fresh each click rather than cached, since it expires in 5 minutes.
+    function openDocInNewTab(authId, docId, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Opening…';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(authId) + '/docs/' + encodeURIComponent(docId) + '/download', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (isSessionExpired(result.status)) {
+            closeModal();
+            checkAuth();
+            return;
+          }
+          if (result.status !== 200 || !result.data || !result.data.url) {
+            showToast((result.data && result.data.error) || 'Could not open document.', 'error');
+            return;
+          }
+          window.open(result.data.url, '_blank', 'noopener');
+        })
+        .catch(function (err) {
+          console.error('[admin] doc download failed:', err);
+          showToast('Could not open document.', 'error');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+    }
+
+    function appendDocField(grid, label, doc, authId) {
+      var fieldEl = document.createElement('div');
+      fieldEl.className = 'onboarding-data-field';
+      var labelEl = document.createElement('label');
+      labelEl.textContent = label;
+      fieldEl.appendChild(labelEl);
+
+      var row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '8px';
+
+      var span = document.createElement('span');
+      span.textContent = doc ? doc.name : '—';
+      row.appendChild(span);
+
+      if (doc) {
+        var viewBtn = document.createElement('button');
+        viewBtn.type = 'button';
+        viewBtn.className = 'onboarding-row-btn';
+        viewBtn.textContent = 'View';
+        viewBtn.addEventListener('click', function () { openDocInNewTab(authId, doc.id, viewBtn); });
+        row.appendChild(viewBtn);
+      }
+
+      fieldEl.appendChild(row);
+      grid.appendChild(fieldEl);
+    }
+
+    function renderOnboardingData(container, data, authId) {
       container.innerHTML = '';
 
       var user = data.user;
@@ -547,7 +631,9 @@
       Object.keys(FIELD_LABELS).forEach(function (key) {
         var label = FIELD_LABELS[key];
         if (key === 'passport_number') label = isDubai ? 'Passport Number' : 'Aadhar Number';
-        appendDataField(grid, label, fields[key]);
+        var value = fields[key];
+        if (key === 'experience_rating' && value != null) value = value + ' / 5';
+        appendDataField(grid, label, value);
       });
 
       function formatAddress(a) {
@@ -596,15 +682,18 @@
         var doc = docs[key];
         var label = DOC_LABELS[key];
         if (key === 'id_doc') label = 'ID Proof (' + (isDubai ? 'Passport' : 'Aadhar') + ')';
-        appendDataField(docsGrid, label, doc ? doc.name : null);
+        appendDocField(docsGrid, label, doc, authId);
       });
 
       docsSection.appendChild(docsGrid);
       container.appendChild(docsSection);
     }
 
+    var currentExportOnboardingId = null;
+
     function openOnboardingData(item) {
       showModal('admin-onboarding-data-modal');
+      currentExportOnboardingId = item.id;
 
       var title = document.getElementById('vod-title');
       var body = document.getElementById('vod-body');
@@ -631,7 +720,7 @@
             body.appendChild(p);
             return;
           }
-          renderOnboardingData(body, result.data);
+          renderOnboardingData(body, result.data, item.id);
         })
         .catch(function (err) {
           console.error('[admin] onboarding data fetch failed:', err);
@@ -641,6 +730,57 @@
           p.textContent = 'Could not load onboarding data.';
           body.appendChild(p);
         });
+    }
+
+    // The export endpoint returns a plain HTML file (not JSON), so this
+    // downloads it as a blob rather than reusing parseJson/fetch-to-json.
+    var downloadResponseBtn = document.getElementById('vod-download-response');
+    if (downloadResponseBtn) {
+      downloadResponseBtn.addEventListener('click', function () {
+        if (!currentExportOnboardingId) return;
+
+        var originalText = downloadResponseBtn.textContent;
+        downloadResponseBtn.disabled = true;
+        downloadResponseBtn.textContent = 'Preparing…';
+
+        fetch(API_BASE + '/onboardings/' + encodeURIComponent(currentExportOnboardingId) + '/export', {
+          method: 'GET',
+          credentials: 'include'
+        })
+          .then(function (res) {
+            if (isSessionExpired(res.status)) {
+              closeModal();
+              checkAuth();
+              return null;
+            }
+            if (!res.ok) throw new Error('Export failed with status ' + res.status);
+
+            var disposition = res.headers.get('Content-Disposition') || '';
+            var match = /filename="([^"]+)"/.exec(disposition);
+            var filename = match ? match[1] : 'onboarding-response.html';
+
+            return res.blob().then(function (blob) { return { blob: blob, filename: filename }; });
+          })
+          .then(function (result) {
+            if (!result) return;
+            var url = window.URL.createObjectURL(result.blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = result.filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+          })
+          .catch(function (err) {
+            console.error('[admin] export failed:', err);
+            showToast('Could not download the response. Please try again.', 'error');
+          })
+          .finally(function () {
+            downloadResponseBtn.disabled = false;
+            downloadResponseBtn.textContent = originalText;
+          });
+      });
     }
 
     function checkAuth() {
@@ -960,6 +1100,129 @@
       }
     });
 
+    // ---- Attachments (upload-first, same idea as the onboarding-form doc
+    // uploads: picking a file uploads it immediately via POST /attachments,
+    // and only the returned id travels with the rest of the register-onboarding
+    // submission - the file bytes themselves are never sent alongside the form data) ----
+
+    var attachmentsInput = document.getElementById('ro-attachments');
+    var attachmentsList = document.getElementById('ro-attachments-list');
+    var roAttachments = []; // [{ originalName, sizeBytes, id?, uploading?, error? }]
+    var roAttachmentsUploading = 0;
+
+    function formatAttachmentSize(bytes) {
+      if (!bytes) return '0 KB';
+      var kb = bytes / 1024;
+      return kb < 1024 ? Math.round(kb) + ' KB' : (kb / 1024).toFixed(1) + ' MB';
+    }
+
+    function renderAttachmentsList() {
+      if (!attachmentsList) return;
+      attachmentsList.innerHTML = '';
+
+      roAttachments.forEach(function (att) {
+        var li = document.createElement('li');
+        li.className = 'ro-attachment-item' + (att.error ? ' is-error' : '');
+
+        var name = document.createElement('span');
+        name.className = 'ro-attachment-name';
+        name.textContent = att.originalName;
+        li.appendChild(name);
+
+        var status = document.createElement('span');
+        if (att.error) {
+          status.className = 'ro-attachment-status';
+          status.textContent = att.error;
+        } else if (att.uploading) {
+          status.className = 'ro-attachment-status';
+          status.textContent = 'Uploading…';
+        } else {
+          status.className = 'ro-attachment-size';
+          status.textContent = formatAttachmentSize(att.sizeBytes);
+        }
+        li.appendChild(status);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'ro-attachment-remove';
+        removeBtn.setAttribute('aria-label', 'Remove ' + att.originalName);
+        removeBtn.disabled = !!att.uploading;
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', function () { removeAttachment(att); });
+        li.appendChild(removeBtn);
+
+        attachmentsList.appendChild(li);
+      });
+    }
+
+    function removeAttachment(att) {
+      roAttachments = roAttachments.filter(function (a) { return a !== att; });
+      renderAttachmentsList();
+
+      if (!att.id) return; // upload never finished (or failed) - nothing to delete server-side
+
+      fetch(API_BASE + '/attachments/' + encodeURIComponent(att.id), {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      }).catch(function (err) { console.error('[admin] attachment delete failed:', err); });
+    }
+
+    function resetAttachments() {
+      roAttachments = [];
+      roAttachmentsUploading = 0;
+      if (attachmentsInput) attachmentsInput.value = '';
+      renderAttachmentsList();
+    }
+
+    function uploadAttachment(file) {
+      var att = { originalName: file.name, sizeBytes: file.size, uploading: true };
+      roAttachments.push(att);
+      roAttachmentsUploading += 1;
+      renderAttachmentsList();
+
+      var formData = new FormData();
+      formData.append('file', file);
+
+      fetch(API_BASE + '/attachments', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (isSessionExpired(result.status)) {
+            checkAuth();
+            return;
+          }
+
+          att.uploading = false;
+          roAttachmentsUploading -= 1;
+
+          if (result.status === 201 && result.data && result.data.id) {
+            att.id = result.data.id;
+          } else {
+            att.error = (result.data && result.data.error) || 'Upload failed.';
+          }
+          renderAttachmentsList();
+        })
+        .catch(function (err) {
+          console.error('[admin] attachment upload failed:', err);
+          att.uploading = false;
+          roAttachmentsUploading -= 1;
+          att.error = 'Upload failed.';
+          renderAttachmentsList();
+        });
+    }
+
+    if (attachmentsInput) {
+      attachmentsInput.addEventListener('change', function () {
+        var files = Array.prototype.slice.call(attachmentsInput.files);
+        attachmentsInput.value = ''; // let the same file be re-picked later if removed
+        files.forEach(uploadAttachment);
+      });
+    }
+
     if (registerOnboardingForm) {
       registerOnboardingForm.addEventListener('submit', function (event) {
         event.preventDefault();
@@ -980,9 +1243,20 @@
           return;
         }
 
+        if (roAttachmentsUploading > 0) {
+          setFormStatus(registerOnboardingStatus, 'Please wait for attachments to finish uploading.', 'error');
+          return;
+        }
+
+        if (roAttachments.some(function (a) { return a.error; })) {
+          setFormStatus(registerOnboardingStatus, 'Remove the failed attachment(s) before submitting.', 'error');
+          return;
+        }
+
         var cc = parseEmailListInput(document.getElementById('ro-cc').value);
         var bcc = parseEmailListInput(document.getElementById('ro-bcc').value);
         var extraContentRaw = document.getElementById('ro-extra-content').value.trim();
+        var attachmentIds = roAttachments.filter(function (a) { return a.id; }).map(function (a) { return a.id; });
 
         var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
         if (cc) payload.cc = cc;
@@ -991,6 +1265,7 @@
           payload.extraContent = markdownToHtml(extraContentRaw);
           payload.extraContentMarkdown = extraContentRaw;
         }
+        if (attachmentIds.length) payload.attachmentIds = attachmentIds;
 
         var originalText = registerOnboardingSubmitBtn.textContent;
         registerOnboardingSubmitBtn.disabled = true;
@@ -1012,6 +1287,7 @@
             if (result.status === 201 && result.data && result.data.onboardingKey) {
               var link = window.location.origin + '/verify-onboarding.html?id=' + encodeURIComponent(result.data.onboardingKey);
               registerOnboardingForm.reset();
+              resetAttachments();
               registerOnboardingStatus.textContent = '';
               registerOnboardingStatus.appendChild(document.createTextNode('Onboarding link ready:'));
               registerOnboardingStatus.appendChild(document.createElement('br'));
