@@ -213,12 +213,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireDoc(data.idDoc,                 'id_doc');
     requireDoc(data.photoDoc,              'photo_doc');
     requireDoc(data.highestDegreeDoc,      'highest_degree_doc');
-    requireDoc(data.bankDoc,               'bank_doc');
     requireDoc(data.resumeDoc,             'resume_doc');
-    requireStr(data.bankName,              'bank_name');
-    requireStr(data.accountHolder,         'account_holder');
-    requireStr(data.accountNumber,         'account_number');
-    requireStr(data.ifsc,                  'ifsc');
     requireStr(data.introLine,             'intro_line');
     requireTrue(data.declaration,          'declaration');
     requireTrue(data.consent,              'consent');
@@ -228,10 +223,16 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireDoc(data.mothersDob,             'mothers_dob');
     requireDoc(data.insuranceCoverage,             'insurance_coverage');
 
-    // Required for Gurugram / Gift City only
+    // Required for Gurugram / Gift City only - Payroll Ledger (bank details)
+    // isn't mandatory in Dubai, since IFSC is an Indian bank code and doesn't apply there.
     if (isIndia) {
       requireDoc(data.higherSecondaryDoc,  'higher_secondary_doc');
       requireDoc(data.panDoc,                'pan_doc');
+      requireDoc(data.bankDoc,               'bank_doc');
+      requireStr(data.bankName,              'bank_name');
+      requireStr(data.accountHolder,         'account_holder');
+      requireStr(data.accountNumber,         'account_number');
+      requireStr(data.ifsc,                  'ifsc');
     }
 
     // Required for Dubai only
@@ -319,7 +320,7 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
       .lean();
 
     if (!data) {
-      res.status(404).json({ error: 'No onboarding data found.' });
+      res.json({ fields: {}, docs: {}, info: { location }, submittedAt: null });
       return;
     }
 

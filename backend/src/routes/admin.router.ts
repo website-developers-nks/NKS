@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID, randomInt, timingSafeEqual } from 'crypto';
 import { Types } from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import sanitizeHtml from 'sanitize-html';
@@ -10,9 +10,11 @@ import { User, IUser } from '../db/models/user.model';
 import { OnboardingAuth, OfficeLocation, Company, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { Doc } from '../db/models/doc.model';
+import { AdminLoginOtp } from '../db/models/admin-login-otp.model';
 import { requireAdminAuth } from '../middleware/admin-auth.middleware';
-import { getEmailEngineByCompany, getSenderByCompany } from '../email';
+import { emailEngine, getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingInviteEmail } from '../email/emails/onboarding-invite.email';
+import { OtpEmail } from '../email/emails/otp.email';
 import { getCompanyName } from '../email/base.email';
 import { r2, R2_BUCKET } from '../lib/r2';
 import { buildOnboardingExportHtml } from '../services/onboarding-export.service';
@@ -311,6 +313,9 @@ const ADMIN_COOKIE_OPTIONS = {
   maxAge: 8 * 60 * 60 * 1000,
 };
 
+const ADMIN_LOGIN_OTP_TTL_SECONDS = 5 * 60;
+const ADMIN_LOGIN_OTP_MAX_ATTEMPTS = 5;
+
 router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   const { username, password } = req.body as { username?: string; password?: string };
 
@@ -322,6 +327,12 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminPassword) {
     res.status(503).json({ error: 'Admin auth is not configured.' });
+    return;
+  }
+
+  const adminOtpEmail = process.env.ADMIN_OTP_EMAIL;
+  if (!adminOtpEmail) {
+    res.status(503).json({ error: 'Admin OTP email is not configured.' });
     return;
   }
 
@@ -337,6 +348,68 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
       return;
     }
 
+    const userId = (user._id as object).toString();
+    const otp = randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + ADMIN_LOGIN_OTP_TTL_SECONDS * 1000);
+
+    await AdminLoginOtp.deleteMany({ userId: user._id });
+    await AdminLoginOtp.create({ userId: user._id, otp, expiresAt });
+
+    await emailEngine.send(
+      new OtpEmail(
+        { address: adminOtpEmail },
+        { otp, expiresInMinutes: Math.floor(ADMIN_LOGIN_OTP_TTL_SECONDS / 60), purpose: 'login' },
+        { from: getSenderByCompany(Company.NKSR) },
+      ),
+    );
+
+    res.json({ auth: false, otpRequired: true, userId });
+  } catch (err) {
+    console.error('[admin/login]', err);
+    res.status(500).json({ error: 'Login failed.' });
+  }
+});
+
+router.post('/verify-login-otp', loginLimiter, async (req: Request, res: Response) => {
+  const { userId, otp } = req.body as { userId?: string; otp?: string };
+
+  if (!userId || !otp) {
+    res.status(400).json({ error: 'userId and otp are required.' });
+    return;
+  }
+
+  if (!Types.ObjectId.isValid(userId)) {
+    res.status(400).json({ error: 'Invalid userId format.' });
+    return;
+  }
+
+  try {
+    const user = await User.findOne({ _id: userId, isAdmin: true });
+    if (!user) {
+      res.status(401).json({ error: 'Invalid credentials.' });
+      return;
+    }
+
+    const record = await AdminLoginOtp.findOne({ userId: user._id }).sort({ createdAt: -1 });
+    if (!record || record.expiresAt.getTime() < Date.now()) {
+      res.status(400).json({ error: 'This code has expired. Please log in again.' });
+      return;
+    }
+
+    if (record.attempts >= ADMIN_LOGIN_OTP_MAX_ATTEMPTS) {
+      await AdminLoginOtp.deleteMany({ userId: user._id });
+      res.status(429).json({ error: 'Too many incorrect attempts. Please log in again.' });
+      return;
+    }
+
+    if (record.otp !== otp.trim()) {
+      await AdminLoginOtp.updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
+      res.status(401).json({ error: 'Invalid code.' });
+      return;
+    }
+
+    await AdminLoginOtp.deleteMany({ userId: user._id });
+
     const authKey = randomUUID();
     await User.updateOne({ _id: user._id }, { authKey });
 
@@ -351,8 +424,8 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error('[admin/login]', err);
-    res.status(500).json({ error: 'Login failed.' });
+    console.error('[admin/verify-login-otp]', err);
+    res.status(500).json({ error: 'OTP verification failed.' });
   }
 });
 

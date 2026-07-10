@@ -257,6 +257,33 @@
       }
     });
     updateDocBasisLabels(location);
+    updatePayrollLedgerRequirement(location);
+  }
+
+  // Payroll Ledger (bank details) is only mandatory for India locations -
+  // IFSC in particular is an Indian bank code and doesn't apply in Dubai.
+  // The section stays visible for Dubai so employees can still fill it in
+  // voluntarily, it just isn't required to submit.
+  var PAYROLL_LEDGER_FIELD_NAMES = ['bank_name', 'account_holder', 'account_number', 'ifsc', 'bank_doc'];
+
+  function updatePayrollLedgerRequirement(location) {
+    var required = location !== 'dubai';
+    PAYROLL_LEDGER_FIELD_NAMES.forEach(function (name) {
+      var field = form.elements[name];
+      var el = field instanceof RadioNodeList ? field[0] : field;
+      if (!el) return;
+
+      if (required) {
+        el.setAttribute('data-required', 'true');
+      } else {
+        el.removeAttribute('data-required');
+      }
+
+      var label = el.closest('label');
+      var mark = label ? label.querySelector('.required-mark') : null;
+      if (mark) mark.hidden = !required;
+    });
+    updateProgress();
   }
 
   var DOC_BASIS_LABELS = {

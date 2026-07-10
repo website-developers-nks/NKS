@@ -73,8 +73,11 @@ function dobValidator(): Validator {
   };
 }
 
-function ifscValidator(): Validator {
+function ifscValidator(required = true): Validator {
   return (v) => {
+    if (v === undefined || v === null || v === '') {
+      return required ? { ok: false, error: 'Cannot be empty' } : { ok: true, coerced: undefined };
+    }
     if (typeof v !== 'string') return { ok: false, error: 'Must be a string' };
     const upper = v.trim().toUpperCase();
     if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(upper)) return { ok: false, error: 'Invalid IFSC format' };
@@ -202,10 +205,12 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   orgs:                     { modelField: 'orgs',                  validate: orgsValidator() },
 
   // Bank
-  bank_name:                { modelField: 'bankName',              validate: stringValidator(200) },
-  account_holder:           { modelField: 'accountHolder',         validate: stringValidator(200) },
-  account_number:           { modelField: 'accountNumber',         validate: stringValidator(30) },
-  ifsc:                     { modelField: 'ifsc',                  validate: ifscValidator() },
+  // Not required at sync time - required=false lets Dubai leave these blank;
+  // GET /submit-data is the authoritative gate and only requires them for India.
+  bank_name:                { modelField: 'bankName',              validate: stringValidator(200, false) },
+  account_holder:           { modelField: 'accountHolder',         validate: stringValidator(200, false) },
+  account_number:           { modelField: 'accountNumber',         validate: stringValidator(30, false) },
+  ifsc:                     { modelField: 'ifsc',                  validate: ifscValidator(false) },
 
   // About
   intro_line:               { modelField: 'introLine',             validate: stringValidator(300) },

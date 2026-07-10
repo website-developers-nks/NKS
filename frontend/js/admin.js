@@ -7,8 +7,12 @@
   //                                        200 { auth: false, reason: 'no_cookie' }
   //                                        400 { auth: false, reason: 'not_found' }
   //   POST /api/admin/login             -> body { username, password } (username is the admin's email)
-  //                                        200 { auth: true, user: { id, email, firstName, lastName } }
+  //                                        200 { auth: false, otpRequired: true, userId } on correct password -
+  //                                        a code is emailed to ADMIN_OTP_EMAIL, not the admin's own address
   //                                        400/401/503 { error: string }
+  //   POST /api/admin/verify-login-otp  -> body { userId, otp }
+  //                                        200 { auth: true, user: { id, email, firstName, lastName } }
+  //                                        400/401/429/500 { error: string }
   //   POST /api/admin/create-user       -> requireAdminAuth, body { email, firstName, lastName }
   //                                        201 { id, email, firstName, lastName }
   //                                        400/409/401/403/500 { error: string }
@@ -966,6 +970,13 @@
     var loginSubmitBtn = document.getElementById('admin-login-submit');
     var loginStatus = document.getElementById('admin-login-status');
 
+    var loginOtpForm = document.getElementById('admin-login-otp-form');
+    var loginOtpInput = document.getElementById('admin-login-otp');
+    var loginOtpSubmitBtn = document.getElementById('admin-login-otp-submit');
+    var loginOtpBackBtn = document.getElementById('admin-login-otp-back');
+    var loginOtpStatus = document.getElementById('admin-login-otp-status');
+    var pendingLoginUserId = null;
+
     function showLoginError(message) {
       loginStatus.textContent = message;
       loginStatus.classList.add('is-visible', 'is-error');
@@ -974,6 +985,68 @@
     function clearLoginError() {
       loginStatus.classList.remove('is-visible', 'is-error');
       loginStatus.textContent = '';
+    }
+
+    function showOtpStep(userId) {
+      pendingLoginUserId = userId;
+      passwordInput.value = '';
+      loginForm.hidden = true;
+      loginOtpForm.hidden = false;
+      loginOtpInput.value = '';
+      clearFormStatus(loginOtpStatus);
+      loginOtpInput.focus();
+    }
+
+    function backToLoginStep() {
+      pendingLoginUserId = null;
+      loginOtpForm.hidden = true;
+      loginForm.hidden = false;
+      clearLoginError();
+      usernameInput.focus();
+    }
+
+    if (loginOtpBackBtn) loginOtpBackBtn.addEventListener('click', backToLoginStep);
+
+    if (loginOtpForm) {
+      loginOtpForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearFormStatus(loginOtpStatus);
+
+        var otp = loginOtpInput.value.trim();
+        if (!otp) {
+          setFormStatus(loginOtpStatus, 'Please enter the verification code.', 'error');
+          return;
+        }
+
+        var originalText = loginOtpSubmitBtn.textContent;
+        loginOtpSubmitBtn.disabled = true;
+        loginOtpSubmitBtn.textContent = 'Verifying…';
+
+        fetch(API_BASE + '/verify-login-otp', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: pendingLoginUserId, otp: otp })
+        })
+          .then(parseJson)
+          .then(function (result) {
+            if (result.status === 200 && result.data && result.data.auth) {
+              pendingLoginUserId = null;
+              showDashboard(result.data.user);
+              return;
+            }
+
+            setFormStatus(loginOtpStatus, (result.data && result.data.error) || 'Something went wrong. Please try again.', 'error');
+          })
+          .catch(function (err) {
+            console.error('[admin] otp verification failed:', err);
+            setFormStatus(loginOtpStatus, 'Something went wrong while verifying the code. Please try again.', 'error');
+          })
+          .finally(function () {
+            loginOtpSubmitBtn.disabled = false;
+            loginOtpSubmitBtn.textContent = originalText;
+          });
+      });
     }
 
     if (loginForm) {
@@ -1000,6 +1073,11 @@
         })
           .then(parseJson)
           .then(function (result) {
+            if (result.status === 200 && result.data && result.data.otpRequired) {
+              showOtpStep(result.data.userId);
+              return;
+            }
+
             if (result.status === 200 && result.data && result.data.auth) {
               passwordInput.value = '';
               showDashboard(result.data.user);
