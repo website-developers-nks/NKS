@@ -1,7 +1,6 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-// One-time codes for the admin login 2FA step - emailed to ADMIN_OTP_EMAIL
-// (not the admin's own address) after a correct username/password.
+
 export interface IAdminLoginOtp extends Document {
   userId: Types.ObjectId;
   otp: string;

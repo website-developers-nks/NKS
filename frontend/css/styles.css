@@ -1102,6 +1102,7 @@ a:hover {
 .form-group textarea {
   resize: vertical;
   min-height: 100px;
+  width: 100%;
 }
 
 .form-submit {

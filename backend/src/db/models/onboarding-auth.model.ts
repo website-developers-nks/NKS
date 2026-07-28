@@ -37,12 +37,19 @@ export interface IOnboardingAuth extends Document {
   docCount: number;
   expired: boolean;
   expiredReason?: OnboardingExpiryReason;
+  expiredAt?: Date;
+  expiredBy?: Types.ObjectId | IUser;
   syncRequestCount: number;
   submitAttempts: number;
   lastActivityAt?: Date;
   cc?: string[];
   bcc?: string[];
   extraContent?: string;
+  lastReminderAt?: Date;
+  reminderCount: number;
+  inviteMessageId?: string;
+  inviteSubject?: string;
+  sheetConfig?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,9 +69,16 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     docCount: { type: Number, default: 0 },
     expired: { type: Boolean, default: false },
     expiredReason: { type: String, enum: Object.values(OnboardingExpiryReason) },
+    expiredAt: { type: Date },
+    expiredBy: { type: Schema.Types.ObjectId, ref: 'User' },
     syncRequestCount: { type: Number, default: 0 },
     submitAttempts: { type: Number, default: 0 },
     lastActivityAt: { type: Date },
+    lastReminderAt: { type: Date },
+    reminderCount: { type: Number, default: 0 },
+    inviteMessageId: { type: String },
+    inviteSubject: { type: String },
+    sheetConfig: { type: Schema.Types.ObjectId, ref: 'SheetConfig' },
     cc: { type: [String] },
     bcc: { type: [String] },
     extraContent: { type: String },

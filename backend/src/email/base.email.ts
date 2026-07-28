@@ -19,6 +19,8 @@ export interface BaseEmailInit {
   cc?: EmailAddress | EmailAddress[];
   bcc?: EmailAddress | EmailAddress[];
   attachments?: EmailAttachment[];
+  inReplyTo?: string;
+  references?: string | string[];
 }
 
 
@@ -66,8 +68,10 @@ export abstract class BaseEmail {
   readonly cc?: EmailAddress | EmailAddress[];
   readonly bcc?: EmailAddress | EmailAddress[];
   readonly attachments?: EmailAttachment[];
+  readonly inReplyTo?: string;
+  readonly references?: string | string[];
 
-  constructor({ to, subject, from, replyTo, cc, bcc, attachments }: BaseEmailInit) {
+  constructor({ to, subject, from, replyTo, cc, bcc, attachments, inReplyTo, references }: BaseEmailInit) {
     this.to = to;
     this.from = from ?? defaultSender();
     this.subject = subject;
@@ -75,6 +79,8 @@ export abstract class BaseEmail {
     this.cc = cc;
     this.bcc = bcc;
     this.attachments = attachments;
+    this.inReplyTo = inReplyTo;
+    this.references = references;
   }
 
   abstract buildHtml(region?:string): string;

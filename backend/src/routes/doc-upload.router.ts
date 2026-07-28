@@ -7,6 +7,7 @@ import { r2, R2_BUCKET } from '../lib/r2';
 import { Limits } from '../lib/limits';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
 import { uploadDoc, DOC_TYPE_CONFIG } from '../services/doc-upload.service';
+import { verifyDocToken } from '../lib/doc-links';
 import { Doc, DocType } from '../db/models/doc.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
@@ -222,5 +223,39 @@ router.get(
     }
   },
 );
+
+router.get('/view/:docId', async (req: Request, res: Response) => {
+  const { docId } = req.params as { docId: string };
+  const token = String(req.query.t ?? '');
+
+  if (!Types.ObjectId.isValid(docId) || !verifyDocToken(docId, token)) {
+    res.status(404).send('This link is not valid.');
+    return;
+  }
+
+  try {
+    const doc = await Doc.findById(docId);
+    if (!doc) {
+      res.status(404).send('This link is not valid.');
+      return;
+    }
+
+    const url = await getSignedUrl(
+      r2,
+      new GetObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: doc.path,
+        ResponseContentDisposition: `inline; filename="${doc.originalName}"`,
+      }),
+      { expiresIn: 300 },
+    );
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.redirect(302, url);
+  } catch (err) {
+    console.error('[docs/view]', err);
+    res.status(500).send('Could not open this document.');
+  }
+});
 
 export default router;

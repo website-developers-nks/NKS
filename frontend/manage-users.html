@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users - NK Securities Research</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css?v=1783685962">
+  <link rel="stylesheet" href="css/accessibility.css?v=1783685962">
+
+  <link rel="stylesheet" href="css/admin.css?v=1783685962">
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="contact.html" class="nav-link">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta">Open Positions</a>
+        <button type="button" class="nav-logout" id="admin-logout-btn">Logout</button>
+      </div>
+
+      <div class="nav-hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="contact.html">CONTACT</a>
+    <a href="open-positions.html">OPEN POSITIONS</a>
+    <button type="button" class="mobile-menu-logout" id="admin-logout-btn-mobile">LOG OUT</button>
+  </div>
+
+  <section class="admin-section">
+    <div class="container">
+
+      <!-- Shown while GET /api/admin/auth is in flight -->
+      <div class="admin-card admin-panel text-center" id="mu-loading-panel">
+        <div class="admin-icon is-spinner"></div>
+        <h2 class="display-sm mb-16">Checking Session…</h2>
+        <p class="body-text">Hold tight while we confirm your admin session.</p>
+      </div>
+
+      <!-- Shown when GET /api/admin/auth reports auth: true -->
+      <div class="admin-card admin-card-wide admin-panel" id="mu-content-panel" hidden>
+        <a href="administrator.html" class="admin-back-link">&#8592; Back to dashboard</a>
+
+        <div class="admin-tabs" role="tablist">
+          <button type="button" class="admin-tab is-active" data-tab="users" role="tab" aria-selected="true" id="mu-tab-users">Users</button>
+          <button type="button" class="admin-tab" data-tab="permissions" role="tab" aria-selected="false" id="mu-tab-permissions">Manage Permissions</button>
+        </div>
+
+        <div class="admin-tab-panel" data-tab-panel="users" id="mu-panel-users">
+          <div class="admin-page-header">
+            <div>
+              <h2 class="display-sm">Users</h2>
+              <p class="body-text">Everyone with a portal account. Admins can sign in to this dashboard.</p>
+            </div>
+            <button type="button" class="form-submit admin-page-header-btn" id="mu-add-user-btn">Add User</button>
+          </div>
+
+          <div class="onboardings-toolbar">
+            <input type="text" id="mu-search" class="toolbar-search" placeholder="Search by name or email…">
+            <div class="select-wrapper onboardings-filter">
+              <select id="mu-role-filter">
+                <option value="">All users</option>
+                <option value="admin">Admins</option>
+                <option value="member">Non-admins</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="onboardings-list users-list" id="mu-list"></div>
+        </div>
+
+        <div class="admin-tab-panel" data-tab-panel="permissions" id="mu-panel-permissions" hidden>
+          <div class="admin-page-header">
+            <div>
+              <h2 class="display-sm">Permission Groups</h2>
+              <p class="body-text">Each admin belongs to one group, and that group decides what they can do. Select a group to edit it.</p>
+            </div>
+            <button type="button" class="form-submit admin-page-header-btn" id="mu-add-group-btn">Add Group</button>
+          </div>
+
+          <div class="onboardings-list users-list" id="mu-groups-list"></div>
+        </div>
+      </div>
+
+      <!-- Reached by opening this page directly without the permissions for it -->
+      <div class="admin-card admin-panel text-center" id="mu-denied-panel" hidden>
+        <div class="admin-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">No Access</h2>
+        <p class="body-text" id="mu-denied-message">Your permission group doesn't allow managing users or permissions.</p>
+        <a href="administrator.html" class="admin-back-link" style="justify-content: center;">&#8592; Back to dashboard</a>
+      </div>
+
+      <!-- Shown when the auth check itself fails (network error or 5xx) -->
+      <div class="admin-card admin-panel text-center" id="mu-error-panel" hidden>
+        <div class="admin-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5M12 16h.01"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Something Went Wrong</h2>
+        <p class="body-text">We couldn't confirm your admin session right now. Please try again in a moment.</p>
+        <button type="button" class="form-submit" id="mu-retry-btn" style="width: auto; padding: 0 32px;">Try Again</button>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="admin-modal" id="admin-create-user-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Create user">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3>Create User</h3>
+      <p class="body-text">Add a new user on portal.</p>
+      <form class="admin-form" id="admin-create-user-form" novalidate>
+        <div class="form-group">
+          <label for="cu-email">Email</label>
+          <input type="email" id="cu-email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="cu-first-name">First name</label>
+          <input type="text" id="cu-first-name" name="firstName" required>
+        </div>
+        <div class="form-group">
+          <label for="cu-last-name">Last name</label>
+          <input type="text" id="cu-last-name" name="lastName" required>
+        </div>
+        <div class="form-group form-checkbox">
+          <input type="checkbox" id="cu-is-admin" name="isAdmin">
+          <label for="cu-is-admin">Is Admin</label>
+        </div>
+        <div class="form-group" id="cu-permission-group-wrap" hidden>
+          <label for="cu-permission-group">Permission group</label>
+          <div class="select-wrapper">
+            <select id="cu-permission-group" name="permissionGroupId">
+              <option value="" disabled selected>Select a group…</option>
+            </select>
+          </div>
+          <p class="markdown-hint">An admin can only use the parts of the dashboard their group allows. A password is generated and emailed to them so they can sign in.</p>
+        </div>
+        <button type="submit" class="form-submit" id="admin-create-user-submit">Create User</button>
+        <div class="form-status" id="admin-create-user-status" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-send-email-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Send email">
+      <button type="button" class="admin-modal-action" id="se-save-template-btn">Save as template</button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3>Send Email</h3>
+      <p class="body-text" id="se-recipient">Compose a one-off email to this user.</p>
+
+      <div class="template-save-row" id="se-save-template-row" hidden>
+        <input type="text" id="se-template-name" placeholder="Template name" maxlength="80">
+        <button type="button" class="onboarding-row-btn" id="se-save-template-confirm">Save</button>
+        <button type="button" class="onboarding-row-btn" id="se-save-template-cancel">Cancel</button>
+      </div>
+
+      <form class="admin-form" id="admin-send-email-form" novalidate>
+        <div class="form-group">
+          <label for="se-mode">Send as</label>
+          <div class="select-wrapper">
+            <select id="se-mode">
+              <option value="separate" selected>A separate email</option>
+              <option value="thread">A reply in an onboarding thread</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="se-thread-wrap" hidden>
+          <label for="se-onboarding">Onboarding thread</label>
+          <div class="select-wrapper">
+            <select id="se-onboarding">
+              <option value="" disabled selected>Select an onboarding…</option>
+            </select>
+          </div>
+          <p class="markdown-hint">The email arrives under that onboarding's invite, so it lands in the same conversation.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="se-title">Title</label>
+          <input type="text" id="se-title" name="title" maxlength="150" required>
+          <p class="markdown-hint">Used as both the email subject and its heading.</p>
+        </div>
+        <div class="form-group">
+          <label for="se-subtitle">Subtitle (optional)</label>
+          <input type="text" id="se-subtitle" name="subtitle" maxlength="200">
+        </div>
+        <div class="form-group">
+          <label for="se-cc">CC (optional)</label>
+          <input type="text" id="se-cc" name="cc" placeholder="manager@nksecurities.com, other@nksecurities.com">
+        </div>
+        <div class="form-group">
+          <label for="se-bcc">BCC (optional)</label>
+          <input type="text" id="se-bcc" name="bcc" placeholder="hr@nksecurities.com">
+        </div>
+
+        <div class="form-group">
+          <label for="se-template">Template (optional)</label>
+          <div class="select-wrapper">
+            <select id="se-template">
+              <option value="" selected>No template</option>
+            </select>
+          </div>
+          <p class="markdown-hint">Loads a saved message into the editor below.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="se-content">Message</label>
+          <div class="admin-tabs" role="tablist">
+            <button type="button" class="admin-tab is-active" data-se-tab="editor" role="tab" aria-selected="true">Editor</button>
+            <button type="button" class="admin-tab" data-se-tab="preview" role="tab" aria-selected="false">Preview</button>
+          </div>
+
+          <div class="admin-tab-panel" data-se-panel="editor">
+            <div class="markdown-toolbar" data-md-target="se-content">
+              <button type="button" class="markdown-toolbar-btn" data-md="bold" title="Bold">B</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="italic" title="Italic">I</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="heading" title="Heading">H</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="ul" title="Bulleted list">&#8226;</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="ol" title="Numbered list">1.</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="quote" title="Quote">&#8221;</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="code" title="Code">&lt;/&gt;</button>
+              <button type="button" class="markdown-toolbar-btn" data-md="link" title="Link">&#128279;</button>
+            </div>
+            <textarea id="se-content" name="content" rows="10" placeholder="Write your message here - **markdown** is supported."></textarea>
+            <p class="markdown-hint">Full markdown supported: headings, lists, quotes, code, tables, links and more.</p>
+          </div>
+
+          <div class="admin-tab-panel" data-se-panel="preview" hidden>
+            <div class="markdown-preview-body" id="se-preview-body"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="se-schedule">Schedule for (optional)</label>
+          <input type="datetime-local" id="se-schedule" name="scheduledAt">
+          <p class="markdown-hint">Leave blank to send immediately.</p>
+        </div>
+
+        <button type="submit" class="form-submit" id="admin-send-email-submit">Send Email</button>
+        <div class="form-status" id="admin-send-email-status" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-user-emails-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Sent emails">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="ue-title">Emails</h3>
+      <p class="body-text" id="ue-subtitle">Everything sent to, or queued for, this user. Select one to read it.</p>
+      <div class="onboardings-list" id="ue-list"></div>
+
+      <div id="ue-detail" hidden>
+        <button type="button" class="admin-back-link" id="ue-back">&#8592; Back to emails</button>
+        <div id="ue-detail-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-user-onboardings-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="User onboardings">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="uo-title">Onboardings</h3>
+      <p class="body-text" id="uo-subtitle">Every onboarding link registered for this user.</p>
+      <div class="onboardings-list" id="uo-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-permission-group-modal" hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Permission group">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="pg-title">Add Permission Group</h3>
+      <p class="body-text">Pick everything admins in this group are allowed to do.</p>
+      <form class="admin-form" id="admin-permission-group-form" novalidate>
+        <div class="form-group">
+          <label for="pg-name">Group name</label>
+          <input type="text" id="pg-name" name="name" placeholder="Onboarding Team" required>
+        </div>
+        <div class="form-group">
+          <label>Permissions</label>
+          <div class="permissions-checklist" id="pg-permissions"></div>
+        </div>
+        <button type="submit" class="form-submit" id="admin-permission-group-submit">Create Group</button>
+        <button type="button" class="admin-danger-btn" id="pg-delete-btn" hidden>Delete this group</button>
+        <div class="form-status" id="admin-permission-group-status" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <script src="js/vendor/three.min.js?v=1783685962"></script>
+  <script src="js/vendor/marked.js?v=1783685962"></script>
+  <script src="js/markdown-email.js?v=1783685962"></script>
+  <script src="js/row-menu.js?v=1783685962"></script>
+  <script src="js/bundle-b.js?v=1783685962"></script>
+  <script src="js/manage-users.js?v=1783685962"></script>
+
+</body>
+</html>

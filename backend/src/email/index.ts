@@ -12,3 +12,6 @@ export type { ContactEmailData } from './emails/contact.email';
 
 export { OtpEmail } from './emails/otp.email';
 export type { OtpEmailData, OtpPurpose } from './emails/otp.email';
+
+export { AdminCredentialsEmail } from './emails/admin-credentials.email';
+export type { AdminCredentialsEmailData } from './emails/admin-credentials.email';

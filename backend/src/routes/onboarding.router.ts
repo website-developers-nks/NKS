@@ -10,6 +10,7 @@ import { EmailAddress, getEmailEngineByCompany, getSenderByCompany } from '../em
 import { OnboardingSubmittedEmail } from '../email/emails/onboarding-submitted.email';
 import { IUser } from '../db/models/user.model';
 import { Limits } from '../lib/limits';
+import { appendOnboardingToSheet } from '../services/onboarding-sheet.service';
 
 const router = Router();
 
@@ -255,6 +256,8 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       OnboardingAuth.updateOne({ _id: authId }, { completed: true }),
       OnboardingData.updateOne({ onboardingAuthId: authId }, { submittedAt: new Date() }),
     ]);
+
+    await appendOnboardingToSheet(authId);
 
     const u = req.onboarding!.user as IUser;
     const sender = getSenderByCompany(auth.auth.company);

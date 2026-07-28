@@ -1,22 +1,37 @@
 (function () {
   'use strict';
 
-  // Matches backend/src/routes/admin.router.ts:
+  // Matches backend/src/routes/admin.router.ts.
+  //
+  // Every action below is gated on a permission from the admin's permission
+  // group (see manage-users.html). A denied call answers 403 with reason
+  // 'missing_permission' or 'no_permission_group'; that is NOT a dead session,
+  // so handleApiFailure() keeps the admin on the page and only toasts. An admin
+  // with no group holds no permissions at all and sees an empty dashboard.
+  //
   //   GET  /api/admin/auth              -> reads the admin-auth cookie against User.authKey
-  //                                        200 { auth: true, user: { id, email, firstName, lastName, isAdmin } }
+  //                                        200 { auth: true, user: { id, email, firstName, lastName,
+  //                                              isAdmin, permissions: [...], permissionGroup } }
   //                                        200 { auth: false, reason: 'no_cookie' }
   //                                        400 { auth: false, reason: 'not_found' }
-  //   POST /api/admin/login             -> body { username, password } (username is the admin's email)
+  //   POST /api/admin/change-password   -> requireAdminAuth only (your own account, no permission)
+  //                                        body { currentPassword, newPassword }
+  //                                        200 { changed: true, signedOut: true } - the change ends the
+  //                                        session (authKey unset, cookie cleared), so this page has to
+  //                                        return to the login form afterwards
+  //                                        401 here means the CURRENT password was wrong, not a dead
+  //                                        session, so it must not go through handleApiFailure
+  //   POST /api/admin/login             -> body { username, password } (username is the admin's email,
+  //                                        password is their own - emailed when their account was created)
   //                                        200 { auth: false, otpRequired: true, userId } on correct password -
   //                                        a code is emailed to ADMIN_OTP_EMAIL, not the admin's own address
   //                                        400/401/503 { error: string }
   //   POST /api/admin/verify-login-otp  -> body { userId, otp }
-  //                                        200 { auth: true, user: { id, email, firstName, lastName } }
+  //                                        200 { auth: true, user: { ... same shape as /auth } }
   //                                        400/401/429/500 { error: string }
-  //   POST /api/admin/create-user       -> requireAdminAuth, body { email, firstName, lastName }
-  //                                        201 { id, email, firstName, lastName }
-  //                                        400/409/401/403/500 { error: string }
-  //   POST /api/admin/register-onboarding -> requireAdminAuth, body { userId, ttl, location, company,
+  //   (Creating and listing users moved to manage-users.html / js/manage-users.js -
+  //    the "Manage Users" card here is a plain link to that page.)
+  //   POST /api/admin/register-onboarding -> manage_onboardings, body { userId, ttl, location, company,
   //                                          expirationDate, cc?, bcc?, extraContent?, extraContentMarkdown?, attachmentIds? }
   //                                        location: OfficeLocation enum - 'gurugram' | 'gift_city' | 'dubai'
   //                                        company: Company enum - 'nksecurities' | 'nk securities research & tech'
@@ -27,35 +42,64 @@
   //                                        with the invite (400 if any id can't be resolved)
   //                                        201 { id, onboardingKey, userId, ttl, location, company, expirationDate }
   //                                        400 { error, validLocations?, validCompanies? } / 404/401/403/500 { error: string }
-  //   POST /api/admin/attachments        -> requireAdminAuth, multipart/form-data { file }
+  //   POST /api/admin/attachments        -> manage_onboardings, multipart/form-data { file }
   //                                        uploads one file ahead of registering, to link into attachmentIds later
   //                                        201 { id, originalName, mimeType, sizeBytes }
   //                                        400/413/401/403/500 { error: string }
-  //   DELETE /api/admin/attachments/:id  -> requireAdminAuth
+  //   DELETE /api/admin/attachments/:id  -> manage_onboardings
   //                                        200 { id, deleted: true }
   //                                        404/401/403/500 { error: string }
-  //   GET  /api/admin/get-user-list     -> requireAdminAuth
+  //   GET  /api/admin/sheets             -> manage_sheets OR manage_onboardings
+  //                                        (the latter so Register Onboarding can offer the picker)
+  //                                        200 { configured, serviceAccount, sheets: [...] }
+  //                                        configured is false when the server has no
+  //                                        GOOGLE_SA_* credentials, so nothing can be written
+  //   POST /api/admin/sheets             -> manage_sheets, body { name, spreadsheet, tabName? }
+  //                                        verifies access to the spreadsheet before saving
+  //                                        201 { id, name, spreadsheetId, tabName, url }
+  //                                        400 { error, tabs? } / 409 duplicate / 503 unconfigured
+  //   DELETE /api/admin/sheets/:id       -> manage_sheets
+  //                                        409 reason 'in_use' when onboardings still point at it;
+  //                                        repeat with ?force=true to unlink them and remove it
+  //   GET  /api/admin/message-templates  -> manage_onboardings
+  //                                        200 [{ id, name, content, createdAt }, ...] name-sorted;
+  //                                        content is the raw markdown, which is what the picker
+  //                                        above the extra-message editor loads back in
+  //   POST /api/admin/message-templates  -> manage_onboardings, body { name, content }
+  //                                        201 { id, name, content, createdAt }
+  //                                        400/409 { error: string } - 409 on a duplicate name
+  //   GET  /api/admin/get-user-list     -> manage_onboardings
   //                                        200 [{ id, email, firstName, lastName, createdAt }, ...]
   //                                        (isAdmin: false users only, authKey never exposed)
-  //   GET  /api/admin/onboardings       -> requireAdminAuth, query { search?, status? }
+  //   GET  /api/admin/onboardings       -> view_onboarding_results OR manage_onboardings, query { search?, status? }
   //                                        status: 'pending' | 'completed' | 'expired'
   //                                        200 [{ id, onboardingKey, userId, fullName, email, location, company,
   //                                               status, ttl, expirationDate, createdAt }, ...]
   //                                        sorted pending -> expired -> completed, newest first within each
-  //   GET  /api/admin/onboardings/:id/data -> requireAdminAuth
+  //   GET  /api/admin/onboardings/:id/data -> view_onboarding_results
   //                                        200 { user, location, fields: {...}, docs: {...}, submittedAt }
   //                                        400/404/500 { error: string }
-  //   GET  /api/admin/onboardings/:id/docs/:docId/download -> requireAdminAuth
+  //   GET  /api/admin/onboardings/:id/progress -> view_onboarding_results
+  //                                        for onboardings with nothing submitted: whether the
+  //                                        link was opened, how far they got, fieldUpdateCounts,
+  //                                        the activity counters, and why/by whom it expired.
+  //                                        Never 404s on missing data - "never started" is the answer
+  //   GET  /api/admin/onboardings/:id/docs/:docId/download -> view_onboarding_docs
   //                                        200 { url, expiresIn, originalName, mimeType } - presigned R2 GET url
   //                                        400/404/500 { error: string }
-  //   GET  /api/admin/onboardings/:id/export -> requireAdminAuth
+  //   GET  /api/admin/onboardings/:id/export -> view_onboarding_results AND view_onboarding_docs
   //                                        200 text/html attachment - full response incl. documents as data URIs
   //                                        400/404/500 { error: string }
-  //   GET  /api/admin/onboardings/:id/register-data -> requireAdminAuth
+  //   GET  /api/admin/onboardings/:id/register-data -> manage_onboardings
   //                                        200 { id, userId, company, location, ttl, cc, bcc, extraContent }
   //                                        (extraContent here is the raw markdown source, for "Send Again")
   //                                        400/404/500 { error: string }
-  //   PATCH /api/admin/onboardings/:id/expire -> requireAdminAuth
+  //   POST /api/admin/onboardings/:id/remind -> manage_onboardings
+  //                                        sends the reminder now, ignoring the cron's
+  //                                        idle/cooldown rules; CC/BCC come from the invite
+  //                                        200 { id, sent: true, lastReminderAt, reminderCount }
+  //                                        400 if completed or expired / 502 if the send failed
+  //   PATCH /api/admin/onboardings/:id/expire -> manage_onboardings
   //                                        200 { id, expired: true }
   //                                        400/404/500 { error: string }
   var API_BASE = '/api/admin';
@@ -73,8 +117,44 @@
       panels.forEach(function (panel) { panel.hidden = panel.id !== panelId; });
     }
 
-    function showDashboard() {
+    var myPermissions = [];
+
+    function can(permission) {
+      return myPermissions.indexOf(permission) !== -1;
+    }
+
+    function canViewProgress() {
+      return can('view_onboarding_list') || can('view_onboarding_results');
+    }
+
+    var CARD_PERMISSIONS = {
+      'admin-manage-users-card': ['manage_users', 'manage_permissions'],
+      'admin-register-onboarding-card': ['manage_onboardings'],
+      'admin-view-onboardings-card': ['view_onboarding_list', 'view_onboarding_results', 'manage_onboardings'],
+      'admin-manage-sheets-card': ['manage_sheets']
+    };
+
+    function showDashboard(user) {
+      myPermissions = (user && Array.isArray(user.permissions)) ? user.permissions : [];
+
+      var visibleCards = 0;
+      Object.keys(CARD_PERMISSIONS).forEach(function (cardId) {
+        var card = document.getElementById(cardId);
+        if (!card) return;
+        var allowed = CARD_PERMISSIONS[cardId].some(can);
+        card.hidden = !allowed;
+        if (allowed) visibleCards += 1;
+      });
+
+      var emptyNote = document.getElementById('admin-no-actions-note');
+      if (emptyNote) emptyNote.hidden = visibleCards > 0;
+
+      showLogout(true);
       showPanel('admin-dashboard-panel');
+
+      if (user && user.mustChangePassword) {
+        openChangePassword(true);
+      }
     }
 
     // ---- Action card modals (Create User / Register Onboarding) ----
@@ -151,16 +231,6 @@
       setTimeout(dismiss, TOAST_VISIBLE_MS);
     }
 
-    var createUserCard = document.getElementById('admin-create-user-card');
-    if (createUserCard) {
-      createUserCard.addEventListener('click', function () {
-        var form = document.getElementById('admin-create-user-form');
-        if (form) form.reset();
-        clearFormStatus(document.getElementById('admin-create-user-status'));
-        showModal('admin-create-user-modal');
-      });
-    }
-
     var userIdSelect = document.getElementById('ro-user-id');
 
     function setUserSelectMessage(message) {
@@ -206,9 +276,8 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            closeModal();
-            checkAuth();
+          if (handleApiFailure(result)) {
+            setUserSelectMessage('Could not load users');
             return;
           }
           if (result.status !== 200 || !Array.isArray(result.data)) {
@@ -229,6 +298,8 @@
       registerOnboardingCard.addEventListener('click', function () {
         showModal('admin-register-onboarding-modal');
         loadUserList();
+        loadTemplates();
+        loadSheets();
         resetAttachments();
       });
     }
@@ -265,7 +336,8 @@
 
     function renderOnboardingRow(item) {
       var row = document.createElement('div');
-      row.className = 'onboarding-row' + (item.status === 'completed' ? ' is-clickable' : '');
+      var canOpenRow = item.status === 'completed' ? can('view_onboarding_results') : canViewProgress();
+      row.className = 'onboarding-row' + (canOpenRow ? ' is-clickable' : '');
 
       var info = document.createElement('div');
       info.className = 'onboarding-row-info';
@@ -279,6 +351,10 @@
       if (item.email) metaParts.push(item.email);
       if (item.location) metaParts.push(formatLocation(item.location));
       if (item.createdAt) metaParts.push('Registered ' + new Date(item.createdAt).toLocaleDateString());
+      if (item.lastReminderAt) {
+        metaParts.push('Reminded ' + new Date(item.lastReminderAt).toLocaleDateString() +
+          (item.reminderCount > 1 ? ' (' + item.reminderCount + '×)' : ''));
+      }
       if (item.status === 'expired' && item.expiredReason) metaParts.push(formatExpiryReason(item.expiredReason));
 
       var meta = document.createElement('div');
@@ -303,35 +379,497 @@
       badge.textContent = item.status.charAt(0).toUpperCase() + item.status.slice(1);
       actions.appendChild(badge);
 
-      if (item.status === 'pending') {
-        var expireBtn = document.createElement('button');
-        expireBtn.type = 'button';
-        expireBtn.className = 'onboarding-row-btn';
-        expireBtn.textContent = 'Mark Expired';
-        expireBtn.addEventListener('click', function (event) {
-          event.stopPropagation();
-          expireOnboarding(item, expireBtn);
-        });
-        actions.appendChild(expireBtn);
-      } else if (item.status === 'expired') {
-        var resendBtn = document.createElement('button');
-        resendBtn.type = 'button';
-        resendBtn.className = 'onboarding-row-btn';
-        resendBtn.textContent = 'Send Again';
-        resendBtn.addEventListener('click', function (event) {
-          event.stopPropagation();
-          openResendOnboarding(item);
-        });
-        actions.appendChild(resendBtn);
+      var menuItems = [];
+
+      if (item.status === 'pending' && can('manage_onboardings')) {
+          menuItems.push({
+            label: 'Send Reminder',
+            keepOpen: true,
+            onSelect: function (entry) { sendReminder(item, entry); }
+          });
       }
+
+      if (item.status === 'pending' && can('expire_onboardings')) {
+          menuItems.push({
+            label: 'Mark Expired',
+            danger: true,
+            keepOpen: true,
+            onSelect: function (entry) { expireOnboarding(item, entry); }
+        });
+      }
+
+      if (item.status === 'expired' && can('manage_onboardings')) {
+          menuItems.push({ label: 'Send Again', onSelect: function () { openResendOnboarding(item); } });
+      }
+
+      if (item.status === 'completed') {
+      if (can('view_onboarding_results')) {
+          menuItems.push({ label: 'View Submitted Data', onSelect: function () { openOnboardingData(item); } });
+        }
+      } else if (canViewProgress()) {
+        menuItems.push({ label: 'View Progress', onSelect: function () { openOnboardingProgress(item); } });
+      }
+
+      if (menuItems.length) actions.appendChild(window.NKSRowMenu.build(menuItems));
 
       row.appendChild(actions);
 
-      if (item.status === 'completed') {
-        row.addEventListener('click', function () { openOnboardingData(item); });
+      if (canOpenRow) {
+        row.addEventListener('click', function () {
+          if (item.status === 'completed') {
+            openOnboardingData(item);
+          } else {
+            openOnboardingProgress(item);
+          }
+        });
       }
 
       return row;
+    }
+
+    var PROGRESS_FIELD_LABELS = {
+      welcomeAck: 'Welcome acknowledged', fullName: 'Full name', preferredName: 'Preferred name',
+      personalEmail: 'Personal email', mobile: 'Mobile', dob: 'Date of birth', nationality: 'Nationality',
+      maritalStatus: 'Marital status', bloodGroup: 'Blood group', emergencyContactName: 'Emergency contact name',
+      emergencyContactNumber: 'Emergency contact number', passportNumber: 'Passport / Aadhar number', ssn: 'SSN',
+      address: 'Permanent address', presentAddress: 'Present address', fathersName: "Father's name",
+      fathersDob: "Father's DOB", mothersName: "Mother's name", mothersDob: "Mother's DOB",
+      spouseName: 'Spouse name', spouseDob: 'Spouse DOB', childsInfo: 'Children', insuranceCoverage: 'Insurance coverage',
+      campusName: 'Campus name', orgs: 'Employment history', bankName: 'Bank name', accountHolder: 'Account holder',
+      accountNumber: 'Account number', ifsc: 'IFSC', introLine: 'Intro line', birthdayPref: 'Birthday preference',
+      mealPreference: 'Meal preference', hobbies: 'Hobbies', funFact: 'Fun fact', declaration: 'Declaration',
+      consent: 'Consent', experienceRating: 'Experience rating', experienceFeedback: 'Feedback',
+      panDoc: 'PAN card', idDoc: 'ID proof', addressDoc: 'Address proof', photoDoc: 'Personal photo',
+      higherSecondaryDoc: 'Higher secondary certificate', highestDegreeDoc: 'Highest degree certificate',
+      resumeDoc: 'Resume', offerLetterDoc: 'Offer letter', lastIncrementDoc: 'Last increment letter',
+      salarySlipDoc: 'Salary slip', bonusLetterDoc: 'Bonus letter', experienceLetterDoc: 'Experience letter',
+      relievingLetterDoc: 'Relieving letter', bankDoc: 'Bank document'
+    };
+
+    function progressFieldLabel(key) {
+      if (PROGRESS_FIELD_LABELS[key]) return PROGRESS_FIELD_LABELS[key];
+      var spaced = key.replace(/([A-Z])/g, ' $1').toLowerCase().trim();
+      return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+    }
+
+    function progressSection(container, heading) {
+      var section = document.createElement('div');
+      section.className = 'onboarding-data-section';
+      var title = document.createElement('h4');
+      title.textContent = heading;
+      section.appendChild(title);
+      container.appendChild(section);
+      return section;
+    }
+
+    function formatDateTime(value) {
+      return value ? new Date(value).toLocaleString() : '—';
+    }
+
+    function renderOnboardingProgress(container, data) {
+      container.innerHTML = '';
+
+      var summaryParts = [];
+      if (data.user) summaryParts.push(data.user.fullName + ' (' + data.user.email + ')');
+      if (data.location) summaryParts.push(formatLocation(data.location));
+      summaryParts.push(data.status.charAt(0).toUpperCase() + data.status.slice(1));
+
+      var summary = document.createElement('p');
+      summary.className = 'body-text';
+      summary.textContent = summaryParts.join(' · ');
+      container.appendChild(summary);
+
+      // --- Where they got to ---
+      var stateSection = progressSection(container, 'Status');
+      var stateGrid = document.createElement('div');
+      stateGrid.className = 'onboarding-data-grid';
+
+      var openedLabel = data.opened
+        ? 'Yes, first opened ' + formatDateTime(data.lastVerifiedAt)
+        : 'No - the link has never been opened';
+
+      appendDataField(stateGrid, 'Opened the link', openedLabel);
+      appendDataField(stateGrid, 'Last activity', data.lastActivityAt ? formatDateTime(data.lastActivityAt) : 'Never');
+      appendDataField(stateGrid, 'Started filling in', data.progress.started ? 'Yes' : 'No');
+      appendDataField(stateGrid, 'Registered', formatDateTime(data.registeredAt));
+      appendDataField(stateGrid, 'Expires', formatDateTime(data.expirationDate));
+      appendDataField(stateGrid, 'Last saved', data.progress.lastSavedAt ? formatDateTime(data.progress.lastSavedAt) : '—');
+      appendDataField(stateGrid, 'Onboarding key', data.onboardingKey);
+      stateSection.appendChild(stateGrid);
+
+      // --- Why it is dead, and who killed it ---
+      if (data.expiry.expired) {
+        var expirySection = progressSection(container, 'Expiry');
+        var expiryGrid = document.createElement('div');
+        expiryGrid.className = 'onboarding-data-grid';
+        appendDataField(expiryGrid, 'Reason', data.expiry.reason ? formatExpiryReason(data.expiry.reason) : 'Unknown');
+        appendDataField(expiryGrid, 'Expired at', data.expiry.at ? formatDateTime(data.expiry.at) : '—');
+        appendDataField(expiryGrid, 'Expired by',
+          data.expiry.by ? data.expiry.by.name + ' (' + data.expiry.by.email + ')'
+            : data.expiry.reason === 'admin_expired' ? 'An admin (not recorded)'
+            : 'Automatic');
+        expirySection.appendChild(expiryGrid);
+      }
+
+      // --- Counters ---
+      var activitySection = progressSection(container, 'Activity');
+      var activityGrid = document.createElement('div');
+      activityGrid.className = 'onboarding-data-grid';
+      appendDataField(activityGrid, 'Fields filled', data.progress.filledFields);
+      appendDataField(activityGrid, 'Documents uploaded', data.progress.documentsUploaded + ' (' + data.activity.docCount + ' upload' + (data.activity.docCount === 1 ? '' : 's') + ' total)');
+      appendDataField(activityGrid, 'Total field edits', data.progress.totalFieldEdits);
+      appendDataField(activityGrid, 'Saves', data.activity.syncRequestCount);
+      appendDataField(activityGrid, 'Submit attempts', data.activity.submitAttempts);
+      appendDataField(activityGrid, 'Verification codes sent', data.activity.otpSendCount);
+      appendDataField(activityGrid, 'Reminders sent',
+        data.activity.reminderCount + (data.activity.lastReminderAt ? ' (last ' + formatDateTime(data.activity.lastReminderAt) + ')' : ''));
+      activitySection.appendChild(activityGrid);
+
+      // --- What has been filled in, and how often it was changed ---
+      if (data.progress.filled.length) {
+        var filledSection = progressSection(container, 'Completed so far');
+        var chips = document.createElement('div');
+        chips.className = 'permission-chips';
+        data.progress.filled.forEach(function (key) {
+          var chip = document.createElement('span');
+          chip.className = 'permission-chip';
+          var edits = data.progress.fieldUpdateCounts[key];
+          chip.textContent = progressFieldLabel(key) + (edits ? ' ×' + edits : '');
+          chips.appendChild(chip);
+        });
+        filledSection.appendChild(chips);
+      }
+
+      var editedKeys = Object.keys(data.progress.fieldUpdateCounts || {});
+      if (editedKeys.length) {
+        var editsSection = progressSection(container, 'Edits per field');
+        var editsGrid = document.createElement('div');
+        editsGrid.className = 'onboarding-data-grid';
+        editedKeys
+          .sort(function (a, b) { return data.progress.fieldUpdateCounts[b] - data.progress.fieldUpdateCounts[a]; })
+          .forEach(function (key) {
+            appendDataField(editsGrid, progressFieldLabel(key), data.progress.fieldUpdateCounts[key]);
+          });
+        editsSection.appendChild(editsGrid);
+      }
+
+      if (!data.progress.started) {
+        var note = document.createElement('p');
+        note.className = 'onboardings-message';
+        note.textContent = data.opened
+          ? 'They opened the link but saved nothing yet.'
+          : 'Nothing has been filled in - the link has not been opened.';
+        container.appendChild(note);
+      }
+    }
+
+    var sheetsList = document.getElementById('sheets-list');
+    var sheetsWarning = document.getElementById('sheets-config-warning');
+    var sheetSelect = document.getElementById('ro-sheet');
+    var sheetsCache = [];
+
+    function setListMessage(el, message) {
+      el.innerHTML = '';
+      var p = document.createElement('p');
+      p.className = 'onboardings-message';
+      p.textContent = message;
+      el.appendChild(p);
+    }
+
+    function renderSheetOptions(selectedId) {
+      if (!sheetSelect) return;
+      sheetSelect.innerHTML = '';
+
+      var none = document.createElement('option');
+      none.value = '';
+      none.textContent = sheetsCache.length ? "Don't record in a sheet" : 'No sheets set up yet';
+      sheetSelect.appendChild(none);
+
+      sheetsCache.forEach(function (sheet) {
+        var opt = document.createElement('option');
+        opt.value = sheet.id;
+        opt.textContent = sheet.name + ' — ' + sheet.tabName;
+        sheetSelect.appendChild(opt);
+      });
+
+      sheetSelect.value = selectedId || '';
+    }
+
+    function removeSheet(sheet, btn, force) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Removing…';
+
+      fetch(API_BASE + '/sheets/' + encodeURIComponent(sheet.id) + (force ? '?force=true' : ''), {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          if (result.status === 409 && result.data && result.data.reason === 'in_use') {
+            if (window.confirm(result.data.error + '\n\nRemove it anyway?')) {
+              removeSheet(sheet, btn, true);
+              return;
+            }
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          if (result.status === 200 && result.data && result.data.deleted) {
+            window.NKSRowMenu.close();
+            showToast('Sheet removed.', 'success');
+            loadSheets();
+            return;
+          }
+
+          showToast((result.data && result.data.error) || 'Could not remove the sheet.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        })
+        .catch(function (err) {
+          console.error('[admin] remove sheet failed:', err);
+          showToast('Could not remove the sheet.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+    }
+
+    function renderSheetRow(sheet) {
+      var row = document.createElement('div');
+      row.className = 'onboarding-row';
+
+      var info = document.createElement('div');
+      info.className = 'onboarding-row-info';
+
+      var name = document.createElement('div');
+      name.className = 'onboarding-row-name';
+      name.textContent = sheet.name;
+      info.appendChild(name);
+
+      var metaParts = [];
+      if (sheet.spreadsheetTitle) metaParts.push(sheet.spreadsheetTitle);
+      metaParts.push('Tab: ' + sheet.tabName);
+      metaParts.push(sheet.appendCount + ' row' + (sheet.appendCount === 1 ? '' : 's') + ' written');
+      if (sheet.lastAppendAt) metaParts.push('Last ' + new Date(sheet.lastAppendAt).toLocaleString());
+
+      var meta = document.createElement('div');
+      meta.className = 'onboarding-row-meta';
+      meta.textContent = metaParts.join(' · ');
+      info.appendChild(meta);
+
+      if (sheet.lastError) {
+        var error = document.createElement('div');
+        error.className = 'onboarding-row-key';
+        error.style.color = '#c62828';
+        error.textContent = 'Last error: ' + sheet.lastError;
+        info.appendChild(error);
+      }
+
+      row.appendChild(info);
+
+      var actions = document.createElement('div');
+      actions.className = 'onboarding-row-actions';
+      actions.appendChild(window.NKSRowMenu.build([
+        { label: 'Open in Google Sheets', onSelect: function () { window.open(sheet.url, '_blank', 'noopener'); } },
+        { label: 'Remove', danger: true, keepOpen: true, onSelect: function (entry) { removeSheet(sheet, entry); } }
+      ]));
+
+      row.appendChild(actions);
+      return row;
+    }
+
+    function loadSheets(selectedId) {
+      if (sheetsList) setListMessage(sheetsList, 'Loading sheets…');
+
+      return fetch(API_BASE + '/sheets', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !result.data || !Array.isArray(result.data.sheets)) {
+            handleApiFailure(result);
+            if (sheetsList) setListMessage(sheetsList, 'Could not load sheets.');
+            return;
+          }
+
+          sheetsCache = result.data.sheets;
+          renderSheetOptions(selectedId);
+
+          if (sheetsWarning) {
+            if (result.data.configured) {
+              sheetsWarning.classList.remove('is-visible', 'is-error');
+              sheetsWarning.textContent = '';
+            } else {
+              sheetsWarning.textContent = 'Google Sheets credentials are not configured on the server, so nothing can be written yet. Set GOOGLE_SA_EMAIL and GOOGLE_SA_PRIVATE_KEY.';
+              sheetsWarning.classList.add('is-visible', 'is-error');
+            }
+          }
+
+          if (!sheetsList) return;
+          sheetsList.innerHTML = '';
+          if (!sheetsCache.length) {
+            setListMessage(sheetsList, 'No sheets yet. Add one below.');
+            return;
+          }
+          sheetsCache.forEach(function (sheet) { sheetsList.appendChild(renderSheetRow(sheet)); });
+        })
+        .catch(function (err) {
+          console.error('[admin] sheets fetch failed:', err);
+          if (sheetsList) setListMessage(sheetsList, 'Could not load sheets.');
+        });
+    }
+
+    var manageSheetsCard = document.getElementById('admin-manage-sheets-card');
+    if (manageSheetsCard) {
+      manageSheetsCard.addEventListener('click', function () {
+        showModal('admin-sheets-modal');
+        addSheetForm.reset();
+        clearFormStatus(addSheetStatus);
+        loadSheets();
+      });
+    }
+
+    var addSheetForm = document.getElementById('admin-add-sheet-form');
+    var addSheetSubmitBtn = document.getElementById('admin-add-sheet-submit');
+    var addSheetStatus = document.getElementById('admin-add-sheet-status');
+
+    if (addSheetForm) {
+      addSheetForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearFormStatus(addSheetStatus);
+
+        var name = document.getElementById('sheet-name').value.trim();
+        var spreadsheet = document.getElementById('sheet-url').value.trim();
+        var tabName = document.getElementById('sheet-tab').value.trim();
+
+        if (!name || !spreadsheet) {
+          setFormStatus(addSheetStatus, 'Please enter a name and a Google Sheets link.', 'error');
+          return;
+        }
+
+        var originalText = addSheetSubmitBtn.textContent;
+        addSheetSubmitBtn.disabled = true;
+        addSheetSubmitBtn.textContent = 'Checking access…';
+
+        fetch(API_BASE + '/sheets', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, spreadsheet: spreadsheet, tabName: tabName || undefined })
+        })
+          .then(parseJson)
+          .then(function (result) {
+            if (handleApiFailure(result)) return;
+
+            if (result.status === 201 && result.data && result.data.id) {
+              addSheetForm.reset();
+              showToast('Sheet added.', 'success');
+              loadSheets();
+              return;
+            }
+
+            var message = (result.data && result.data.error) || 'Could not add the sheet.';
+            if (result.data && result.data.tabs && result.data.tabs.length) {
+              message += ' Available tabs: ' + result.data.tabs.join(', ') + '.';
+            }
+            setFormStatus(addSheetStatus, message, 'error');
+          })
+          .catch(function (err) {
+            console.error('[admin] add sheet failed:', err);
+            setFormStatus(addSheetStatus, 'Could not add the sheet. Please try again.', 'error');
+          })
+          .finally(function () {
+            addSheetSubmitBtn.disabled = false;
+            addSheetSubmitBtn.textContent = originalText;
+          });
+      });
+    }
+
+    function openOnboardingProgress(item) {
+      showModal('admin-onboarding-progress-modal');
+
+      var title = document.getElementById('vop-title');
+      var body = document.getElementById('vop-body');
+      title.textContent = (item.fullName || item.email || 'Onboarding') + ' — Progress';
+      body.innerHTML = '<p class="onboardings-message">Loading…</p>';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/progress', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !result.data || !result.data.id) {
+            handleApiFailure(result);
+            body.innerHTML = '';
+            var message = document.createElement('p');
+            message.className = 'onboardings-message';
+            message.textContent = (result.data && result.data.error) || 'Could not load onboarding progress.';
+            body.appendChild(message);
+            return;
+          }
+          renderOnboardingProgress(body, result.data);
+        })
+        .catch(function (err) {
+          console.error('[admin] onboarding progress fetch failed:', err);
+          body.innerHTML = '';
+          var message = document.createElement('p');
+          message.className = 'onboardings-message';
+          message.textContent = 'Could not load onboarding progress.';
+          body.appendChild(message);
+        });
+    }
+
+    function sendReminder(item, btn) {
+      var who = item.fullName || item.email || 'this user';
+      if (!window.confirm('Send a reminder email to ' + who + ' now?')) return;
+
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/remind', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          if (result.status === 200 && result.data && result.data.sent) {
+            item.lastReminderAt = result.data.lastReminderAt;
+            item.reminderCount = result.data.reminderCount;
+            showToast('Reminder sent to ' + (item.email || who) + '.', 'success');
+            applyOnboardingsFilter();
+            return;
+          }
+
+          showToast((result.data && result.data.error) || 'Could not send the reminder.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        })
+        .catch(function (err) {
+          console.error('[admin] send reminder failed:', err);
+          showToast('Could not send the reminder.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
     }
 
     function expireOnboarding(item, btn) {
@@ -346,11 +884,7 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            closeModal();
-            checkAuth();
-            return;
-          }
+          if (handleApiFailure(result)) return;
           if (result.status !== 200) {
             showToast((result.data && result.data.error) || 'Could not expire onboarding.', 'error');
             btn.disabled = false;
@@ -376,6 +910,8 @@
       clearFormStatus(registerOnboardingStatus);
       showModal('admin-register-onboarding-modal');
       loadUserList(item.userId);
+      loadTemplates();
+      loadSheets();
 
       document.getElementById('ro-company').value = item.company || '';
       document.getElementById('ro-location').value = item.location || '';
@@ -388,11 +924,7 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            closeModal();
-            checkAuth();
-            return;
-          }
+          if (handleApiFailure(result)) return;
           if (result.status !== 200 || !result.data) {
             showToast((result.data && result.data.error) || 'Could not load onboarding details.', 'error');
             return;
@@ -443,9 +975,8 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            closeModal();
-            checkAuth();
+          if (handleApiFailure(result)) {
+            setOnboardingsMessage('Could not load onboardings.');
             return;
           }
           if (result.status !== 200 || !Array.isArray(result.data)) {
@@ -556,11 +1087,7 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            closeModal();
-            checkAuth();
-            return;
-          }
+          if (handleApiFailure(result)) return;
           if (result.status !== 200 || !result.data || !result.data.url) {
             showToast((result.data && result.data.error) || 'Could not open document.', 'error');
             return;
@@ -593,7 +1120,7 @@
       span.textContent = doc ? doc.name : '—';
       row.appendChild(span);
 
-      if (doc) {
+      if (doc && can('view_onboarding_docs')) {
         var viewBtn = document.createElement('button');
         viewBtn.type = 'button';
         viewBtn.className = 'onboarding-row-btn';
@@ -699,6 +1226,9 @@
       showModal('admin-onboarding-data-modal');
       currentExportOnboardingId = item.id;
 
+      var exportBtn = document.getElementById('vod-download-response');
+      if (exportBtn) exportBtn.hidden = !can('export_onboarding_data');
+
       var title = document.getElementById('vod-title');
       var body = document.getElementById('vod-body');
       title.textContent = (item.fullName || item.email || 'Onboarding') + ' — Submitted Data';
@@ -711,9 +1241,12 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            closeModal();
-            checkAuth();
+          if (handleApiFailure(result)) {
+            body.innerHTML = '';
+            var denied = document.createElement('p');
+            denied.className = 'onboardings-message';
+            denied.textContent = 'Could not load onboarding data.';
+            body.appendChild(denied);
             return;
           }
           if (result.status !== 200 || !result.data) {
@@ -752,10 +1285,11 @@
           credentials: 'include'
         })
           .then(function (res) {
-            if (isSessionExpired(res.status)) {
-              closeModal();
-              checkAuth();
-              return null;
+            if (res.status === 401 || res.status === 403) {
+              return parseJson(res).then(function (result) {
+                handleApiFailure(result);
+                return null;
+              });
             }
             if (!res.ok) throw new Error('Export failed with status ' + res.status);
 
@@ -800,6 +1334,7 @@
           if (result.data && result.data.auth) {
             showDashboard(result.data.user);
           } else {
+            showLogout(false);
             showPanel('admin-login-panel');
           }
         })
@@ -812,12 +1347,23 @@
     var retryBtn = document.getElementById('admin-retry-btn');
     if (retryBtn) retryBtn.addEventListener('click', checkAuth);
 
-    // requireAdminAuth returns 401 (no cookie / user not found) or 403 (not an
-    // admin) on the two dashboard actions below - either way the session is no
-    // longer usable, so drop back to the login form instead of showing a
-    // confusing per-field error.
-    function isSessionExpired(status) {
-      return status === 401 || status === 403;
+    function handleApiFailure(result) {
+      if (result.status === 401) {
+        closeModal();
+        checkAuth();
+        return true;
+      }
+      if (result.status === 403) {
+        var reason = result.data && result.data.reason;
+        if (reason === 'missing_permission' || reason === 'no_permission_group') {
+          showToast((result.data && result.data.error) || 'You do not have permission to do this.', 'error');
+          return true;
+        }
+        closeModal();
+        checkAuth();
+        return true;
+      }
+      return false;
     }
 
     function setFormStatus(el, message, type) {
@@ -852,117 +1398,226 @@
       return list.length === 1 ? list[0] : list;
     }
 
-    // Full CommonMark + GFM markdown -> HTML for the extra-message field, via
-    // the vendored marked.js (js/vendor/marked.js) - headings, lists,
-    // blockquotes, code blocks, tables, strikethrough, links, etc. Note:
-    // unlike the old hand-rolled version, marked does NOT escape raw HTML the
-    // admin types - this field is requireAdminAuth-protected, so that's a
-    // trusted-input tradeoff, not an anonymous-user XSS surface.
-    // Email clients (Gmail especially) strip <style> tags and only reliably
-    // honor inline styles, so the spacing/typography that makes the admin
-    // preview look right (scoped to .markdown-preview-body in this page's own
-    // <style> block) would NOT carry over to the actual email. Inlining every
-    // tag's style here means the backend needs no CSS-inlining step of its
-    // own - it can drop extraContent into the email as-is.
-    var EMAIL_INLINE_STYLES = {
-      H1: 'margin:0 0 12px;font-family:Georgia,serif;font-size:22px;color:#1a1a1a;',
-      H2: 'margin:16px 0 10px;font-family:Georgia,serif;font-size:19px;color:#1a1a1a;',
-      H3: 'margin:14px 0 8px;font-family:Georgia,serif;font-size:17px;color:#1a1a1a;',
-      H4: 'margin:12px 0 8px;font-family:Georgia,serif;font-size:15px;color:#1a1a1a;',
-      H5: 'margin:12px 0 8px;font-size:14px;color:#1a1a1a;',
-      H6: 'margin:12px 0 8px;font-size:13px;color:#1a1a1a;',
-      P: 'margin:0 0 12px;',
-      UL: 'margin:0 0 12px;padding-left:22px;',
-      OL: 'margin:0 0 12px;padding-left:22px;',
-      LI: 'margin:0 0 6px;',
-      BLOCKQUOTE: 'margin:0 0 12px;padding-left:14px;border-left:3px solid #ddd;color:#666;',
-      PRE: 'margin:0 0 12px;padding:12px;background:#f4f4f4;border-radius:4px;overflow-x:auto;',
-      CODE: 'background:#f4f4f4;border-radius:3px;padding:2px 5px;font-size:0.9em;',
-      HR: 'border:none;border-top:1px solid #ddd;margin:16px 0;',
-      TABLE: 'border-collapse:collapse;width:100%;margin:0 0 12px;',
-      TH: 'border:1px solid #ddd;padding:6px 10px;text-align:left;',
-      TD: 'border:1px solid #ddd;padding:6px 10px;'
-    };
-
+    // Markdown -> inline-styled email HTML. Lives in js/markdown-email.js so
+    // this page and manage-users.html render admin-authored markdown the same way.
     function markdownToHtml(markdown) {
-      if (!markdown || typeof marked === 'undefined') return '';
-      var html = marked.parse(markdown.trim(), { breaks: true, gfm: true });
-
-      var container = document.createElement('div');
-      container.innerHTML = html;
-
-      Array.prototype.forEach.call(container.querySelectorAll('*'), function (el) {
-        var style = EMAIL_INLINE_STYLES[el.tagName];
-        if (style) el.setAttribute('style', style);
-      });
-      // A <code> inside a <pre> already inherits the block's background -
-      // undo the standalone inline-code styling so it isn't doubled up.
-      Array.prototype.forEach.call(container.querySelectorAll('pre code'), function (el) {
-        el.setAttribute('style', 'background:none;padding:0;');
-      });
-      Array.prototype.forEach.call(container.querySelectorAll('a'), function (el) {
-        el.setAttribute('target', '_blank');
-        el.setAttribute('rel', 'noopener');
-        el.setAttribute('style', 'color:#1a3080;');
-      });
-
-      return container.innerHTML;
+      return window.NKSMarkdown ? window.NKSMarkdown.toEmailHtml(markdown) : '';
     }
 
     // ---- Markdown toolbar + preview popup for the extra-message field ----
 
     var extraContentInput = document.getElementById('ro-extra-content');
     var markdownPreviewBody = document.getElementById('markdown-preview-body');
-    var WRAP_SYNTAX = { bold: '**', italic: '*' };
-    var LINE_PREFIX = { heading: '## ', ul: '- ', ol: '1. ', quote: '> ' };
 
-    var previewBtn = document.getElementById('ro-preview-btn');
-    if (previewBtn) {
-      previewBtn.addEventListener('click', function () {
+    // The popup hosts the full-size editor and the preview on two tabs. Its
+    // textarea is a working copy of the form's own field, mirrored back on
+    // every keystroke, so the form stays the single source of truth for submit
+    // and for saving templates.
+
+    var mdEditor = document.getElementById('md-editor');
+    var mdTabs = Array.prototype.slice.call(document.querySelectorAll('[data-md-tab]'));
+    var mdPanels = Array.prototype.slice.call(document.querySelectorAll('[data-md-panel]'));
+
+    function renderMarkdownPreview() {
         markdownPreviewBody.innerHTML = markdownToHtml(extraContentInput.value);
-        if (markdownPreviewModal) markdownPreviewModal.hidden = false;
+    }
+
+    function selectMarkdownTab(name) {
+      mdTabs.forEach(function (tab) {
+        var active = tab.dataset.mdTab === name;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      mdPanels.forEach(function (panel) { panel.hidden = panel.dataset.mdPanel !== name; });
+
+      if (name === 'preview') {
+        renderMarkdownPreview();
+      } else if (mdEditor) {
+        mdEditor.focus();
+      }
+    }
+
+    mdTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { selectMarkdownTab(tab.dataset.mdTab); });
+    });
+
+    if (mdEditor) {
+      mdEditor.addEventListener('input', function () {
+        extraContentInput.value = mdEditor.value;
       });
     }
 
-    Array.prototype.forEach.call(document.querySelectorAll('.markdown-toolbar-btn'), function (btn) {
-      btn.addEventListener('click', function () {
-        var type = btn.dataset.md;
-        var start = extraContentInput.selectionStart;
-        var end = extraContentInput.selectionEnd;
-        var value = extraContentInput.value;
-        var selected = value.slice(start, end);
-        var text, cursor;
+    function openMarkdownPopup(tab) {
+      if (!markdownPreviewModal) return;
+      if (mdEditor) mdEditor.value = extraContentInput.value;
+      hideTemplateSaveRow();
+      selectMarkdownTab(tab);
+      markdownPreviewModal.hidden = false;
+      if (tab === 'editor' && mdEditor) mdEditor.focus();
+    }
 
-        if (type === 'link') {
-          var inserted = '[' + (selected || 'link text') + '](https://example.com)';
-          text = value.slice(0, start) + inserted + value.slice(end);
-          cursor = start + inserted.length;
-        } else if (type === 'code') {
-          var codeInserted = selected.indexOf('\n') !== -1
-            ? '```\n' + selected + '\n```'
-            : '`' + (selected || 'code') + '`';
-          text = value.slice(0, start) + codeInserted + value.slice(end);
-          cursor = start + codeInserted.length;
-        } else if (WRAP_SYNTAX[type]) {
-          var wrap = WRAP_SYNTAX[type];
-          var wrapped = wrap + (selected || (type === 'bold' ? 'bold text' : 'italic text')) + wrap;
-          text = value.slice(0, start) + wrapped + value.slice(end);
-          cursor = start + wrapped.length;
-        } else if (LINE_PREFIX[type]) {
-          var prefix = LINE_PREFIX[type];
-          var lineStart = value.lastIndexOf('\n', start - 1) + 1;
-          text = value.slice(0, lineStart) + prefix + value.slice(lineStart);
-          cursor = start + prefix.length;
-        } else {
+    var previewBtn = document.getElementById('ro-preview-btn');
+    if (previewBtn) {
+      previewBtn.addEventListener('click', function () { openMarkdownPopup('preview'); });
+    }
+
+    var expandBtn = document.getElementById('ro-expand-btn');
+    if (expandBtn) {
+      expandBtn.addEventListener('click', function () { openMarkdownPopup('editor'); });
+    }
+
+    var templateSelect = document.getElementById('ro-template');
+    var templatesCache = [];
+
+    function renderTemplateOptions(selectedId) {
+      if (!templateSelect) return;
+      templateSelect.innerHTML = '';
+
+      var none = document.createElement('option');
+      none.value = '';
+      none.textContent = templatesCache.length ? 'No template' : 'No templates saved yet';
+      templateSelect.appendChild(none);
+
+      templatesCache.forEach(function (template) {
+        var opt = document.createElement('option');
+        opt.value = template.id;
+        opt.textContent = template.name;
+        templateSelect.appendChild(opt);
+      });
+
+      templateSelect.value = selectedId || '';
+    }
+
+    function loadTemplates(selectedId) {
+      if (!templateSelect) return Promise.resolve();
+
+      return fetch(API_BASE + '/message-templates', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) return;
+          if (result.status !== 200 || !Array.isArray(result.data)) {
+            console.error('[admin] templates fetch failed:', result.status);
+            return;
+          }
+          templatesCache = result.data;
+          renderTemplateOptions(selectedId);
+        })
+        .catch(function (err) {
+          console.error('[admin] templates fetch failed:', err);
+        });
+    }
+
+    if (templateSelect) {
+      templateSelect.addEventListener('change', function () {
+        var template = templatesCache.filter(function (t) { return t.id === templateSelect.value; })[0];
+        if (!template) return;
+
+        // Loading a template overwrites whatever is in the editor, so only ask
+        // when there is actually something to lose.
+        var current = extraContentInput.value.trim();
+        if (current && current !== template.content.trim() &&
+            !window.confirm('Replace the current message with the "' + template.name + '" template?')) {
+          templateSelect.value = '';
           return;
         }
 
-        extraContentInput.value = text;
-        extraContentInput.focus();
-        extraContentInput.setSelectionRange(cursor, cursor);
+        extraContentInput.value = template.content;
         extraContentInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
-    });
+    }
+
+    // Save-as-template, from the preview popup's header
+
+    var saveTemplateBtn = document.getElementById('md-save-template-btn');
+    var saveTemplateRow = document.getElementById('md-save-template-row');
+    var templateNameInput = document.getElementById('md-template-name');
+    var saveTemplateConfirmBtn = document.getElementById('md-save-template-confirm');
+    var saveTemplateCancelBtn = document.getElementById('md-save-template-cancel');
+
+    function hideTemplateSaveRow() {
+      if (!saveTemplateRow) return;
+      saveTemplateRow.hidden = true;
+      templateNameInput.value = '';
+    }
+
+    if (saveTemplateBtn) {
+      saveTemplateBtn.addEventListener('click', function () {
+        if (!extraContentInput.value.trim()) {
+          showToast('There is nothing to save - write a message first.', 'error');
+          return;
+        }
+        saveTemplateRow.hidden = false;
+        templateNameInput.focus();
+      });
+    }
+
+    if (saveTemplateCancelBtn) {
+      saveTemplateCancelBtn.addEventListener('click', hideTemplateSaveRow);
+    }
+
+    function saveTemplate() {
+      var name = templateNameInput.value.trim();
+      var content = extraContentInput.value;
+
+      if (!name) {
+        showToast('Please name the template.', 'error');
+        templateNameInput.focus();
+        return;
+      }
+
+      var originalText = saveTemplateConfirmBtn.textContent;
+      saveTemplateConfirmBtn.disabled = true;
+      saveTemplateConfirmBtn.textContent = 'Saving…';
+
+      fetch(API_BASE + '/message-templates', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, content: content })
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) return;
+
+          if (result.status === 201 && result.data && result.data.id) {
+            hideTemplateSaveRow();
+            showToast('Template saved.', 'success');
+            // Reload so the picker offers it straight away, already selected.
+            loadTemplates(result.data.id);
+            return;
+          }
+
+          showToast((result.data && result.data.error) || 'Could not save the template.', 'error');
+        })
+        .catch(function (err) {
+          console.error('[admin] save template failed:', err);
+          showToast('Could not save the template.', 'error');
+        })
+        .finally(function () {
+          saveTemplateConfirmBtn.disabled = false;
+          saveTemplateConfirmBtn.textContent = originalText;
+        });
+    }
+
+    if (saveTemplateConfirmBtn) saveTemplateConfirmBtn.addEventListener('click', saveTemplate);
+
+    if (templateNameInput) {
+      // The row lives inside no <form>, so Enter needs wiring by hand.
+      templateNameInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          saveTemplate();
+        }
+      });
+    }
+
+    // Formatting buttons for both toolbars on this page (inline + expanded),
+    // each targeting its own textarea via data-md-target.
+    if (window.NKSMarkdown) window.NKSMarkdown.initToolbars();
 
     var loginForm = document.getElementById('admin-login-form');
     var usernameInput = document.getElementById('admin-username');
@@ -1097,56 +1752,133 @@
       });
     }
 
-    var createUserForm = document.getElementById('admin-create-user-form');
-    var createUserSubmitBtn = document.getElementById('admin-create-user-submit');
-    var createUserStatus = document.getElementById('admin-create-user-status');
+    var logoutButtons = [
+      document.getElementById('admin-logout-btn'),
+      document.getElementById('admin-logout-btn-mobile')
+    ].filter(Boolean);
 
-    if (createUserForm) {
-      createUserForm.addEventListener('submit', function (event) {
+    function showLogout(visible) {
+      logoutButtons.forEach(function (btn) { btn.classList.toggle('is-visible', !!visible); });
+    }
+
+    function logout() {
+      logoutButtons.forEach(function (btn) { btn.disabled = true; });
+
+      fetch(API_BASE + '/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .catch(function (err) {
+          console.error('[admin] logout failed:', err);
+        })
+        .finally(function () {
+          logoutButtons.forEach(function (btn) { btn.disabled = false; });
+          closeModal();
+          showLogout(false);
+          myPermissions = [];
+          if (loginForm) loginForm.reset();
+          backToLoginStep();
+          showPanel('admin-login-panel');
+          showToast('You have been logged out.', 'success');
+        });
+    }
+
+    logoutButtons.forEach(function (btn) { btn.addEventListener('click', logout); });
+
+    // ---- Change password ----
+
+    var changePasswordForm = document.getElementById('admin-change-password-form');
+    var changePasswordSubmitBtn = document.getElementById('admin-change-password-submit');
+    var changePasswordStatus = document.getElementById('admin-change-password-status');
+    var changePasswordIntro = document.getElementById('cp-intro');
+    var MIN_PASSWORD_LENGTH = 10; 
+
+    function openChangePassword(isFirstLogin) {
+      if (!changePasswordForm) return;
+      changePasswordForm.reset();
+      clearFormStatus(changePasswordStatus);
+      changePasswordIntro.textContent = isFirstLogin
+        ? "You're still using the password that was emailed to you. Set one only you know - you'll be signed out and can log straight back in with it."
+        : "Pick a new password for signing in to the admin dashboard. You'll be signed out once it's changed.";
+      showModal('admin-change-password-modal');
+      document.getElementById('cp-current').focus();
+    }
+
+    var changePasswordBtn = document.getElementById('admin-change-password-btn');
+    if (changePasswordBtn) {
+      changePasswordBtn.addEventListener('click', function () { openChangePassword(false); });
+    }
+
+    if (changePasswordForm) {
+      changePasswordForm.addEventListener('submit', function (event) {
         event.preventDefault();
-        clearFormStatus(createUserStatus);
+        clearFormStatus(changePasswordStatus);
 
-        var email = document.getElementById('cu-email').value.trim();
-        var firstName = document.getElementById('cu-first-name').value.trim();
-        var lastName = document.getElementById('cu-last-name').value.trim();
-        if (!email || !firstName || !lastName) {
-          setFormStatus(createUserStatus, 'Please fill in email, first name and last name.', 'error');
+        var currentPassword = document.getElementById('cp-current').value;
+        var newPassword = document.getElementById('cp-new').value;
+        var confirmPassword = document.getElementById('cp-confirm').value;
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          setFormStatus(changePasswordStatus, 'Please fill in every field.', 'error');
           return;
         }
 
-        var originalText = createUserSubmitBtn.textContent;
-        createUserSubmitBtn.disabled = true;
-        createUserSubmitBtn.textContent = 'Creating…';
+        if (newPassword.length < MIN_PASSWORD_LENGTH) {
+          setFormStatus(changePasswordStatus, 'Your new password must be at least ' + MIN_PASSWORD_LENGTH + ' characters.', 'error');
+          return;
+        }
 
-        fetch(API_BASE + '/create-user', {
+        if (newPassword !== confirmPassword) {
+          setFormStatus(changePasswordStatus, "The two new passwords don't match.", 'error');
+          return;
+        }
+
+        if (newPassword === currentPassword) {
+          setFormStatus(changePasswordStatus, 'Your new password must be different from the current one.', 'error');
+          return;
+        }
+
+        var originalText = changePasswordSubmitBtn.textContent;
+        changePasswordSubmitBtn.disabled = true;
+        changePasswordSubmitBtn.textContent = 'Saving…';
+
+        fetch(API_BASE + '/change-password', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, firstName: firstName, lastName: lastName })
+          body: JSON.stringify({ currentPassword: currentPassword, newPassword: newPassword })
         })
           .then(parseJson)
           .then(function (result) {
-            if (isSessionExpired(result.status)) {
-              checkAuth();
+            if (result.status === 401) {
+              setFormStatus(changePasswordStatus, (result.data && result.data.error) || 'Your current password is incorrect.', 'error');
               return;
             }
 
-            if (result.status === 201 && result.data && result.data.id) {
-              createUserForm.reset();
+            if (handleApiFailure(result)) return;
+
+            if (result.status === 200 && result.data && result.data.changed) {
+              changePasswordForm.reset();
               closeModal();
-              showToast('User created successfully.', 'success');
+              showLogout(false);
+              myPermissions = [];
+              if (loginForm) loginForm.reset();
+              backToLoginStep();
+              showPanel('admin-login-panel');
+              showToast('Password changed. Please log in with your new password.', 'success');
               return;
             }
 
-            setFormStatus(createUserStatus, (result.data && result.data.error) || 'Something went wrong. Please try again.', 'error');
+            setFormStatus(changePasswordStatus, (result.data && result.data.error) || 'Something went wrong. Please try again.', 'error');
           })
           .catch(function (err) {
-            console.error('[admin] create-user failed:', err);
-            setFormStatus(createUserStatus, 'Something went wrong while creating the user. Please try again.', 'error');
+            console.error('[admin] change-password failed:', err);
+            setFormStatus(changePasswordStatus, 'Something went wrong while changing your password. Please try again.', 'error');
           })
           .finally(function () {
-            createUserSubmitBtn.disabled = false;
-            createUserSubmitBtn.textContent = originalText;
+            changePasswordSubmitBtn.disabled = false;
+            changePasswordSubmitBtn.textContent = originalText;
           });
       });
     }
@@ -1269,13 +2001,16 @@
       })
         .then(parseJson)
         .then(function (result) {
-          if (isSessionExpired(result.status)) {
-            checkAuth();
-            return;
-          }
-
           att.uploading = false;
           roAttachmentsUploading -= 1;
+
+          // Unlike a dead session, a permission failure leaves the admin on the
+          // page - so the row has to stop saying "Uploading…" either way.
+          if (handleApiFailure(result)) {
+            att.error = 'Upload failed.';
+            renderAttachmentsList();
+            return;
+          }
 
           if (result.status === 201 && result.data && result.data.id) {
             att.id = result.data.id;
@@ -1336,7 +2071,10 @@
         var extraContentRaw = document.getElementById('ro-extra-content').value.trim();
         var attachmentIds = roAttachments.filter(function (a) { return a.id; }).map(function (a) { return a.id; });
 
+        var sheetId = sheetSelect ? sheetSelect.value : '';
+
         var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
+        if (sheetId) payload.sheetId = sheetId;
         if (cc) payload.cc = cc;
         if (bcc) payload.bcc = bcc;
         if (extraContentRaw) {
@@ -1357,10 +2095,7 @@
         })
           .then(parseJson)
           .then(function (result) {
-            if (isSessionExpired(result.status)) {
-              checkAuth();
-              return;
-            }
+            if (handleApiFailure(result)) return;
 
             if (result.status === 201 && result.data && result.data.onboardingKey) {
               var link = window.location.origin + '/verify-onboarding.html?id=' + encodeURIComponent(result.data.onboardingKey);

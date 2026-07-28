@@ -11,6 +11,7 @@ import emailRouter from './routes/email.router';
 import onboardingRouter from './routes/onboarding.router';
 import docUploadRouter from './routes/doc-upload.router';
 import adminRouter from './routes/admin.router';
+import cronRouter from './routes/cron.router';
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use('/api/email', emailRouter);
 app.use('/api/onboarding', onboardingRouter);
 app.use('/api/docs', docUploadRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/cron', cronRouter);
 
 // 404 handler for API routes (Express 5 syntax)
 app.use('/api/{*path}', (_req: Request, res: Response) => {

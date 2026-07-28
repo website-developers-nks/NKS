@@ -101,6 +101,8 @@ export class EmailEngine {
       html: email.buildHtml(this.company),
       text: email.buildText(this.company),
       attachments: email.attachments,
+      inReplyTo: email.inReplyTo,
+      references: email.references,
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
