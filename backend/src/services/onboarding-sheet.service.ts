@@ -2,10 +2,11 @@ import { Types } from 'mongoose';
 import { OnboardingAuth, IOnboardingAuth } from '../db/models/onboarding-auth.model';
 import { OnboardingData, IOnboardingData } from '../db/models/onboarding-data.model';
 import { IUser } from '../db/models/user.model';
-import { IDoc } from '../db/models/doc.model';
+import { Doc, IDoc } from '../db/models/doc.model';
 import { SheetConfig } from '../db/models/sheet-config.model';
-import { appendRow, isGoogleSheetsConfigured } from '../lib/google-sheets';
+import { appendRecord, isGoogleSheetsConfigured } from '../lib/google-sheets';
 import { buildDocLink } from '../lib/doc-links';
+import { ExtraFieldType, ExtraFieldDef } from '../lib/extra-fields';
 
 interface Column {
   header: string;
@@ -112,21 +113,81 @@ export const SHEET_COLUMNS: Column[] = [
 
 export const SHEET_HEADERS = SHEET_COLUMNS.map((c) => c.header);
 
-export function buildSheetRow(auth: IOnboardingAuth, data: IOnboardingData, user?: IUser): (string | number | null)[] {
-  return SHEET_COLUMNS.map((column) => {
-    try {
-      return column.value({ auth, data, user });
-    } catch {
-      return '';
-    }
+function extraColumns(
+  auth: IOnboardingAuth,
+  data: IOnboardingData,
+): Array<{ header: string; value: string | number | null }> {
+  const defs = (auth.extraFields ?? []) as ExtraFieldDef[];
+  if (!defs.length) return [];
+
+  const stored = data.extraFields;
+  const read = (key: string) =>
+    stored instanceof Map ? stored.get(key) : (stored as Record<string, unknown> | undefined)?.[key];
+
+  const fixed = new Set(SHEET_HEADERS);
+
+  return defs.map((def) => {
+    const header = fixed.has(def.label) ? `${def.label} (extra)` : def.label;
+    const raw = read(def.key);
+
+    if (def.type === ExtraFieldType.Document) return { header, value: docName(raw) };
+    if (def.type === ExtraFieldType.Checkbox) return { header, value: yesNo(raw as boolean) };
+    if (raw === undefined || raw === null) return { header, value: '' };
+    if (typeof raw === 'number') return { header, value: raw };
+    return { header, value: String(raw) };
   });
 }
+
+export function buildSheetRecord(
+  auth: IOnboardingAuth,
+  data: IOnboardingData,
+  user?: IUser,
+): Array<{ header: string; value: string | number | null }> {
+  const fixed = SHEET_COLUMNS.map((column) => {
+    let value: string | number | null = '';
+    try {
+      value = column.value({ auth, data, user });
+    } catch {
+      value = '';
+    }
+    return { header: column.header, value };
+  });
+
+  return fixed.concat(extraColumns(auth, data));
+}
+
 
 const DOC_FIELDS = [
   'panDoc', 'idDoc', 'addressDoc', 'photoDoc', 'higherSecondaryDoc', 'highestDegreeDoc',
   'resumeDoc', 'offerLetterDoc', 'lastIncrementDoc', 'salarySlipDoc', 'bonusLetterDoc',
   'experienceLetterDoc', 'relievingLetterDoc', 'bankDoc',
 ];
+
+async function resolveExtraDocNames(auth: IOnboardingAuth, data: IOnboardingData): Promise<void> {
+  const defs = (auth.extraFields ?? []) as ExtraFieldDef[];
+  const stored = data.extraFields;
+  if (!defs.length || !(stored instanceof Map)) return;
+
+  const ids: Types.ObjectId[] = [];
+  const keyById = new Map<string, string>();
+
+  for (const def of defs) {
+    if (def.type !== ExtraFieldType.Document) continue;
+    const raw = stored.get(def.key);
+    if (raw && Types.ObjectId.isValid(String(raw))) {
+      ids.push(new Types.ObjectId(String(raw)));
+      keyById.set(String(raw), def.key);
+    }
+  }
+
+  if (!ids.length) return;
+
+  const docs = await Doc.find({ _id: { $in: ids } }, { _id: 1, originalName: 1 }).lean();
+  for (const doc of docs) {
+    const key = keyById.get(String(doc._id));
+    if (key) stored.set(key, { _id: doc._id, originalName: doc.originalName });
+  }
+}
 
 export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId | string): Promise<boolean> {
   try {
@@ -154,10 +215,12 @@ export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId |
       return false;
     }
 
-    const row = buildSheetRow(auth, data, auth.user as IUser | undefined);
+    await resolveExtraDocNames(auth, data);
+
+    const record = buildSheetRecord(auth, data, auth.user as IUser | undefined);
 
     try {
-      await appendRow(config.spreadsheetId, config.tabName, SHEET_HEADERS, row);
+      await appendRecord(config.spreadsheetId, config.tabName, record);
       await SheetConfig.updateOne(
         { _id: config._id },
         { lastAppendAt: new Date(), $inc: { appendCount: 1 }, $unset: { lastError: 1 } },

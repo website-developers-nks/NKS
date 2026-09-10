@@ -6,11 +6,12 @@ import { Types } from 'mongoose';
 import { r2, R2_BUCKET } from '../lib/r2';
 import { Limits } from '../lib/limits';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
-import { uploadDoc, DOC_TYPE_CONFIG } from '../services/doc-upload.service';
+import { uploadDoc, DOC_TYPE_CONFIG, IMAGE_OR_PDF_CONFIG, DocConfig } from '../services/doc-upload.service';
+import { isExtraDocType, extraDocKey, ExtraFieldType } from '../lib/extra-fields';
 import { verifyDocToken } from '../lib/doc-links';
 import { Doc, DocType } from '../db/models/doc.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
-import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, IOnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 
 const router = Router();
 
@@ -28,6 +29,33 @@ function parseSingle(req: Request, res: Response): Promise<void> {
 }
 
 const VALID_DOC_TYPES = Object.values(DocType) as string[];
+
+function readPath(source: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>(
+    (acc, part) => (acc && typeof acc === 'object'
+      ? (acc instanceof Map ? acc.get(part) : (acc as Record<string, unknown>)[part])
+      : undefined),
+    source,
+  );
+}
+
+function resolveDocTarget(auth: IOnboardingAuth, docType: string):
+  { config: DocConfig; field: string } | null {
+  if (VALID_DOC_TYPES.includes(docType)) {
+    return { config: DOC_TYPE_CONFIG[docType as DocType], field: DOC_TYPE_FIELD[docType as DocType] };
+  }
+
+  if (isExtraDocType(docType)) {
+    const key = extraDocKey(docType);
+    const def = (auth.extraFields ?? []).find(
+      (f) => f.key === key && f.type === ExtraFieldType.Document,
+    );
+    if (def) return { config: IMAGE_OR_PDF_CONFIG, field: `extraFields.${key}` };
+  }
+
+  return null;
+}
+
 
 const STATUS_MAP: Record<string, number> = {
   file_too_large: 413,
@@ -73,7 +101,8 @@ router.post(
 
     const { docType } = req.body as { docType?: string };
 
-    if (!docType || !VALID_DOC_TYPES.includes(docType)) {
+    const target = docType ? resolveDocTarget(req.onboarding!.auth, docType) : null;
+    if (!docType || !target) {
       res.status(400).json({ uploaded: false, reason: 'invalid_doc_type', validTypes: VALID_DOC_TYPES });
       return;
     }
@@ -83,7 +112,7 @@ router.post(
       return;
     }
 
-    const config = DOC_TYPE_CONFIG[docType as DocType];
+    const config = target.config;
     if (req.file.size > config.maxSizeBytes) {
       res.status(413).json({ uploaded: false, reason: 'file_too_large', maxSizeBytes: config.maxSizeBytes });
       return;
@@ -98,15 +127,15 @@ router.post(
       return;
     }
 
-    const field = DOC_TYPE_FIELD[docType as DocType];
+    const field = target.field;
     const existingData = await OnboardingData.findOne({ onboardingAuthId: authId }, { [field]: 1 });
-    if (existingData && existingData[field as keyof typeof existingData]) {
+    if (existingData && readPath(existingData.toObject ? existingData.toObject() : existingData, field)) {
       res.status(409).json({ uploaded: false, reason: 'doc_already_exists' });
       return;
     }
 
     try {
-      const result = await uploadDoc(req.file, docType as DocType, userId, auth.auth.onboardingKey);
+      const result = await uploadDoc(req.file, docType, userId, auth.auth.onboardingKey, target.config);
 
       if (!result.uploaded) {
         res.status(STATUS_MAP[result.reason] ?? 400).json({ uploaded: false, reason: result.reason, config });
@@ -141,7 +170,8 @@ router.post(
   async (req: Request, res: Response) => {
     const { docType } = req.body as { docType?: string };
 
-    if (!docType || !VALID_DOC_TYPES.includes(docType)) {
+    const target = docType ? resolveDocTarget(req.onboarding!.auth, docType) : null;
+    if (!docType || !target) {
       res.status(400).json({ removed: false, reason: 'invalid_doc_type', validTypes: VALID_DOC_TYPES });
       return;
     }
@@ -160,8 +190,7 @@ router.post(
 
       await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: doc.path })).catch(() => undefined);
 
-      const field = DOC_TYPE_FIELD[docType as DocType];
-      await OnboardingData.updateOne({ onboardingAuthId: authId }, { $unset: { [field]: 1 } });
+      await OnboardingData.updateOne({ onboardingAuthId: authId }, { $unset: { [target.field]: 1 } });
 
       res.json({ removed: true, docType });
     } catch (err) {
@@ -177,7 +206,7 @@ router.get(
   async (req: Request, res: Response) => {
     const { docType } = req.query as { docType?: string };
 
-    if (!docType || !VALID_DOC_TYPES.includes(docType)) {
+    if (!docType || !resolveDocTarget(req.onboarding!.auth, docType)) {
       res.status(400).json({ error: 'Valid docType query param is required.', validTypes: VALID_DOC_TYPES });
       return;
     }

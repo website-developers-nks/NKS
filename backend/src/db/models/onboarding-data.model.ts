@@ -137,6 +137,8 @@ export interface IOnboardingData extends Document {
   experienceRating?: number;
   experienceFeedback?: string;
 
+  extraFields?: Map<string, unknown>;
+
   // Tracking
   fieldUpdateCounts: Map<string, number>;
 
@@ -228,6 +230,8 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     // Feedback (Closing Bell)
     experienceRating: { type: Number, min: 1, max: 5 },
     experienceFeedback: { type: String, trim: true },
+
+    extraFields: { type: Map, of: Schema.Types.Mixed, default: undefined },
 
     // Tracking
     fieldUpdateCounts: { type: Map, of: Number, default: new Map() },

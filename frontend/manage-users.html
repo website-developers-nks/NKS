@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1783685962">
-  <link rel="stylesheet" href="css/accessibility.css?v=1783685962">
+  <link rel="stylesheet" href="css/styles.css?v=1789045815">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789045815">
 
-  <link rel="stylesheet" href="css/admin.css?v=1783685962">
+  <link rel="stylesheet" href="css/admin.css?v=1789045815">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -161,9 +161,17 @@
     </div>
   </section>
 
-  <div class="admin-modal" id="admin-create-user-modal" hidden>
+  <div class="admin-modal" id="admin-create-user-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Create user">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Create User</h3>
       <p class="body-text">Add a new user on portal.</p>
@@ -199,10 +207,18 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-send-email-modal" hidden>
+  <div class="admin-modal" id="admin-send-email-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Send email">
       <button type="button" class="admin-modal-action" id="se-save-template-btn">Save as template</button>
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Send Email</h3>
       <p class="body-text" id="se-recipient">Compose a one-off email to this user.</p>
@@ -301,9 +317,17 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-user-emails-modal" hidden>
+  <div class="admin-modal" id="admin-user-emails-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Sent emails">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3 id="ue-title">Emails</h3>
       <p class="body-text" id="ue-subtitle">Everything sent to, or queued for, this user. Select one to read it.</p>
@@ -316,9 +340,17 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-user-onboardings-modal" hidden>
+  <div class="admin-modal" id="admin-user-onboardings-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="User onboardings">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3 id="uo-title">Onboardings</h3>
       <p class="body-text" id="uo-subtitle">Every onboarding link registered for this user.</p>
@@ -326,9 +358,17 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-permission-group-modal" hidden>
+  <div class="admin-modal" id="admin-permission-group-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Permission group">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3 id="pg-title">Add Permission Group</h3>
       <p class="body-text">Pick everything admins in this group are allowed to do.</p>
@@ -371,12 +411,13 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1783685962"></script>
-  <script src="js/vendor/marked.js?v=1783685962"></script>
-  <script src="js/markdown-email.js?v=1783685962"></script>
-  <script src="js/row-menu.js?v=1783685962"></script>
-  <script src="js/bundle-b.js?v=1783685962"></script>
-  <script src="js/manage-users.js?v=1783685962"></script>
+  <script src="js/vendor/three.min.js?v=1789045815"></script>
+  <script src="js/vendor/marked.js?v=1789045815"></script>
+  <script src="js/markdown-email.js?v=1789045815"></script>
+  <script src="js/row-menu.js?v=1789045815"></script>
+  <script src="js/bundle-b.js?v=1789045815"></script>
+  <script src="js/modal-expand.js?v=1789045815"></script>
+  <script src="js/manage-users.js?v=1789045815"></script>
 
 </body>
 </html>

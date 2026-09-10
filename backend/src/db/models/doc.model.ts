@@ -25,7 +25,7 @@ export enum DocType {
 export interface IDoc extends Document {
   userId: Types.ObjectId | IUser;
   onboardingKey: string;
-  docType: DocType;
+  docType: DocType | string;
   originalName: string;
   storedName: string;
   mimeType: string;
@@ -40,7 +40,7 @@ const DocSchema = new Schema<IDoc>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     onboardingKey: { type: String, required: true, index: true },
-    docType: { type: String, enum: Object.values(DocType), required: true },
+    docType: { type: String, required: true },
     originalName: { type: String, required: true },
     storedName: { type: String, required: true },
     mimeType: { type: String, required: true },

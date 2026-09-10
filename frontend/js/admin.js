@@ -183,7 +183,7 @@
       openModal = modal;
     }
 
-    Array.prototype.forEach.call(document.querySelectorAll('.admin-modal:not(#markdown-preview-modal) [data-modal-close]'), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll('.admin-modal:not([data-stacked]) [data-modal-close]'), function (el) {
       el.addEventListener('click', closeModal);
     });
 
@@ -286,6 +286,7 @@
           }
           populateUserOptions(result.data);
           if (selectUserId) userIdSelect.value = selectUserId;
+          syncInviteSubjectPlaceholder();
         })
         .catch(function (err) {
           console.error('[admin] get-user-list failed:', err);
@@ -301,6 +302,7 @@
         loadTemplates();
         loadSheets();
         resetAttachments();
+        resetExtraFieldsDraft();
       });
     }
 
@@ -525,6 +527,19 @@
         data.activity.reminderCount + (data.activity.lastReminderAt ? ' (last ' + formatDateTime(data.activity.lastReminderAt) + ')' : ''));
       activitySection.appendChild(activityGrid);
 
+      if (data.progress.extraFields && data.progress.extraFields.length) {
+        var extraProgress = progressSection(container, 'More Info (' +
+          data.progress.extraFieldsAnswered + ' of ' + data.progress.extraFieldsTotal + ' answered)');
+        var extraProgressGrid = document.createElement('div');
+        extraProgressGrid.className = 'onboarding-data-grid';
+        data.progress.extraFields.forEach(function (item) {
+          appendDataField(extraProgressGrid,
+            item.label + (item.required ? ' *' : ''),
+            item.answered ? 'Answered' : 'Not answered yet');
+        });
+        extraProgress.appendChild(extraProgressGrid);
+      }
+
       // --- What has been filled in, and how often it was changed ---
       if (data.progress.filled.length) {
         var filledSection = progressSection(container, 'Completed so far');
@@ -561,6 +576,190 @@
           : 'Nothing has been filled in - the link has not been opened.';
         container.appendChild(note);
       }
+    }
+
+    var titleInput = document.getElementById('ro-title');
+    var COMPANY_EMAIL_NAMES = {
+      nksecurities: 'NK Securities Research',
+      'nk securities research & tech': 'NKS Research & Technology'
+    };
+
+    function defaultInviteSubject() {
+      var companyName = COMPANY_EMAIL_NAMES[document.getElementById('ro-company').value] || 'NK Securities Research';
+      var selected = userIdSelect.options[userIdSelect.selectedIndex];
+      var name = selected && selected.value ? String(selected.textContent).split(' — ')[0].trim() : '';
+      return (name || 'Full Name') + ' | Complete your onboarding - ' + companyName;
+    }
+
+    function syncInviteSubjectPlaceholder() {
+      if (titleInput) titleInput.placeholder = defaultInviteSubject();
+    }
+
+    ['ro-company', 'ro-user-id'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', syncInviteSubjectPlaceholder);
+    });
+
+    var extraFieldsDraft = [];
+    var extraFieldsList = document.getElementById('ro-extra-fields-list');
+    var extraFieldForm = document.getElementById('admin-extra-field-form');
+    var extraFieldStatus = document.getElementById('admin-extra-field-status');
+    var extraFieldTypeSelect = document.getElementById('ef-type');
+
+    var EXTRA_TYPE_LABELS = {
+      text: 'Short text',
+      textarea: 'Long text',
+      number: 'Number',
+      date: 'Date',
+      select: 'Choice',
+      checkbox: 'Yes / no',
+      document: 'Document'
+    };
+
+    function syncExtraFieldConstraints() {
+      var type = extraFieldTypeSelect.value;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ef-constraint]'), function (group) {
+        group.hidden = group.dataset.efConstraint.split(' ').indexOf(type) === -1;
+      });
+    }
+
+    if (extraFieldTypeSelect) extraFieldTypeSelect.addEventListener('change', syncExtraFieldConstraints);
+
+    function describeExtraField(field) {
+      var parts = [EXTRA_TYPE_LABELS[field.type] || field.type];
+      if (field.required) parts.push('required');
+      if (field.type === 'select' && field.options) parts.push(field.options.length + ' choices');
+      if (field.type === 'number') {
+        if (field.min !== undefined) parts.push('min ' + field.min);
+        if (field.max !== undefined) parts.push('max ' + field.max);
+      }
+      if ((field.type === 'text' || field.type === 'textarea') && field.maxLength) {
+        parts.push('max ' + field.maxLength + ' chars');
+      }
+      return parts.join(' · ');
+    }
+
+    function renderExtraFields() {
+      if (!extraFieldsList) return;
+      extraFieldsList.innerHTML = '';
+
+      extraFieldsDraft.forEach(function (field, index) {
+        var li = document.createElement('li');
+        li.className = 'ro-attachment-item';
+
+        var name = document.createElement('span');
+        name.className = 'ro-attachment-name';
+        name.textContent = field.label;
+        li.appendChild(name);
+
+        var meta = document.createElement('span');
+        meta.className = 'ro-attachment-size';
+        meta.textContent = describeExtraField(field);
+        li.appendChild(meta);
+
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'ro-attachment-remove';
+        remove.setAttribute('aria-label', 'Remove ' + field.label);
+        remove.textContent = '✕';
+        remove.addEventListener('click', function () {
+          extraFieldsDraft.splice(index, 1);
+          renderExtraFields();
+        });
+        li.appendChild(remove);
+
+        extraFieldsList.appendChild(li);
+      });
+    }
+
+    function resetExtraFieldsDraft() {
+      extraFieldsDraft = [];
+      renderExtraFields();
+    }
+
+    var addExtraFieldBtn = document.getElementById('ro-add-extra-field-btn');
+    if (addExtraFieldBtn) {
+      addExtraFieldBtn.addEventListener('click', function () {
+        extraFieldForm.reset();
+        clearFormStatus(extraFieldStatus);
+        syncExtraFieldConstraints();
+        var modal = document.getElementById('admin-extra-field-modal');
+        if (modal) modal.hidden = false;
+        document.getElementById('ef-label').focus();
+      });
+    }
+
+    function closeExtraFieldModal() {
+      var modal = document.getElementById('admin-extra-field-modal');
+      if (modal) modal.hidden = true;
+    }
+
+    Array.prototype.forEach.call(
+      document.querySelectorAll('#admin-extra-field-modal [data-modal-close]'),
+      function (el) { el.addEventListener('click', closeExtraFieldModal); }
+    );
+
+    if (extraFieldForm) {
+      extraFieldForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearFormStatus(extraFieldStatus);
+
+        var label = document.getElementById('ef-label').value.trim();
+        var type = extraFieldTypeSelect.value;
+
+        if (!label) {
+          setFormStatus(extraFieldStatus, 'Please name the field.', 'error');
+          return;
+        }
+
+        var duplicate = extraFieldsDraft.some(function (f) {
+          return f.label.toLowerCase() === label.toLowerCase();
+        });
+        if (duplicate) {
+          setFormStatus(extraFieldStatus, 'There is already a field with that name.', 'error');
+          return;
+        }
+
+        var field = {
+          label: label,
+          type: type,
+          required: document.getElementById('ef-required').checked
+        };
+
+        var help = document.getElementById('ef-help').value.trim();
+        if (help) field.help = help;
+
+        if (type === 'text' || type === 'textarea') {
+          var maxLength = parseInt(document.getElementById('ef-maxlength').value, 10);
+          if (!isNaN(maxLength) && maxLength > 0) field.maxLength = maxLength;
+        }
+
+        if (type === 'number') {
+          var min = document.getElementById('ef-min').value.trim();
+          var max = document.getElementById('ef-max').value.trim();
+          if (min !== '') field.min = Number(min);
+          if (max !== '') field.max = Number(max);
+          if (field.min !== undefined && field.max !== undefined && field.min > field.max) {
+            setFormStatus(extraFieldStatus, 'The minimum is above the maximum.', 'error');
+            return;
+          }
+        }
+
+        if (type === 'select') {
+          var options = document.getElementById('ef-options').value
+            .split('\n').map(function (o) { return o.trim(); }).filter(Boolean);
+          if (options.length < 2) {
+            setFormStatus(extraFieldStatus, 'Please give at least two choices, one per line.', 'error');
+            return;
+          }
+          field.options = options;
+        }
+
+        extraFieldsDraft.push(field);
+        renderExtraFields();
+        closeExtraFieldModal();
+        showToast('Extra field added.', 'success');
+      });
     }
 
     var sheetsList = document.getElementById('sheets-list');
@@ -907,6 +1106,7 @@
     function openResendOnboarding(item) {
       registerOnboardingForm.reset();
       resetAttachments();
+      resetExtraFieldsDraft();
       clearFormStatus(registerOnboardingStatus);
       showModal('admin-register-onboarding-modal');
       loadUserList(item.userId);
@@ -1198,6 +1398,31 @@
 
       fieldsSection.appendChild(grid);
       container.appendChild(fieldsSection);
+
+      var extras = data.extraFields || [];
+      if (extras.length) {
+        var extraSection = document.createElement('div');
+        extraSection.className = 'onboarding-data-section';
+        var extraHeading = document.createElement('h4');
+        extraHeading.textContent = 'More Info';
+        extraSection.appendChild(extraHeading);
+
+        var extraGrid = document.createElement('div');
+        extraGrid.className = 'onboarding-data-grid';
+
+        extras.forEach(function (item) {
+          if (item.type === 'document') {
+            appendDocField(extraGrid, item.label, item.doc, authId);
+            return;
+          }
+          var value = item.value;
+          if (item.type === 'checkbox') value = value === true ? 'Yes' : value === false ? 'No' : null;
+          appendDataField(extraGrid, item.label, value);
+        });
+
+        extraSection.appendChild(extraGrid);
+        container.appendChild(extraSection);
+      }
 
       var docsSection = document.createElement('div');
       docsSection.className = 'onboarding-data-section';
@@ -2075,6 +2300,10 @@
 
         var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
         if (sheetId) payload.sheetId = sheetId;
+        if (extraFieldsDraft.length) payload.extraFields = extraFieldsDraft;
+
+        var title = titleInput ? titleInput.value.trim() : '';
+        if (title) payload.title = title;
         if (cc) payload.cc = cc;
         if (bcc) payload.bcc = bcc;
         if (extraContentRaw) {
@@ -2101,6 +2330,7 @@
               var link = window.location.origin + '/verify-onboarding.html?id=' + encodeURIComponent(result.data.onboardingKey);
               registerOnboardingForm.reset();
               resetAttachments();
+              resetExtraFieldsDraft();
               registerOnboardingStatus.textContent = '';
               registerOnboardingStatus.appendChild(document.createTextNode('Onboarding link ready:'));
               registerOnboardingStatus.appendChild(document.createElement('br'));

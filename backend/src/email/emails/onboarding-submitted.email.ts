@@ -14,7 +14,7 @@ export class OnboardingSubmittedEmail extends BaseEmail {
   constructor(to: EmailAddress, data: OnboardingSubmittedEmailData, overrides?: Partial<BaseEmailInit>) {
     super({
       to,
-      subject: 'Onboarding complete — we have everything we need',
+      subject: 'Onboarding complete - we have everything we need',
       ...overrides,
     });
     this.data = data;

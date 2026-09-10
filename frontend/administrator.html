@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1783685962">
-  <link rel="stylesheet" href="css/accessibility.css?v=1783685962">
+  <link rel="stylesheet" href="css/styles.css?v=1789045815">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789045815">
 
-  <link rel="stylesheet" href="css/admin.css?v=1783685962">
+  <link rel="stylesheet" href="css/admin.css?v=1789045815">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -203,9 +203,17 @@
 
   <!-- Creating a user now lives on manage-users.html, alongside the user list. -->
 
-  <div class="admin-modal" id="admin-change-password-modal" hidden>
+  <div class="admin-modal" id="admin-change-password-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Change password">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Change Password</h3>
       <p class="body-text" id="cp-intro">Pick a new password for signing in to the admin dashboard.</p>
@@ -229,9 +237,17 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-register-onboarding-modal" hidden>
+  <div class="admin-modal" id="admin-register-onboarding-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Register onboarding">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Register Onboarding</h3>
       <p class="body-text">Generate an onboarding link for an existing user.</p>
@@ -246,6 +262,11 @@
                 <option value="nk securities research & tech">NK Securities Research &amp; Tech (NKSRT)</option>
               </select>
             </div>
+          </div>
+          <div class="form-group">
+            <label for="ro-title">Email title (optional)</label>
+            <input type="text" id="ro-title" name="title" maxlength="200">
+            <p class="markdown-hint">Subject line of the invite. Leave blank for the default shown above.</p>
           </div>
           <div class="form-group">
             <label for="ro-sheet">Google Sheet (optional)</label>
@@ -326,15 +347,111 @@
             <ul class="ro-attachments-list" id="ro-attachments-list"></ul>
           </div>
         </div>
+        <div class="ro-extra-fields">
+          <div class="ro-extra-fields-head">
+            <div>
+              <span class="ro-extra-fields-label">Extra info fields</span>
+              <p class="markdown-hint">Extra questions this person answers in a "More Info" section of the form.</p>
+            </div>
+            <button type="button" class="markdown-preview-btn" id="ro-add-extra-field-btn">Add extra info field</button>
+          </div>
+          <ul class="ro-extra-fields-list" id="ro-extra-fields-list"></ul>
+        </div>
+
         <button type="submit" class="form-submit" id="admin-register-onboarding-submit">Register Onboarding</button>
         <div class="form-status" id="admin-register-onboarding-status" role="alert" aria-live="polite"></div>
       </form>
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-view-onboardings-modal" hidden>
+  <div class="admin-modal" id="admin-extra-field-modal" data-expandable data-stacked hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Add extra info field">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3>Extra Info Field</h3>
+      <p class="body-text">One extra question, shown in the form's "More Info" section.</p>
+
+      <form class="admin-form" id="admin-extra-field-form" novalidate>
+        <div class="form-group">
+          <label for="ef-label">Field name</label>
+          <input type="text" id="ef-label" maxlength="120" placeholder="Notice period" required>
+        </div>
+
+        <div class="form-group">
+          <label for="ef-type">Type</label>
+          <div class="select-wrapper">
+            <select id="ef-type">
+              <option value="text" selected>Short text</option>
+              <option value="textarea">Long text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+              <option value="select">Choice from a list</option>
+              <option value="checkbox">Yes / no tick box</option>
+              <option value="document">Document upload</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" data-ef-constraint="text textarea">
+          <label for="ef-maxlength">Maximum length</label>
+          <input type="number" id="ef-maxlength" min="1" max="5000" placeholder="500">
+          <p class="markdown-hint">Characters allowed. Defaults to 500.</p>
+        </div>
+
+        <div class="form-group" data-ef-constraint="number">
+          <label for="ef-min">Minimum</label>
+          <input type="number" id="ef-min" placeholder="No minimum">
+        </div>
+        <div class="form-group" data-ef-constraint="number">
+          <label for="ef-max">Maximum</label>
+          <input type="number" id="ef-max" placeholder="No maximum">
+        </div>
+
+        <div class="form-group" data-ef-constraint="document">
+          <p class="markdown-hint">Images or PDF, up to 10MB - the same limits as the form's other documents.</p>
+        </div>
+
+        <div class="form-group" data-ef-constraint="select">
+          <label for="ef-options">Choices</label>
+          <textarea id="ef-options" rows="4" placeholder="One choice per line"></textarea>
+          <p class="markdown-hint">At least two.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="ef-help">Hint (optional)</label>
+          <input type="text" id="ef-help" maxlength="200" placeholder="Shown under the field">
+        </div>
+
+        <div class="form-group form-checkbox">
+          <input type="checkbox" id="ef-required">
+          <label for="ef-required">Required</label>
+        </div>
+
+        <button type="submit" class="form-submit" id="admin-extra-field-submit">Add Field</button>
+        <div class="form-status" id="admin-extra-field-status" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-view-onboardings-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="View onboardings">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Onboardings</h3>
       <p class="body-text">Search and filter registered onboarding links. Click a completed onboarding to view its submitted data.</p>
@@ -355,9 +472,17 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-sheets-modal" hidden>
+  <div class="admin-modal" id="admin-sheets-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Manage Google Sheets">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Google Sheets</h3>
       <p class="body-text" id="sheets-intro">Completed onboardings are appended to the sheet chosen when they were registered.</p>
@@ -387,18 +512,34 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-onboarding-progress-modal" hidden>
+  <div class="admin-modal" id="admin-onboarding-progress-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Onboarding progress">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3 id="vop-title">Onboarding Progress</h3>
       <div class="onboarding-data-body" id="vop-body"></div>
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-onboarding-data-modal" hidden>
+  <div class="admin-modal" id="admin-onboarding-data-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Onboarding data">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px;">
         <h3 id="vod-title" style="margin-bottom: 0;">Onboarding Data</h3>
@@ -429,10 +570,18 @@
     </div>
   </footer>
 
-  <div class="admin-modal" id="markdown-preview-modal" hidden>
+  <div class="admin-modal" id="markdown-preview-modal" data-expandable data-stacked hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog markdown-preview-dialog" role="dialog" aria-modal="true" aria-label="Extra message preview">
       <button type="button" class="admin-modal-action" id="md-save-template-btn">Save as template</button>
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <h3>Extra Message</h3>
 
@@ -471,12 +620,13 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1783685962"></script>
-  <script src="js/vendor/marked.js?v=1783685962"></script>
-  <script src="js/markdown-email.js?v=1783685962"></script>
-  <script src="js/row-menu.js?v=1783685962"></script>
-  <script src="js/bundle-b.js?v=1783685962"></script>
-  <script src="js/admin.js?v=1783685962"></script>
+  <script src="js/vendor/three.min.js?v=1789045815"></script>
+  <script src="js/vendor/marked.js?v=1789045815"></script>
+  <script src="js/markdown-email.js?v=1789045815"></script>
+  <script src="js/row-menu.js?v=1789045815"></script>
+  <script src="js/bundle-b.js?v=1789045815"></script>
+  <script src="js/modal-expand.js?v=1789045815"></script>
+  <script src="js/admin.js?v=1789045815"></script>
 
 </body>
 </html>

@@ -64,7 +64,7 @@ type ValidationFailReason =
   | 'invalid_extension';
 
 export type DocUploadResult =
-  | { uploaded: true; docId: string; docType: DocType; mimeType: string; sizeBytes: number }
+  | { uploaded: true; docId: string; docType: string; mimeType: string; sizeBytes: number }
   | { uploaded: false; reason: ValidationFailReason };
 
 function getExtension(filename: string): string {
@@ -115,11 +115,12 @@ function validateDoc(
 
 export async function uploadDoc(
   file: Express.Multer.File,
-  docType: DocType,
+  docType: string,
   userId: Types.ObjectId,
   onboardingKey: string,
+  configOverride?: DocConfig,
 ): Promise<DocUploadResult> {
-  const config = DOC_TYPE_CONFIG[docType];
+  const config = configOverride ?? DOC_TYPE_CONFIG[docType as DocType];
   const validation = validateDoc(file, config);
 
   if (!validation.valid) {

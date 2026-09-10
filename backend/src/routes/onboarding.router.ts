@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { Types } from 'mongoose';
 import { verifyOnboardingAuth, sendOnboardingOtp, verifyOnboardingOtp, checkOtpStatus } from '../services/onboarding.service';
 import { syncFormFields } from '../services/sync-form.service';
-import { OnboardingAuth, OfficeLocation, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, IOnboardingAuth, OfficeLocation, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
 import { EmailAddress, getEmailEngineByCompany, getSenderByCompany } from '../email';
@@ -11,8 +11,59 @@ import { OnboardingSubmittedEmail } from '../email/emails/onboarding-submitted.e
 import { IUser } from '../db/models/user.model';
 import { Limits } from '../lib/limits';
 import { appendOnboardingToSheet } from '../services/onboarding-sheet.service';
+import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
+import { Doc } from '../db/models/doc.model';
+import { extraFieldName, validateExtraValue, ExtraFieldType } from '../lib/extra-fields';
 
 const router = Router();
+
+function extraValuesFor(auth: IOnboardingAuth, stored?: Map<string, unknown> | Record<string, unknown>) {
+  const out: Record<string, unknown> = {};
+  if (!auth.extraFields?.length || !stored) return out;
+
+  const read = (key: string) =>
+    stored instanceof Map ? stored.get(key) : (stored as Record<string, unknown>)[key];
+
+  for (const def of auth.extraFields) {
+    if (def.type === ExtraFieldType.Document) continue;
+    const value = read(def.key);
+    if (value !== undefined) out[extraFieldName(def.key)] = value;
+  }
+  return out;
+}
+
+async function extraDocsFor(
+  auth: IOnboardingAuth,
+  stored?: Map<string, unknown> | Record<string, unknown>,
+): Promise<Record<string, { id: string; name: string }>> {
+  const out: Record<string, { id: string; name: string }> = {};
+  if (!auth.extraFields?.length || !stored) return out;
+
+  const read = (key: string) =>
+    stored instanceof Map ? stored.get(key) : (stored as Record<string, unknown>)[key];
+
+  const byId = new Map<string, string>();
+  const ids: Types.ObjectId[] = [];
+
+  for (const def of auth.extraFields) {
+    if (def.type !== ExtraFieldType.Document) continue;
+    const ref = read(def.key);
+    if (ref && Types.ObjectId.isValid(String(ref))) {
+      ids.push(new Types.ObjectId(String(ref)));
+      byId.set(String(ref), extraFieldName(def.key));
+    }
+  }
+
+  if (!ids.length) return out;
+
+  const docs = await Doc.find({ _id: { $in: ids } }, { _id: 1, originalName: 1 }).lean();
+  for (const doc of docs) {
+    const fieldName = byId.get(String(doc._id));
+    if (fieldName) out[fieldName] = { id: String(doc._id), name: doc.originalName };
+  }
+  return out;
+}
+
 
 const COOKIE_NAME = 'onboarding-auth';
 const COOKIE_OPTIONS = {
@@ -247,6 +298,23 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       requireStr(data.campusName,          'campus_name');
     }
 
+    for (const def of req.onboarding!.auth.extraFields ?? []) {
+      const stored = data.extraFields;
+      const value = stored instanceof Map
+        ? stored.get(def.key)
+        : (stored as Record<string, unknown> | undefined)?.[def.key];
+
+      if (def.type === ExtraFieldType.Document) {
+        if (def.required && !value) missing.push(extraFieldName(def.key));
+        continue;
+      }
+
+      const check = validateExtraValue(def, value);
+      if (!check.ok || (def.required && check.value === undefined)) {
+        missing.push(extraFieldName(def.key));
+      }
+    }
+
     if (missing.length > 0) {
       res.status(422).json({ submitted: false, missing });
       return;
@@ -261,11 +329,23 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
 
     const u = req.onboarding!.user as IUser;
     const sender = getSenderByCompany(auth.auth.company);
+
+    const inviteMessageId = auth.auth.inviteMessageId;
+    const inviteSubject = inviteMessageId && auth.auth.inviteSubject
+      ? (/^re:/i.test(auth.auth.inviteSubject) ? auth.auth.inviteSubject : `Re: ${auth.auth.inviteSubject}`)
+      : undefined;
     await getEmailEngineByCompany(auth.auth.company).send(
       new OnboardingSubmittedEmail(
         { name: `${u.firstName} ${u.lastName}`, address: u.email },
         { firstName: u.firstName },
-        { from: sender, cc:auth.auth.cc?.map(x=>({'name':x,'address':x})), bcc:auth.auth.bcc?.map(x=>({'name':x,'address':x})) },
+        {
+          from: sender,
+          cc: buildCc([auth.auth.cc, defaultOnboardingCc()], u.email),
+          bcc:auth.auth.bcc?.map(x=>({'name':x,'address':x})),
+          ...(inviteSubject ? { subject: inviteSubject } : {}),
+          inReplyTo: inviteMessageId,
+          references: inviteMessageId ? [inviteMessageId] : undefined,
+        },
       ),
     ).catch((err) => console.error('[onboarding/submit-data] email failed:', err));
 
@@ -323,7 +403,12 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
       .lean();
 
     if (!data) {
-      res.json({ fields: {}, docs: {}, info: { location }, submittedAt: null });
+      res.json({
+        fields: {},
+        docs: {},
+        info: { location, extraFields: req.onboarding!.auth.extraFields ?? [] },
+        submittedAt: null,
+      });
       return;
     }
 
@@ -402,8 +487,11 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         bank_doc:              docEntry(data.bankDoc),
       },
       info:{
-        location
+        location,
+        extraFields: req.onboarding!.auth.extraFields ?? [],
       },
+      extraFieldValues: extraValuesFor(req.onboarding!.auth, data.extraFields),
+      extraDocs: await extraDocsFor(req.onboarding!.auth, data.extraFields),
       submittedAt: data.submittedAt ?? null,
     });
   } catch (err) {

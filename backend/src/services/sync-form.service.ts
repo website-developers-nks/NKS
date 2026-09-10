@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { OnboardingData, BirthdayPref, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
 import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { Limits } from '../lib/limits';
+import { extraFieldName, validateExtraValue } from '../lib/extra-fields';
 
 export type FieldResult =
   | { field_name: string; saved: true }
@@ -256,7 +257,30 @@ export async function syncFormFields(
   const $unset: Record<string, ''> = {};
   const fieldIncrements: Record<string, number> = {};
 
+  const extraDefs = new Map(
+    (authUpdate?.extraFields ?? []).map((def) => [extraFieldName(def.key), def]),
+  );
+
   for (const [fieldName, value] of Object.entries(fields)) {
+    const extraDef = extraDefs.get(fieldName);
+
+    if (extraDef) {
+      const extraValidation = validateExtraValue(extraDef, value);
+      if (!extraValidation.ok) {
+        results.push({ field_name: fieldName, saved: false, error: extraValidation.error });
+        continue;
+      }
+
+      if (extraValidation.value === undefined) {
+        $unset[`extraFields.${extraDef.key}`] = '';
+      } else {
+        $set[`extraFields.${extraDef.key}`] = extraValidation.value;
+      }
+      fieldIncrements[`fieldUpdateCounts.${fieldName}`] = 1;
+      results.push({ field_name: fieldName, saved: true });
+      continue;
+    }
+
     const def = FIELD_DEFS[fieldName];
     if (!def) {
       results.push({ field_name: fieldName, saved: false, error: 'Unknown field' });

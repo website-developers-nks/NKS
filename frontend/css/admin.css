@@ -1219,7 +1219,7 @@ body {
 .admin-modal-action {
   position: absolute;
   top: 16px;
-  right: 56px;
+  right: 96px;
   height: 32px;
   padding: 0 14px;
   border-radius: 4px;
@@ -1497,4 +1497,96 @@ body {
   border: none;
   cursor: pointer;
   padding: 0;
+}
+
+.ro-extra-fields {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 8px;
+}
+
+.ro-extra-fields-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ro-extra-fields-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ro-extra-fields-head .markdown-hint {
+  margin-top: 4px;
+}
+
+.ro-extra-fields-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.ro-extra-fields-list:empty {
+  display: none;
+}
+
+.form-group[data-ef-constraint][hidden] {
+  display: none;
+}
+
+.admin-modal-expand {
+  position: absolute;
+  top: 16px;
+  right: 56px;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.admin-modal-expand:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin-modal-expand svg {
+  width: 15px;
+  height: 15px;
+}
+
+.admin-modal-expand .icon-collapse,
+.admin-modal.is-expanded .admin-modal-expand .icon-expand {
+  display: none;
+}
+
+.admin-modal.is-expanded .admin-modal-expand .icon-collapse {
+  display: block;
+}
+
+.admin-modal.is-expanded {
+  padding: 0;
+}
+
+.admin-modal.is-expanded .admin-modal-dialog {
+  width: 100dvw;
+  max-width: 100dvw;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border: none;
 }

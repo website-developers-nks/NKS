@@ -28,6 +28,8 @@ import { buildOnboardingExportHtml } from '../services/onboarding-export.service
 import { createScheduledEmail, deliverScheduledEmail } from '../services/scheduled-email.service';
 import { sendReminderFor } from '../services/onboarding-reminder.service';
 import { isGoogleSheetsConfigured, parseSpreadsheetId, getSpreadsheetInfo } from '../lib/google-sheets';
+import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
+import { normalizeExtraFields, ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
 import {
   uploadAdminAttachment,
   deleteAdminAttachment,
@@ -115,6 +117,45 @@ async function checkAdminPassword(user: IUser, password: string): Promise<boolea
   if (user.passwordHash) return verifyPassword(password, user.passwordHash);
 
   return false;
+}
+
+async function extraFieldsForAdmin(auth: IOnboardingAuth, data: { extraFields?: unknown }) {
+  const defs = (auth.extraFields ?? []) as ExtraFieldDef[];
+  if (!defs.length) return [];
+
+  const stored = data.extraFields as Map<string, unknown> | Record<string, unknown> | undefined;
+  const read = (key: string) =>
+    stored instanceof Map ? stored.get(key) : (stored as Record<string, unknown> | undefined)?.[key];
+
+  const ids: Types.ObjectId[] = [];
+  const keyById = new Map<string, string>();
+
+  for (const def of defs) {
+    if (def.type !== ExtraFieldType.Document) continue;
+    const raw = read(def.key);
+    if (raw && Types.ObjectId.isValid(String(raw))) {
+      ids.push(new Types.ObjectId(String(raw)));
+      keyById.set(String(raw), def.key);
+    }
+  }
+
+  const docsByKey = new Map<string, { id: string; name: string; mimeType: string }>();
+  if (ids.length) {
+    const docs = await Doc.find({ _id: { $in: ids } }, { _id: 1, originalName: 1, mimeType: 1 }).lean();
+    for (const doc of docs) {
+      const key = keyById.get(String(doc._id));
+      if (key) docsByKey.set(key, { id: String(doc._id), name: doc.originalName, mimeType: doc.mimeType });
+    }
+  }
+
+  return defs.map((def) => ({
+    key: def.key,
+    label: def.label,
+    type: def.type,
+    required: def.required,
+    value: def.type === ExtraFieldType.Document ? null : (read(def.key) ?? null),
+    doc: def.type === ExtraFieldType.Document ? (docsByKey.get(def.key) ?? null) : null,
+  }));
 }
 
 async function serializeAdminSession(user: IUser) {
@@ -223,7 +264,7 @@ router.post('/create-user', requireAdminAuth, requirePermission(Permission.Manag
 });
 
 router.post('/register-onboarding', requireAdminAuth, requirePermission(Permission.ManageOnboardings), async (req: Request, res: Response) => {
-  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds, sheetId } = req.body as {
+  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds, sheetId, extraFields, title } = req.body as {
     userId?: string;
     ttl?: number;
     location?: string;
@@ -235,6 +276,8 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
     expirationDate?: string;
     attachmentIds?: string[];
     sheetId?: string;
+    extraFields?: unknown;
+    title?: string;
   };
 
   const validLocations = Object.values(OfficeLocation);
@@ -282,6 +325,14 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
     return;
   }
 
+  let normalizedExtraFields;
+  try {
+    normalizedExtraFields = normalizeExtraFields(extraFields);
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+    return;
+  }
+
   if (sheetId) {
     if (!Types.ObjectId.isValid(sheetId)) {
       res.status(400).json({ error: 'Invalid sheet.' });
@@ -318,6 +369,7 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       bcc: toArray(bcc),
       extraContent: extraContentMarkdown,
       sheetConfig: sheetId || undefined,
+      extraFields: normalizedExtraFields.length ? normalizedExtraFields : undefined,
     });
 
     const baseUrl = company == Company.NKSRT ? (process.env.ONBOARDING_BASE_URL_DUBAI??"https://nksresearchtech.com")  : (process.env.ONBOARDING_BASE_URL ?? 'https://nksecurities.com');
@@ -328,7 +380,8 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       v ? (Array.isArray(v) ? v.map(toAddr) : toAddr(v)) : undefined;
 
     const sender = getSenderByCompany(auth.company);
-    const inviteSubject = `${user.firstName} ${user.lastName} | Complete your onboarding - ${getCompanyName(auth.company)}`;
+    const inviteSubject = title?.trim()
+      || `${user.firstName} ${user.lastName} | Complete your onboarding - ${getCompanyName(auth.company)}`;
 
     const invite = await getEmailEngineByCompany(auth.company).send(
       new OnboardingInviteEmail(
@@ -340,7 +393,7 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
         },
         {
           from: sender,
-          cc: normalizeAddr(cc),
+          cc: buildCc([cc, defaultOnboardingCc()], user.email),
           bcc: normalizeAddr(bcc),
           subject: inviteSubject,
           attachments,
@@ -1572,6 +1625,7 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
         experience_rating:      data.experienceRating ?? null,
         experience_feedback:    data.experienceFeedback ?? null,
       },
+      extraFields: await extraFieldsForAdmin(auth, data),
       docs: {
         pan_doc:               docEntry(data.panDoc),
         id_doc:                docEntry(data.idDoc),
@@ -1618,6 +1672,7 @@ router.get('/onboardings/:id/progress', requireAdminAuth, requirePermission(Perm
     const IGNORED = new Set([
       '_id', '__v', 'userId', 'onboardingAuthId', 'fieldUpdateCounts',
       'createdAt', 'updatedAt', 'submittedAt',
+      'extraFields',
     ]);
 
     const hasValue = (value: unknown): boolean => {
@@ -1648,6 +1703,24 @@ router.get('/onboardings/:id/progress', requireAdminAuth, requirePermission(Perm
 
     const totalEdits = Object.values(fieldUpdateCounts)
       .reduce((sum: number, n) => sum + (Number(n) || 0), 0);
+
+    const extraDefs = (auth.extraFields ?? []) as ExtraFieldDef[];
+    const extraStored = data?.extraFields as Map<string, unknown> | Record<string, unknown> | undefined;
+    const readExtra = (key: string) =>
+      extraStored instanceof Map
+        ? extraStored.get(key)
+        : (extraStored as Record<string, unknown> | undefined)?.[key];
+
+    const extraAnswers = extraDefs.map((def) => ({
+      label: def.label,
+      type: def.type,
+      required: def.required,
+      answered: hasValue(readExtra(def.key)),
+    }));
+
+    extraAnswers.forEach((entry) => {
+      if (entry.answered) filled.push(entry.label);
+    });
 
     const now = Date.now();
     const isExpired = auth.expired || (!!auth.expirationDate && new Date(auth.expirationDate).getTime() < now);
@@ -1697,6 +1770,9 @@ router.get('/onboardings/:id/progress', requireAdminAuth, requirePermission(Perm
         totalFieldEdits: totalEdits,
         lastSavedAt: data?.updatedAt ?? null,
         submittedAt: data?.submittedAt ?? null,
+        extraFields: extraAnswers,
+        extraFieldsAnswered: extraAnswers.filter((e) => e.answered).length,
+        extraFieldsTotal: extraAnswers.length,
       },
     });
   } catch (err) {

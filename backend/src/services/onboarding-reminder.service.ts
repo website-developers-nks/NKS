@@ -3,6 +3,7 @@ import { IUser } from '../db/models/user.model';
 import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingReminderEmail } from '../email/emails/onboarding-reminder.email';
 import { getCompanyName } from '../email/base.email';
+import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -92,7 +93,7 @@ export async function sendReminderFor(auth: IOnboardingAuth, now: Date = new Dat
       {
         from: getSenderByCompany(auth.company),
         subject,
-        cc: toAddresses(auth.cc),
+        cc: buildCc([auth.cc, defaultOnboardingCc()], user.email),
         bcc: toAddresses(auth.bcc),
         inReplyTo: inviteMessageId,
         references: inviteMessageId ? [inviteMessageId] : undefined,

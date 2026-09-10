@@ -1004,6 +1004,154 @@
       });
   }
 
+  function renderMoreInfoFields(defs, values, docs) {
+    var section = document.getElementById('more-info-section');
+    var grid = document.getElementById('more-info-fields');
+    if (!section || !grid) return;
+
+    if (!defs || !defs.length) {
+      section.hidden = true;
+      return;
+    }
+
+    grid.innerHTML = '';
+
+    defs.forEach(function (def) {
+      var name = 'extra_' + def.key;
+      var value = values ? values[name] : undefined;
+
+      var label = document.createElement('label');
+      if (def.type === 'checkbox') label.className = 'consent-row';
+
+      var caption = document.createElement('span');
+      caption.textContent = def.label;
+      if (def.required) {
+        var mark = document.createElement('span');
+        mark.className = 'required-mark';
+        mark.textContent = ' *';
+        caption.appendChild(mark);
+      }
+
+      if (def.type === 'document') {
+        label.className = 'upload-card';
+
+        var fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.name = name;
+        fileInput.dataset.docType = name;
+        fileInput.accept = 'image/*,application/pdf';
+        if (def.required) fileInput.dataset.required = 'true';
+
+        var preview = document.createElement('div');
+        preview.className = 'upload-preview';
+        preview.hidden = true;
+        var thumb = document.createElement('div');
+        thumb.className = 'upload-preview-thumb';
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'upload-remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remove file');
+        removeBtn.hidden = true;
+        removeBtn.innerHTML = '&#10005;';
+        preview.appendChild(thumb);
+        preview.appendChild(removeBtn);
+
+        var status = document.createElement('span');
+        status.className = 'upload-status';
+        status.setAttribute('aria-live', 'polite');
+
+        label.appendChild(caption);
+        label.appendChild(fileInput);
+        label.appendChild(preview);
+        label.appendChild(status);
+
+        if (def.help) {
+          var docHelp = document.createElement('span');
+          docHelp.className = 'field-help';
+          docHelp.textContent = def.help;
+          label.appendChild(docHelp);
+        }
+
+        grid.appendChild(label);
+        bindUploadInput(fileInput);
+
+        var uploaded = docs && docs[name];
+        if (uploaded && uploaded.name) restoreUploadedDoc(fileInput, uploaded.name, uploaded.id);
+        return;
+      }
+
+      var input;
+      switch (def.type) {
+        case 'textarea':
+          input = document.createElement('textarea');
+          if (def.maxLength) input.maxLength = def.maxLength;
+          break;
+        case 'select':
+          input = document.createElement('select');
+          var blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = 'Select';
+          input.appendChild(blank);
+          (def.options || []).forEach(function (option) {
+            var opt = document.createElement('option');
+            opt.value = option;
+            opt.textContent = option;
+            input.appendChild(opt);
+          });
+          break;
+        case 'checkbox':
+          input = document.createElement('input');
+          input.type = 'checkbox';
+          break;
+        case 'number':
+          input = document.createElement('input');
+          input.type = 'number';
+          if (def.min !== undefined && def.min !== null) input.min = def.min;
+          if (def.max !== undefined && def.max !== null) input.max = def.max;
+          break;
+        case 'date':
+          input = document.createElement('input');
+          input.type = 'date';
+          break;
+        default:
+          input = document.createElement('input');
+          input.type = 'text';
+          if (def.maxLength) input.maxLength = def.maxLength;
+      }
+
+      input.name = name;
+      // buildReview counts these when listing what is still missing.
+      if (def.required) input.dataset.required = 'true';
+
+      if (value !== undefined && value !== null) {
+        if (def.type === 'checkbox') input.checked = value === true;
+        else input.value = value;
+      }
+
+      if (def.type === 'checkbox') {
+        label.appendChild(input);
+        label.appendChild(caption);
+      } else {
+        label.appendChild(caption);
+        label.appendChild(input);
+      }
+
+      if (def.help) {
+        var help = document.createElement('span');
+        help.className = 'field-help';
+        help.textContent = def.help;
+        label.appendChild(help);
+      }
+
+      grid.appendChild(label);
+
+      ensureFieldSyncMessageEl(input);
+    });
+
+    section.hidden = false;
+    updateProgress();
+  }
+
   function applyProgressData(data) {
     var fields = (data && data.fields) || {};
     Object.keys(fields).forEach(function (name) {
@@ -1031,6 +1179,8 @@
 
     // Display the location chip from info and update location-based visibility
     var info = (data && data.info) || {};
+
+    renderMoreInfoFields(info.extraFields, (data && data.extraFieldValues) || {}, (data && data.extraDocs) || {});
     if (info.location && locationChip) {
       locationChip.textContent = locationLabels[info.location] || info.location;
       locationChip.hidden = false;
@@ -1813,7 +1963,10 @@
     orgModalSave.addEventListener('click', saveOrgFromModal);
   }
 
-  Array.prototype.forEach.call(form.querySelectorAll('input[type="file"][data-doc-type]'), function (input) {
+  function bindUploadInput(input) {
+    if (input.dataset.uploadBound === 'true') return;
+    input.dataset.uploadBound = 'true';
+
     input.addEventListener('change', function () { uploadDocument(input); });
 
     var els = getUploadEls(input);
@@ -1831,7 +1984,9 @@
         removeDocument(input);
       });
     }
-  });
+  }
+
+  Array.prototype.forEach.call(form.querySelectorAll('input[type="file"][data-doc-type]'), bindUploadInput);
 
   saveBtn.addEventListener('click', function () {
     var data = {};

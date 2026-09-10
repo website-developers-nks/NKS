@@ -132,20 +132,30 @@ async function getFirstRow(spreadsheetId: string, tab: string): Promise<string[]
   return (body?.values?.[0] ?? []) as string[];
 }
 
-export async function appendRow(
+export async function appendRecord(
   spreadsheetId: string,
   tab: string,
-  headers: string[],
-  row: (string | number | null)[],
+  record: Array<{ header: string; value: string | number | null }>,
 ): Promise<void> {
   const existingHeader = await getFirstRow(spreadsheetId, tab);
+  const wanted = record.map((c) => c.header);
 
-  if (!existingHeader.length) {
+  let header = existingHeader.length ? existingHeader.slice() : wanted.slice();
+
+  if (existingHeader.length) {
+    const missing = wanted.filter((h) => !header.includes(h));
+    if (missing.length) header = header.concat(missing);
+  }
+
+  if (!existingHeader.length || header.length !== existingHeader.length) {
     await sheetsFetch(
       `/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(`${tab}!A1`)}?valueInputOption=RAW`,
-      { method: 'PUT', body: JSON.stringify({ values: [headers] }) },
+      { method: 'PUT', body: JSON.stringify({ values: [header] }) },
     );
   }
+
+  const byHeader = new Map(record.map((c) => [c.header, c.value]));
+  const row = header.map((h) => (byHeader.has(h) ? byHeader.get(h) ?? '' : ''));
 
   await sheetsFetch(
     `/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(`${tab}!A1`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,

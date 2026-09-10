@@ -1,5 +1,6 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import { IUser } from './user.model';
+import { ExtraFieldDef, ExtraFieldType } from '../../lib/extra-fields';
 
 export enum OfficeLocation {
   Gurugram = 'gurugram',
@@ -50,6 +51,7 @@ export interface IOnboardingAuth extends Document {
   inviteMessageId?: string;
   inviteSubject?: string;
   sheetConfig?: Types.ObjectId;
+  extraFields?: ExtraFieldDef[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -79,6 +81,20 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     inviteMessageId: { type: String },
     inviteSubject: { type: String },
     sheetConfig: { type: Schema.Types.ObjectId, ref: 'SheetConfig' },
+    extraFields: {
+      type: [new Schema<ExtraFieldDef>({
+        key: { type: String, required: true },
+        label: { type: String, required: true },
+        type: { type: String, enum: Object.values(ExtraFieldType), required: true },
+        required: { type: Boolean, default: false },
+        help: { type: String },
+        maxLength: { type: Number },
+        min: { type: Number },
+        max: { type: Number },
+        options: { type: [String] },
+      }, { _id: false })],
+      default: undefined,
+    },
     cc: { type: [String] },
     bcc: { type: [String] },
     extraContent: { type: String },

@@ -1287,3 +1287,26 @@ a:hover {
     animation: none !important;
   }
 }
+
+.more-info-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.more-info-section[hidden] {
+  display: none;
+}
+
+.more-info-note {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 4px 0 16px;
+}
+
+.field-help {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}

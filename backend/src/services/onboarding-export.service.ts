@@ -1,4 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { Types } from 'mongoose';
+import { Doc } from '../db/models/doc.model';
+import { ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
 import { Readable } from 'stream';
 import { r2, R2_BUCKET } from '../lib/r2';
 import { OnboardingAuth } from '../db/models/onboarding-auth.model';
@@ -139,6 +142,7 @@ function renderHtml(opts: {
   company: string;
   submittedAt: string;
   fieldRows: string[];
+  extraRows: string[];
   docCards: string[];
 }): string {
   return `<!doctype html>
@@ -170,6 +174,9 @@ function renderHtml(opts: {
 
     <h2>Details</h2>
     <div class="grid">${opts.fieldRows.join('')}</div>
+
+    ${opts.extraRows.length ? `<h2>More Info</h2>
+    <div class="grid">${opts.extraRows.join('')}</div>` : ''}
 
     <h2>Documents</h2>
     <div class="grid">${opts.docCards.length ? opts.docCards.join('') : '<p class="empty">No documents uploaded.</p>'}</div>
@@ -212,12 +219,58 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
     fieldRows.push(fieldRow('Employment History', orgs.map((o) => [`${o.name} (${o.duration})`, o.role, o.info].filter(Boolean).join(' — ')).join('; ')));
   }
 
+  const extraDefs = (auth.extraFields ?? []) as ExtraFieldDef[];
+  const extraStored = record.extraFields as Map<string, unknown> | Record<string, unknown> | undefined;
+  const readExtra = (key: string) =>
+    extraStored instanceof Map
+      ? extraStored.get(key)
+      : (extraStored as Record<string, unknown> | undefined)?.[key];
+
+  const extraDocIds: Types.ObjectId[] = [];
+  const extraDocKeyById = new Map<string, string>();
+
+  for (const def of extraDefs) {
+    if (def.type !== ExtraFieldType.Document) continue;
+    const raw = readExtra(def.key);
+    if (raw && Types.ObjectId.isValid(String(raw))) {
+      extraDocIds.push(new Types.ObjectId(String(raw)));
+      extraDocKeyById.set(String(raw), def.key);
+    }
+  }
+
+  const extraDocsByKey = new Map<string, IDoc>();
+  if (extraDocIds.length) {
+    const docs = await Doc.find({ _id: { $in: extraDocIds } });
+    for (const doc of docs) {
+      const key = extraDocKeyById.get(String(doc._id));
+      if (key) extraDocsByKey.set(key, doc as IDoc);
+    }
+  }
+
+  const extraRows: string[] = [];
+  for (const def of extraDefs) {
+    if (def.type === ExtraFieldType.Document) continue;
+    const raw = readExtra(def.key);
+    const value = def.type === ExtraFieldType.Checkbox
+      ? (raw === true ? 'Yes' : raw === false ? 'No' : '')
+      : raw;
+    extraRows.push(fieldRow(def.label, value));
+  }
+
   const docCards: string[] = [];
   for (const field of DOC_FIELDS) {
     const doc = record[field] as IDoc | undefined;
     if (!doc || !doc.path) continue;
     const dataUri = await fetchDocAsDataUri(doc);
     docCards.push(docCard(DOC_LABELS[field], doc, dataUri));
+  }
+
+  for (const def of extraDefs) {
+    if (def.type !== ExtraFieldType.Document) continue;
+    const doc = extraDocsByKey.get(def.key);
+    if (!doc?.path) continue;
+    const dataUri = await fetchDocAsDataUri(doc);
+    docCards.push(docCard(def.label, doc, dataUri));
   }
 
   const html = renderHtml({
@@ -227,6 +280,7 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
     company: auth.company,
     submittedAt: record.submittedAt ? new Date(record.submittedAt as string).toLocaleString() : 'Not submitted',
     fieldRows,
+    extraRows,
     docCards,
   });
 
