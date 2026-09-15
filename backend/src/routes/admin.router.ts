@@ -381,8 +381,11 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       v ? (Array.isArray(v) ? v.map(toAddr) : toAddr(v)) : undefined;
 
     const sender = getSenderByCompany(auth.company);
-    const inviteSubject = title?.trim()
-      || `${user.firstName} ${user.lastName} | Complete your onboarding - ${getCompanyName(auth.company)}`;
+    const invitee = `${user.firstName} ${user.lastName}`.trim();
+    const customTitle = title?.trim();
+    const inviteSubject = customTitle
+      ? `${invitee} | ${customTitle}`
+      : `${invitee} | Complete your onboarding - ${getCompanyName(auth.company)}`;
 
     const invite = await getEmailEngineByCompany(auth.company).send(
       new OnboardingInviteEmail(
