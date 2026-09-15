@@ -280,26 +280,40 @@
     // ---- Default invite subject, shown as the Title field's placeholder ----
 
     var titleInput = document.getElementById('ro-title');
+    var titleHint = document.getElementById('ro-title-hint');
     var COMPANY_EMAIL_NAMES = {
       nksecurities: 'NK Securities Research',
       'nk securities research & tech': 'NKS Research & Technology'
     };
 
+    var TITLE_HINT_DEFAULT = 'Blank uses the subject shown in the box. The name always leads, so each candidate gets their own email thread.';
+
+    function inviteeName() {
+      var selected = userIdSelect.options[userIdSelect.selectedIndex];
+      return selected && selected.value ? String(selected.textContent).split(' — ')[0].trim() : '';
+    }
+
     function defaultInviteSubject() {
       var companyName = COMPANY_EMAIL_NAMES[document.getElementById('ro-company').value] || 'NK Securities Research';
-      var selected = userIdSelect.options[userIdSelect.selectedIndex];
-      var name = selected && selected.value ? String(selected.textContent).split(' — ')[0].trim() : '';
-      return (name || 'Full Name') + ' | Complete your onboarding - ' + companyName;
+      return (inviteeName() || 'Full Name') + ' | Complete your onboarding - ' + companyName;
     }
 
     function syncInviteSubjectPlaceholder() {
       if (titleInput) titleInput.placeholder = defaultInviteSubject();
+      if (!titleHint) return;
+
+      var custom = titleInput ? titleInput.value.trim() : '';
+      titleHint.textContent = custom
+        ? 'Subject: ' + (inviteeName() || 'Full Name') + ' | ' + custom
+        : TITLE_HINT_DEFAULT;
     }
 
     ['ro-company', 'ro-user-id'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener('change', syncInviteSubjectPlaceholder);
     });
+
+    if (titleInput) titleInput.addEventListener('input', syncInviteSubjectPlaceholder);
 
     // ---- Extra info fields ----
 
