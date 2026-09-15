@@ -46,6 +46,7 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'Personal Email', value: ({ data }) => data.personalEmail ?? '' },
   { header: 'Mobile', value: ({ data }) => data.mobile ?? '' },
   { header: 'Date of Birth', value: ({ data }) => date(data.dob) },
+  { header: 'Preferred Date of Birth', value: ({ data }) => date(data.preferredDob) },
   { header: 'Nationality', value: ({ data }) => data.nationality ?? '' },
   { header: 'Marital Status', value: ({ data }) => data.maritalStatus ?? '' },
   { header: 'Blood Group', value: ({ data }) => data.bloodGroup ?? '' },
@@ -84,7 +85,7 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'Account Number', value: ({ data }) => (data.accountNumber ? `'${data.accountNumber}` : '') },
   { header: 'IFSC', value: ({ data }) => data.ifsc ?? '' },
 
-  { header: 'Intro Line', value: ({ data }) => data.introLine ?? '' },
+  { header: 'Short Intro', value: ({ data }) => data.introLine ?? '' },
   { header: 'Birthday Preference', value: ({ data }) => data.birthdayPref ?? '' },
   { header: 'Meal Preference', value: ({ data }) => data.mealPreference ?? '' },
   { header: 'Hobbies', value: ({ data }) => data.hobbies ?? '' },

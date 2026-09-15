@@ -201,6 +201,7 @@
     email: 'Personal email',
     mobile: 'Mobile number',
     dob: 'Date of birth',
+    preferred_dob: 'Preferred date of birth',
     nationality: 'Nationality',
     marital_status: 'Marital status',
     blood_group: 'Blood group',
@@ -242,7 +243,7 @@
     account_number: 'Account number',
     ifsc: 'IFSC code',
     bank_doc: 'Bank proof file',
-    intro_line: 'One line intro',
+    intro_line: 'Short intro',
     birthday_pref: 'Birthday celebration preference',
     meal_preference: 'Meal preference',
     hobbies: 'Hobbies',
@@ -304,8 +305,10 @@
   function updateDocBasisLabels(location) {
     var basis = location === 'dubai' ? 'dubai' : 'default';
     Object.keys(DOC_BASIS_LABELS).forEach(function (field) {
-      var el = document.querySelector('[data-doc-basis-label="' + field + '"]');
-      if (el) el.textContent = DOC_BASIS_LABELS[field][basis];
+      Array.prototype.forEach.call(
+        document.querySelectorAll('[data-doc-basis-label="' + field + '"]'),
+        function (el) { el.textContent = DOC_BASIS_LABELS[field][basis]; },
+      );
     });
 
     var identityInput = document.querySelector('input[name="passport_number"]');
@@ -1714,7 +1717,7 @@
     if (addressModalCountry) addressModalCountry.value = (data && data.country) || '';
     if (addressModalPincode) addressModalPincode.value = (data && data.pincode) || '';
     if (addressModalError) addressModalError.hidden = true;
-    addressModalRequiredMarks.forEach(function (mark) { mark.hidden = target !== 'permanent'; });
+    addressModalRequiredMarks.forEach(function (mark) { mark.hidden = false; });
     addressModal.hidden = false;
     document.body.style.overflow = 'hidden';
     if (addressModalLine) addressModalLine.focus();
@@ -1733,7 +1736,7 @@
     var country = addressModalCountry ? addressModalCountry.value.trim() : '';
     var pincode = addressModalPincode ? addressModalPincode.value.trim() : '';
 
-    if (addressModalTarget === 'permanent' && (!line || !city || !country || !pincode)) {
+    if (!line || !city || !country || !pincode) {
       if (addressModalError) {
         addressModalError.textContent = 'Please fill in all address fields.';
         addressModalError.hidden = false;

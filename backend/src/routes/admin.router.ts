@@ -1593,6 +1593,7 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
         email:                  data.personalEmail ?? null,
         mobile:                 data.mobile ?? null,
         dob:                    formatDate(data.dob),
+        preferred_dob:          formatDate(data.preferredDob),
         nationality:            data.nationality ?? null,
         marital_status:         data.maritalStatus ?? null,
         blood_group:            data.bloodGroup ?? null,

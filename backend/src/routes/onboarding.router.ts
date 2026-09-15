@@ -261,8 +261,12 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.emergencyContactName,   'emergency_contact_name');
     requireStr(data.emergencyContactNumber, 'emergency_contact_number');
     requireStr(data.passportNumber,        'passport_number');
-    requireStr(data.ssn,                   'ssn');
+    requireStr(data.bloodGroup,            'blood_group');
+    requireStr(data.panNumber,             'pan_number');
+    requireStr(data.uanNumber,             'uan_number');
+    requireStr(data.mealPreference,        'meal_preference');
     requireAddress(data.address,           'address');
+    requireAddress(data.presentAddress,    'present_address');
     requireDoc(data.idDoc,                 'id_doc');
     requireDoc(data.photoDoc,              'photo_doc');
     requireDoc(data.highestDegreeDoc,      'highest_degree_doc');
@@ -438,6 +442,7 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         email:                  data.personalEmail ?? null,
         mobile:                 data.mobile ?? null,
         dob:                    formatDate(data.dob),
+        preferred_dob:          formatDate(data.preferredDob),
         nationality:            data.nationality ?? null,
         marital_status:         data.maritalStatus ?? null,
         blood_group:            data.bloodGroup ?? null,

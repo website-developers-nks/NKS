@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789455119">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789455119">
+  <link rel="stylesheet" href="css/styles.css?v=1789464462">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789464462">
 
   <style>
     html, body {
@@ -421,8 +421,13 @@
     .field-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 0 24px;
+      gap: 20px 24px;
       margin-top: 4px;
+      align-items: start;
+    }
+
+    .field-grid label.wide {
+      grid-column: 1 / -1;
     }
 
     @media (max-width: 640px) {
@@ -445,8 +450,8 @@
       margin-top: 20px;
     }
 
-    .field-grid label:first-child,
-    .field-grid label:nth-child(2) {
+    /* Inside the grid the row gap does the spacing, so no per-label margin. */
+    .field-grid label {
       margin-top: 0;
     }
 
@@ -1591,6 +1596,7 @@
                   <label><span>Personal email <span class="required-mark">*</span></span><input data-required="true" name="email" type="email" placeholder="name@email.com"></label>
                   <label><span>Mobile number <span class="required-mark">*</span></span><input data-required="true" name="mobile" type="tel" placeholder="+91 XXXXX XXXXX"></label>
                   <label><span><span data-doc-basis-label="dob">Date of birth (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="dob" type="date"></label>
+                  <label><span>Preferred date of birth</span><input name="preferred_dob" type="date"><span class="field-help">Only if your actual date of birth differs from the one on your <span data-doc-basis-label="id_proof_type">Aadhar</span>.</span></label>
                   <label><span>Nationality <span class="required-mark">*</span></span><input data-required="true" name="nationality" type="text" placeholder="e.g. Indian"></label>
                   <label><span>Marital status <span class="required-mark">*</span></span>
                     <select data-required="true" name="marital_status">
@@ -1600,8 +1606,8 @@
                       <option value="other">Other</option>
                     </select>
                   </label>
-                  <label>Blood group
-                    <select name="blood_group">
+                  <label><span>Blood group <span class="required-mark">*</span></span>
+                    <select data-required="true" name="blood_group">
                       <option value="">Select</option>
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
@@ -1628,10 +1634,10 @@
                   <span>Current address is same as permanent address</span>
                 </label>
                 <div id="presentAddressSection" style="margin-top: 24px;">
-                  <span class="label" style="margin-bottom: 12px;">Current Address</span>
+                  <span class="label" style="margin-bottom: 12px;">Current Address <span class="required-mark">*</span></span>
                   <div class="address-summary" id="presentAddressSummary" hidden><span class="address-summary-text"></span></div>
                   <button type="button" class="btn-secondary" id="addPresentAddressBtn" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add address</button>
-                  <input type="hidden" name="present_address">
+                  <input type="hidden" name="present_address" data-required="true">
                 </div>
               </div>
             </section>
@@ -1678,12 +1684,11 @@
                 <p class="helper-text">Documents upload securely as soon as you choose a file. Accepted formats: JPG, PNG or PDF (photo: JPG/PNG only), up to 10MB each.</p>
                 <div class="upload-grid">
                   <label class="upload-card"><span>Personal Photo <span class="required-mark">*</span></span><input data-required="true" data-doc-type="profile_photo" name="photo_doc" type="file" accept="image/*"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card"><span>SSN (Social Security Number) <span class="required-mark">*</span></span><input data-required="true" name="ssn" type="text" placeholder="Enter SSN"></label>
                   <label class="upload-card"><span>ID Proof (<span data-doc-basis-label="id_proof_type">Aadhar</span>) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="aadhar_card" name="id_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card"><span><span data-doc-basis-label="identity_number">Aadhar Number</span> <span class="required-mark">*</span></span><input data-required="true" name="passport_number" type="text" placeholder="Enter identity number"></label>
-                  <label class="upload-card">PAN Card Number<input name="pan_number" type="text" placeholder="Enter PAN number"></label>
+                  <label class="upload-card"><span>PAN Card Number <span class="required-mark">*</span></span><input data-required="true" name="pan_number" type="text" placeholder="Enter PAN number"><span class="field-help">Enter NA if you do not have one.</span></label>
                   <label class="upload-card">Passport Number<input name="passport_no" type="text" placeholder="Enter passport number"></label>
-                  <label class="upload-card">UAN Number<input name="uan_number" type="text" placeholder="Enter UAN number"></label>
+                  <label class="upload-card"><span>UAN Number <span class="required-mark">*</span></span><input data-required="true" name="uan_number" type="text" placeholder="Enter UAN number"><span class="field-help">Enter NA if you do not have one.</span></label>
                   <label class="upload-card">Passport<input data-doc-type="passport" name="passport_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card">Address Proof<input data-doc-type="address_proof" name="address_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card"><span>Resume <span class="required-mark">*</span></span><input data-required="true" data-doc-type="resume" name="resume_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
@@ -1733,16 +1738,16 @@
                 <span class="mission-pill">Mission 07 · Culture Intro</span>
                 <h3>Culture Intro</h3>
                 <div class="field-grid">
-                  <label><span>One line about you <span class="required-mark">*</span></span><input data-required="true" name="intro_line" type="text" placeholder="Example: I love markets, music and filter coffee."></label>
-                  <label>Preferred Date of Birth
+                  <label class="wide"><span>Short intro <span class="required-mark">*</span></span><textarea data-required="true" name="intro_line" rows="3" maxlength="1000" placeholder="Example: I moved into markets from a physics background, I play badminton most weekends, and I roast my own coffee."></textarea><span class="field-help">Shared on our company-wide Slack channel - your background, interests, or a fun fact you would like colleagues to know.</span></label>
+                  <label><span>Preferred birthday celebration</span>
                     <select name="birthday_pref">
                       <option value="team_wishes">Team wishes are okay</option>
                       <option value="private">Keep it private</option>
                       <option value="small_celebration">Small celebration is okay</option>
                     </select>
                   </label>
-                  <label>Meal preference
-                    <select name="meal_preference">
+                  <label><span>Meal preference <span class="required-mark">*</span></span>
+                    <select data-required="true" name="meal_preference">
                       <option value="">Select</option>
                       <option value="vegetarian">Vegetarian</option>
                       <option value="vegan">Vegan</option>
@@ -1918,9 +1923,9 @@
     </div>
   </div>
 
-  <script src="js/vendor/three.min.js?v=1789455119"></script>
-  <script src="js/bundle-b.js?v=1789455119"></script>
-  <script src="js/onboarding-form.js?v=1789455119"></script>
+  <script src="js/vendor/three.min.js?v=1789464462"></script>
+  <script src="js/bundle-b.js?v=1789464462"></script>
+  <script src="js/onboarding-form.js?v=1789464462"></script>
 
 </body>
 </html>

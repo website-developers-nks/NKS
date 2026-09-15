@@ -74,6 +74,8 @@ export interface IOnboardingData extends Document {
   personalEmail: string;
   mobile: string;
   dob: Date;
+  // Given when the real date of birth differs from the one on the ID proof.
+  preferredDob?: Date;
   nationality?: string;
   maritalStatus?: MaritalStatus;
   bloodGroup?: BloodGroup;
@@ -172,6 +174,7 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     personalEmail: { type: String, lowercase: true, trim: true },
     mobile: { type: String, trim: true },
     dob: { type: Date },
+    preferredDob: { type: Date },
     nationality: { type: String, trim: true },
     maritalStatus: { type: String, enum: Object.values(MaritalStatus) },
     bloodGroup: { type: String, enum: Object.values(BloodGroup) },

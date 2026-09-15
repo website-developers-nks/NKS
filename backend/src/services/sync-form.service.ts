@@ -197,18 +197,19 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   email:                    { modelField: 'personalEmail',         validate: emailValidator() },
   mobile:                   { modelField: 'mobile',                validate: stringValidator(20) },
   dob:                      { modelField: 'dob',                   validate: dobValidator() },
+  preferred_dob:            { modelField: 'preferredDob',          validate: pastDateValidator('Date of birth', false) },
   nationality:              { modelField: 'nationality',           validate: stringValidator(100) },
   marital_status:           { modelField: 'maritalStatus',         validate: enumValidator(Object.values(MaritalStatus), 'marital status') },
-  blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group', false) },
+  blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group') },
   emergency_contact_name:   { modelField: 'emergencyContactName',  validate: stringValidator(200) },
   emergency_contact_number: { modelField: 'emergencyContactNumber', validate: stringValidator(20) },
   passport_number:          { modelField: 'passportNumber',        validate: stringValidator(50) },
-  pan_number:               { modelField: 'panNumber',             validate: stringValidator(20, false) },
+  pan_number:               { modelField: 'panNumber',             validate: stringValidator(20) },
   passport_no:              { modelField: 'passportNo',            validate: stringValidator(30, false) },
-  uan_number:               { modelField: 'uanNumber',             validate: stringValidator(20, false) },
-  ssn:                      { modelField: 'ssn',                   validate: stringValidator(50) },
+  uan_number:               { modelField: 'uanNumber',             validate: stringValidator(20) },
+  ssn:                      { modelField: 'ssn',                   validate: stringValidator(50, false) },
   address:                  { modelField: 'address',               validate: addressValidator(true) },
-  present_address:          { modelField: 'presentAddress',        validate: addressValidator(false) },
+  present_address:          { modelField: 'presentAddress',        validate: addressValidator(true) },
 
   // Family
   fathers_name:             { modelField: 'fathersName',           validate: stringValidator(200) },
@@ -235,9 +236,9 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   ifsc:                     { modelField: 'ifsc',                  validate: ifscValidator(false) },
 
   // About
-  intro_line:               { modelField: 'introLine',             validate: stringValidator(300) },
+  intro_line:               { modelField: 'introLine',             validate: stringValidator(1000) },
   birthday_pref:            { modelField: 'birthdayPref',          validate: enumValidator(Object.values(BirthdayPref), 'birthday preference', false) },
-  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference', false) },
+  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference') },
   hobbies:                  { modelField: 'hobbies',               validate: stringValidator(500, false) },
   fun_fact:                 { modelField: 'funFact',               validate: stringValidator(1000, false) },
 

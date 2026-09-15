@@ -43,6 +43,7 @@ const FIELD_LABELS: Record<string, string> = {
   personalEmail: 'Personal Email',
   mobile: 'Mobile',
   dob: 'Date of Birth',
+  preferredDob: 'Preferred Date of Birth',
   nationality: 'Nationality',
   maritalStatus: 'Marital Status',
   bloodGroup: 'Blood Group',
@@ -65,7 +66,7 @@ const FIELD_LABELS: Record<string, string> = {
   accountHolder: 'Account Holder',
   accountNumber: 'Account Number',
   ifsc: 'IFSC',
-  introLine: 'Intro Line',
+  introLine: 'Short Intro',
   birthdayPref: 'Birthday Preference',
   mealPreference: 'Meal Preference',
   hobbies: 'Hobbies',
@@ -80,7 +81,7 @@ const BOOLEAN_LABELS: Record<string, string> = {
   consent: 'Consent',
 };
 
-const DATE_FIELDS = new Set(['dob', 'fathersDob', 'mothersDob', 'spouseDob']);
+const DATE_FIELDS = new Set(['dob', 'preferredDob', 'fathersDob', 'mothersDob', 'spouseDob']);
 
 export interface OnboardingExportResult {
   filename: string;
