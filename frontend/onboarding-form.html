@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789045815">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789045815">
+  <link rel="stylesheet" href="css/styles.css?v=1789455119">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789455119">
 
   <style>
     html, body {
@@ -78,6 +78,34 @@
 
     .onboarding-shell[hidden] {
       display: none;
+    }
+
+    /* Shown only for ?preview=1, where an admin is looking at the form they
+       are about to send rather than filling it in. */
+    .preview-banner {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent, #1a3080);
+      border-radius: 4px;
+      background: var(--surface-2, rgba(127, 127, 127, 0.08));
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .preview-banner[hidden] {
+      display: none;
+    }
+
+    .preview-banner strong {
+      color: var(--text-primary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 11px;
     }
 
     @media (max-width: 900px) {
@@ -584,6 +612,36 @@
 
     .child-modal-label textarea:focus {
       border-color: var(--accent);
+    }
+
+    .org-chip.is-error {
+      border-color: #c0392b;
+    }
+
+    .org-chip-letter {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .org-letter-status {
+      font-size: 11px;
+      color: var(--text-secondary);
+      min-height: 14px;
+    }
+
+    .org-letter-status.is-error {
+      color: #c0392b;
+    }
+
+    .org-letter-remove {
+      align-self: flex-start;
+      height: 30px;
+      padding: 0 12px;
+      font-size: 11px;
+    }
+
+    .org-letter-remove[hidden] {
+      display: none;
     }
 
     .org-modal-grid {
@@ -1454,6 +1512,11 @@
 
       <div class="onboarding-shell" id="onboarding-shell" hidden>
 
+        <div class="preview-banner" id="preview-banner" hidden>
+          <strong>Preview</strong>
+          <span>This is how the form looks to the person you invite. Nothing here is saved, uploaded or submitted.</span>
+        </div>
+
         <aside class="onboarding-sidebar">
           <div class="sidebar-brand">
             <img src="images/logo.webp" alt="NK Securities">
@@ -1521,7 +1584,9 @@
                 <span class="mission-pill">Mission 02 · Personal Information</span>
                 <h3>Personal Details</h3>
                 <div class="field-grid">
-                  <label><span><span data-doc-basis-label="full_name">Full name (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="full_name" type="text" placeholder="Enter full name"></label>
+                  <label><span><span data-doc-basis-label="first_name">First name (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" id="first_name" type="text" placeholder="Enter first name" autocomplete="given-name"></label>
+                  <label><span><span data-doc-basis-label="last_name">Last name (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" id="last_name" type="text" placeholder="Enter last name" autocomplete="family-name">
+                    <input type="hidden" name="full_name"></label>
                   <label>Preferred name<input name="preferred_name" type="text" placeholder="What should we call you?"></label>
                   <label><span>Personal email <span class="required-mark">*</span></span><input data-required="true" name="email" type="email" placeholder="name@email.com"></label>
                   <label><span>Mobile number <span class="required-mark">*</span></span><input data-required="true" name="mobile" type="tel" placeholder="+91 XXXXX XXXXX"></label>
@@ -1548,7 +1613,7 @@
                       <option value="O-">O-</option>
                     </select>
                   </label>
-                  <label><span>Emergency contact name <span class="required-mark">*</span></span><input data-required="true" name="emergency_contact_name" type="text" placeholder="Enter contact's name"></label>
+                  <label><span>Emergency contact name and relationship <span class="required-mark">*</span></span><input data-required="true" name="emergency_contact_name" type="text" placeholder="e.g. Rekha Rao (Mother)"></label>
                   <label><span>Emergency contact number <span class="required-mark">*</span></span><input data-required="true" name="emergency_contact_number" type="tel" placeholder="+91 XXXXX XXXXX"></label>
                   <label data-location="dubai"><span>Campus Name <span class="required-mark">*</span></span><input data-required="true" name="campus_name" type="text" placeholder="Enter campus/university name"></label>
                 </div>
@@ -1616,6 +1681,10 @@
                   <label class="upload-card"><span>SSN (Social Security Number) <span class="required-mark">*</span></span><input data-required="true" name="ssn" type="text" placeholder="Enter SSN"></label>
                   <label class="upload-card"><span>ID Proof (<span data-doc-basis-label="id_proof_type">Aadhar</span>) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="aadhar_card" name="id_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card"><span><span data-doc-basis-label="identity_number">Aadhar Number</span> <span class="required-mark">*</span></span><input data-required="true" name="passport_number" type="text" placeholder="Enter identity number"></label>
+                  <label class="upload-card">PAN Card Number<input name="pan_number" type="text" placeholder="Enter PAN number"></label>
+                  <label class="upload-card">Passport Number<input name="passport_no" type="text" placeholder="Enter passport number"></label>
+                  <label class="upload-card">UAN Number<input name="uan_number" type="text" placeholder="Enter UAN number"></label>
+                  <label class="upload-card">Passport<input data-doc-type="passport" name="passport_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card">Address Proof<input data-doc-type="address_proof" name="address_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card"><span>Resume <span class="required-mark">*</span></span><input data-required="true" data-doc-type="resume" name="resume_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card"><span>Highest Degree Certificate <span class="required-mark">*</span></span><input data-required="true" data-doc-type="highest_degree_certificate" name="highest_degree_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
@@ -1631,16 +1700,16 @@
                 <h3>Employment Details</h3>
                 <div class="orgs-section">
                   <span class="label" style="margin-bottom: 12px;">Previous Organizations</span>
+                  <p class="helper-text" style="margin-bottom: 12px;">Add every organization you have worked at. Each one you have left needs its relieving letter attached.</p>
                   <button type="button" id="addOrgBtn" class="btn-secondary" style="height: 36px; padding: 0 16px; font-size: 13px; margin-bottom: 12px;">+ Add organization</button>
                   <div id="orgsChips" class="orgs-chips"></div>
                 </div>
-                <div class="upload-grid" style="margin-top: 24px;" data-location="dubai">
-                  <label class="upload-card"><span>Offer Letter (Last Company) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="offer_letter_current_org" name="offer_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
+                <div class="upload-grid" style="margin-top: 24px;">
+                  <label class="upload-card" data-location="dubai"><span>Offer Letter (Last Company) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="offer_letter_current_org" name="offer_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card" data-location="dubai"><span>Last Increment Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="last_increment_letter" name="last_increment_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card" data-location="dubai"><span>Salary Slip (3 Months Zipped) <span class="required-mark">*</span></span><input data-required="true" data-doc-type="salary_slip" name="salary_slip_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card" data-location="dubai"><span>Bonus Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="bonus_letter" name="bonus_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                   <label class="upload-card" data-location="dubai"><span>Experience Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="experience_letter" name="experience_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
-                  <label class="upload-card" data-location="dubai"><span>Relieving Letter <span class="required-mark">*</span></span><input data-required="true" data-doc-type="relieving_letter" name="relieving_letter_doc" type="file"><div class="upload-preview" hidden><div class="upload-preview-thumb"></div><button type="button" class="upload-remove-btn" aria-label="Remove file" hidden>&#10005;</button></div><span class="upload-status" aria-live="polite"></span></label>
                 </div>
               </div>
             </section>
@@ -1665,7 +1734,7 @@
                 <h3>Culture Intro</h3>
                 <div class="field-grid">
                   <label><span>One line about you <span class="required-mark">*</span></span><input data-required="true" name="intro_line" type="text" placeholder="Example: I love markets, music and filter coffee."></label>
-                  <label>Preferred birthday celebration
+                  <label>Preferred Date of Birth
                     <select name="birthday_pref">
                       <option value="team_wishes">Team wishes are okay</option>
                       <option value="private">Keep it private</option>
@@ -1812,7 +1881,13 @@
             </label>
           </div>
           <div class="org-modal-col">
-            <label class="child-modal-label" style="flex: 1; margin-bottom: 0;">Info<textarea id="orgModalInfo" placeholder="Additional details (optional)" style="flex: 1;"></textarea></label>
+            <label class="child-modal-label" style="flex: 1;">Info<textarea id="orgModalInfo" placeholder="Additional details (optional)" style="flex: 1;"></textarea></label>
+            <label class="child-modal-label" id="orgModalLetterLabel" style="margin-bottom: 0;">
+              <span>Relieving letter <span class="required-mark">*</span></span>
+              <input type="file" id="orgModalLetter">
+              <span class="org-letter-status" id="orgModalLetterStatus" aria-live="polite"></span>
+              <button type="button" class="btn-secondary org-letter-remove" id="orgModalLetterRemove" hidden>Remove file</button>
+            </label>
           </div>
         </div>
         <p id="orgModalError" class="child-modal-error" hidden></p>
@@ -1843,9 +1918,9 @@
     </div>
   </div>
 
-  <script src="js/vendor/three.min.js?v=1789045815"></script>
-  <script src="js/bundle-b.js?v=1789045815"></script>
-  <script src="js/onboarding-form.js?v=1789045815"></script>
+  <script src="js/vendor/three.min.js?v=1789455119"></script>
+  <script src="js/bundle-b.js?v=1789455119"></script>
+  <script src="js/onboarding-form.js?v=1789455119"></script>
 
 </body>
 </html>

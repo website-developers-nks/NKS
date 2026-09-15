@@ -88,41 +88,140 @@ body {
   text-align: left;
 }
 
-.register-onboarding-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: stretch;
-  gap: 8px 32px;
+
+.ro-panel {
+  text-align: left;
 }
 
-.ro-form-left,
-.ro-form-right {
+.ro-panel[hidden] {
+  display: none;
+}
+
+.ro-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.ro-col {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
+  min-width: 0;
 }
 
-.ro-form-right .form-group {
-  flex: 1;
-}
-
-.ro-form-right textarea {
-  flex: 1;
-  resize: none;
-  min-height: 120px;
-}
-
-.register-onboarding-form-grid > .form-submit,
-.register-onboarding-form-grid > .form-status {
+.ro-col-full {
   grid-column: 1 / -1;
 }
 
-.register-onboarding-form-grid > .form-submit {
-  margin-top: 20px;
+.ro-section {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
 }
 
-@media (max-width: 680px) {
-  .register-onboarding-form-grid {
+.ro-section-title {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+}
+
+/* Title/Template above the editor, CC/BCC below it - two across either way. */
+.ro-section-message .ro-field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ro-recipients-grid {
+  margin-top: 22px;
+}
+
+.ro-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px 24px;
+}
+
+.ro-field-grid .form-group label {
+  margin-bottom: 8px;
+}
+
+.ro-section > .markdown-hint {
+  margin-top: 14px;
+}
+
+.ro-message-group {
+  margin-top: 22px;
+  border: 1px solid #c5c5c5;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.ro-message-group textarea {
+  resize: vertical;
+  min-height: 180px;
+}
+
+.ro-message-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ro-message-head label {
+  margin-bottom: 8px;
+}
+
+.ro-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ro-form-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.ro-form-buttons .form-submit {
+  width: auto;
+  flex: 1;
+}
+
+.ro-form-buttons .ro-btn-secondary {
+  flex: 0 0 auto;
+  padding: 0 28px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ro-btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  opacity: 1;
+}
+
+@media (max-width: 560px) {
+  .ro-form-buttons {
+    flex-direction: column;
+  }
+
+  .ro-form-buttons .ro-btn-secondary {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .ro-form {
+    grid-template-columns: 1fr;
+  }
+
+  .ro-field-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -381,6 +480,28 @@ body {
 
 .admin-modal-dialog.is-wide {
   max-width: 820px;
+}
+
+.form-preview-dialog {
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.form-preview-dialog .body-text {
+  margin-bottom: 0;
+}
+
+.form-preview-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
 }
 
 .markdown-toolbar {
@@ -1273,12 +1394,6 @@ body {
   border-color: var(--accent);
 }
 
-/* The right column stretches its form-groups so the textarea fills the height -
-   the template picker should stay its natural size instead. */
-.ro-form-right .form-group.ro-template-group {
-  flex: none;
-}
-
 /* ---- Expanded extra-message editor (Editor / Preview tabs in the popup) ---- */
 
 .markdown-expand-btn {
@@ -1499,13 +1614,6 @@ body {
   padding: 0;
 }
 
-.ro-extra-fields {
-  grid-column: 1 / -1;
-  border-top: 1px solid var(--border);
-  padding-top: 20px;
-  margin-top: 8px;
-}
-
 .ro-extra-fields-head {
   display: flex;
   align-items: flex-start;
@@ -1513,11 +1621,8 @@ body {
   gap: 16px;
 }
 
-.ro-extra-fields-label {
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
+.ro-extra-fields-head .ro-section-title {
+  margin-bottom: 0;
 }
 
 .ro-extra-fields-head .markdown-hint {

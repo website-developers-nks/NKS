@@ -8,6 +8,7 @@ import { Limits } from '../lib/limits';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
 import { uploadDoc, DOC_TYPE_CONFIG, IMAGE_OR_PDF_CONFIG, DocConfig } from '../services/doc-upload.service';
 import { isExtraDocType, extraDocKey, ExtraFieldType } from '../lib/extra-fields';
+import { isOrgDocType } from '../lib/org-docs';
 import { verifyDocToken } from '../lib/doc-links';
 import { Doc, DocType } from '../db/models/doc.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
@@ -40,9 +41,15 @@ function readPath(source: unknown, path: string): unknown {
 }
 
 function resolveDocTarget(auth: IOnboardingAuth, docType: string):
-  { config: DocConfig; field: string } | null {
+  { config: DocConfig; field: string | null } | null {
   if (VALID_DOC_TYPES.includes(docType)) {
     return { config: DOC_TYPE_CONFIG[docType as DocType], field: DOC_TYPE_FIELD[docType as DocType] };
+  }
+
+  // One relieving letter per previous organization - stored on the org itself,
+  // so there is no single field to write; field: null says "just bank the file".
+  if (isOrgDocType(docType)) {
+    return { config: IMAGE_OR_PDF_CONFIG, field: null };
   }
 
   if (isExtraDocType(docType)) {
@@ -68,6 +75,7 @@ const STATUS_MAP: Record<string, number> = {
 // Maps DocType → OnboardingData field name
 const DOC_TYPE_FIELD: Record<DocType, string> = {
   [DocType.PanCard]: 'panDoc',
+  [DocType.Passport]: 'passportDoc',
   [DocType.AadharCard]: 'idDoc',
   [DocType.AddressProof]: 'addressDoc',
   [DocType.ProfilePhoto]: 'photoDoc',
@@ -128,10 +136,18 @@ router.post(
     }
 
     const field = target.field;
-    const existingData = await OnboardingData.findOne({ onboardingAuthId: authId }, { [field]: 1 });
-    if (existingData && readPath(existingData.toObject ? existingData.toObject() : existingData, field)) {
-      res.status(409).json({ uploaded: false, reason: 'doc_already_exists' });
-      return;
+    if (field === null) {
+      const existingDoc = await Doc.exists({ onboardingKey: auth.auth.onboardingKey, docType });
+      if (existingDoc) {
+        res.status(409).json({ uploaded: false, reason: 'doc_already_exists' });
+        return;
+      }
+    } else {
+      const existingData = await OnboardingData.findOne({ onboardingAuthId: authId }, { [field]: 1 });
+      if (existingData && readPath(existingData.toObject ? existingData.toObject() : existingData, field)) {
+        res.status(409).json({ uploaded: false, reason: 'doc_already_exists' });
+        return;
+      }
     }
 
     try {
@@ -142,7 +158,9 @@ router.post(
         return;
       }
 
-      await OnboardingData.updateOne({ onboardingAuthId: authId }, { $set: { [field]: new Types.ObjectId(result.docId) } });
+      if (field !== null) {
+        await OnboardingData.updateOne({ onboardingAuthId: authId }, { $set: { [field]: new Types.ObjectId(result.docId) } });
+      }
 
       const updated = await OnboardingAuth.findByIdAndUpdate(
         authId,
@@ -190,7 +208,11 @@ router.post(
 
       await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: doc.path })).catch(() => undefined);
 
-      await OnboardingData.updateOne({ onboardingAuthId: authId }, { $unset: { [target.field]: 1 } });
+      // An org's letter lives in the orgs array the form owns - it drops the
+      // reference itself and syncs, so there is nothing to unset here.
+      if (target.field !== null) {
+        await OnboardingData.updateOne({ onboardingAuthId: authId }, { $unset: { [target.field]: 1 } });
+      }
 
       res.json({ removed: true, docType });
     } catch (err) {

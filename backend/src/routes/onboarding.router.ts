@@ -13,6 +13,7 @@ import { Limits } from '../lib/limits';
 import { appendOnboardingToSheet } from '../services/onboarding-sheet.service';
 import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
 import { Doc } from '../db/models/doc.model';
+import { orgDocType } from '../lib/org-docs';
 import { extraFieldName, validateExtraValue, ExtraFieldType } from '../lib/extra-fields';
 
 const router = Router();
@@ -274,6 +275,10 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.mothersName,             'mothers_name');
     requireDoc(data.mothersDob,             'mothers_dob');
     requireDoc(data.insuranceCoverage,             'insurance_coverage');
+    for (const org of data.orgs ?? []) {
+      if (org.current || org.relievingLetterDoc) continue;
+      missing.push(org.orgId ? orgDocType(org.orgId) : 'orgs');
+    }
 
     // Required for Gurugram / Gift City only - Payroll Ledger (bank details)
     // isn't mandatory in Dubai, since IFSC is an Indian bank code and doesn't apply there.
@@ -294,7 +299,6 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       requireDoc(data.salarySlipDoc,       'salary_slip_doc');
       requireDoc(data.bonusLetterDoc,      'bonus_letter_doc');
       requireDoc(data.experienceLetterDoc, 'experience_letter_doc');
-      requireDoc(data.relievingLetterDoc,  'relieving_letter_doc');
       requireStr(data.campusName,          'campus_name');
     }
 
@@ -390,7 +394,8 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
   const location = req.onboarding!.auth.location
   try {
     const DOC_FIELDS = [
-      'panDoc', 'idDoc', 'addressDoc', 'photoDoc',
+      'orgs.relievingLetterDoc',
+      'panDoc', 'passportDoc', 'idDoc', 'addressDoc', 'photoDoc',
       'higherSecondaryDoc', 'highestDegreeDoc',
       'resumeDoc', 'offerLetterDoc', 'lastIncrementDoc',
       'salarySlipDoc', 'bonusLetterDoc', 'experienceLetterDoc', 'relievingLetterDoc',
@@ -439,6 +444,9 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         emergency_contact_name:   data.emergencyContactName ?? null,
         emergency_contact_number: data.emergencyContactNumber ?? null,
         passport_number:        data.passportNumber ?? null,
+        pan_number:             data.panNumber ?? null,
+        passport_no:            data.passportNo ?? null,
+        uan_number:             data.uanNumber ?? null,
         ssn:                    data.ssn ?? null,
         address:                data.address ?? null,
         present_address:        data.presentAddress ?? null,
@@ -454,7 +462,15 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         insurance_coverage:     data.insuranceCoverage ?? null,
         // Education & Employment
         campus_name:            data.campusName ?? null,
-        orgs:                   data.orgs ?? null,
+        orgs:                   (data.orgs ?? []).map((org) => ({
+          orgId: org.orgId ?? null,
+          name: org.name,
+          duration: org.duration,
+          role: org.role ?? null,
+          info: org.info ?? null,
+          current: org.current,
+          relievingLetterDoc: docEntry(org.relievingLetterDoc),
+        })),
         // Bank
         bank_name:              data.bankName ?? null,
         account_holder:         data.accountHolder ?? null,
@@ -472,6 +488,7 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
       },
       docs: {
         pan_doc:               docEntry(data.panDoc),
+        passport_doc:          docEntry(data.passportDoc),
         id_doc:                docEntry(data.idDoc),
         address_doc:           docEntry(data.addressDoc),
         photo_doc:             docEntry(data.photoDoc),

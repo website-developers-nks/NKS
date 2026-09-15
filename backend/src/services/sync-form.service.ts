@@ -1,8 +1,10 @@
 import { Types } from 'mongoose';
 import { OnboardingData, BirthdayPref, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
 import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { Doc } from '../db/models/doc.model';
 import { Limits } from '../lib/limits';
 import { extraFieldName, validateExtraValue } from '../lib/extra-fields';
+import { ORG_ID_PATTERN } from '../lib/org-docs';
 
 export type FieldResult =
   | { field_name: string; saved: true }
@@ -122,12 +124,28 @@ function orgsValidator(): Validator {
       if (typeof org.current !== 'boolean') return { ok: false, error: `Item ${i}: current must be a boolean` };
       if (org.role !== undefined && typeof org.role !== 'string') return { ok: false, error: `Item ${i}: role must be a string` };
       if (org.info !== undefined && typeof org.info !== 'string') return { ok: false, error: `Item ${i}: info must be a string` };
+
+      // The form mints orgId and addresses that org's relieving letter with it.
+      // Both are optional so an older client, or an org saved before letters
+      // were per-org, still syncs.
+      if (org.orgId !== undefined && (typeof org.orgId !== 'string' || !ORG_ID_PATTERN.test(org.orgId))) {
+        return { ok: false, error: `Item ${i}: invalid organization id` };
+      }
+      if (org.relievingLetterDocId !== undefined
+          && (typeof org.relievingLetterDocId !== 'string' || !Types.ObjectId.isValid(org.relievingLetterDocId))) {
+        return { ok: false, error: `Item ${i}: invalid relieving letter` };
+      }
+
       coerced.push({
         name: org.name.trim(),
         duration: org.duration.trim(),
         current: org.current,
+        ...(org.orgId ? { orgId: org.orgId } : {}),
         ...(org.role ? { role: org.role.trim() } : {}),
         ...(org.info ? { info: org.info.trim() } : {}),
+        ...(org.relievingLetterDocId
+          ? { relievingLetterDoc: new Types.ObjectId(org.relievingLetterDocId as string) }
+          : {}),
       });
     }
     return { ok: true, coerced };
@@ -185,6 +203,9 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   emergency_contact_name:   { modelField: 'emergencyContactName',  validate: stringValidator(200) },
   emergency_contact_number: { modelField: 'emergencyContactNumber', validate: stringValidator(20) },
   passport_number:          { modelField: 'passportNumber',        validate: stringValidator(50) },
+  pan_number:               { modelField: 'panNumber',             validate: stringValidator(20, false) },
+  passport_no:              { modelField: 'passportNo',            validate: stringValidator(30, false) },
+  uan_number:               { modelField: 'uanNumber',             validate: stringValidator(20, false) },
   ssn:                      { modelField: 'ssn',                   validate: stringValidator(50) },
   address:                  { modelField: 'address',               validate: addressValidator(true) },
   present_address:          { modelField: 'presentAddress',        validate: addressValidator(false) },
@@ -233,6 +254,29 @@ export type SyncResult = {
   results: FieldResult[];
   limitExceeded?: 'sync_requests' | 'field_updates';
 };
+
+// A relieving letter reference is only honoured when the document behind it
+// belongs to this onboarding - otherwise the id is dropped and the org is
+// stored without a letter, which submit-data then reports as missing.
+async function keepOwnOrgDocs(orgs: IOrg[], onboardingKey?: string): Promise<IOrg[]> {
+  const ids = orgs
+    .map((org) => org.relievingLetterDoc)
+    .filter((id): id is Types.ObjectId => !!id);
+
+  if (!ids.length) return orgs;
+  if (!onboardingKey) return orgs.map(({ relievingLetterDoc, ...rest }) => rest);
+
+  const owned = await Doc.find({ _id: { $in: ids }, onboardingKey }, { _id: 1 }).lean();
+  const ownedIds = new Set(owned.map((doc) => String(doc._id)));
+
+  return orgs.map((org) => {
+    if (org.relievingLetterDoc && !ownedIds.has(String(org.relievingLetterDoc))) {
+      const { relievingLetterDoc, ...rest } = org;
+      return rest;
+    }
+    return org;
+  });
+}
 
 export async function syncFormFields(
   onboardingAuthId: Types.ObjectId,
@@ -303,6 +347,10 @@ export async function syncFormFields(
     }
     fieldIncrements[`fieldUpdateCounts.${fieldName}`] = 1;
     results.push({ field_name: fieldName, saved: true });
+  }
+
+  if ($set.orgs) {
+    $set.orgs = await keepOwnOrgDocs($set.orgs as IOrg[], authUpdate?.onboardingKey);
   }
 
   if (Object.keys($set).length > 0 || Object.keys($unset).length > 0) {

@@ -39,6 +39,7 @@ export const DOC_TYPE_CONFIG: Record<DocType, DocConfig> = {
   // Identity & address
   [DocType.AadharCard]: IMAGE_OR_PDF_CONFIG,
   [DocType.PanCard]: IMAGE_OR_PDF_CONFIG,
+  [DocType.Passport]: IMAGE_OR_PDF_CONFIG,
   [DocType.ProfilePhoto]: IMAGE_CONFIG,
   [DocType.AddressProof]: IMAGE_OR_PDF_CONFIG,
   // Education

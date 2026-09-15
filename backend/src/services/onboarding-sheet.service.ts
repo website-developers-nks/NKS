@@ -49,9 +49,12 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'Nationality', value: ({ data }) => data.nationality ?? '' },
   { header: 'Marital Status', value: ({ data }) => data.maritalStatus ?? '' },
   { header: 'Blood Group', value: ({ data }) => data.bloodGroup ?? '' },
-  { header: 'Emergency Contact Name', value: ({ data }) => data.emergencyContactName ?? '' },
+  { header: 'Emergency Contact Name and Relationship', value: ({ data }) => data.emergencyContactName ?? '' },
   { header: 'Emergency Contact Number', value: ({ data }) => data.emergencyContactNumber ?? '' },
   { header: 'Passport / Aadhar Number', value: ({ data }) => data.passportNumber ?? '' },
+  { header: 'PAN Card Number', value: ({ data }) => data.panNumber ?? '' },
+  { header: 'Passport Number', value: ({ data }) => data.passportNo ?? '' },
+  { header: 'UAN Number', value: ({ data }) => data.uanNumber ?? '' },
   { header: 'SSN', value: ({ data }) => data.ssn ?? '' },
   { header: 'Permanent Address', value: ({ data }) => address(data.address) },
   { header: 'Present Address', value: ({ data }) => address(data.presentAddress) },
@@ -94,6 +97,7 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'Experience Feedback', value: ({ data }) => data.experienceFeedback ?? '' },
 
   { header: 'PAN Card', value: ({ data }) => docName(data.panDoc) },
+  { header: 'Passport', value: ({ data }) => docName(data.passportDoc) },
   { header: 'ID Proof', value: ({ data }) => docName(data.idDoc) },
   { header: 'Address Proof', value: ({ data }) => docName(data.addressDoc) },
   { header: 'Photo', value: ({ data }) => docName(data.photoDoc) },
@@ -138,6 +142,21 @@ function extraColumns(
   });
 }
 
+// A relieving letter now belongs to an organization rather than to the
+// onboarding, so the sheet grows one column per org that has one. Headings are
+// appended as they first appear, the same way extra fields are handled.
+function orgLetterColumns(
+  data: IOnboardingData,
+): Array<{ header: string; value: string | number | null }> {
+  return (data.orgs ?? [])
+    .map((org, index) => ({ org, index }))
+    .filter(({ org }) => !!org.relievingLetterDoc)
+    .map(({ org, index }) => ({
+      header: `Relieving Letter ${index + 1} (${org.name})`,
+      value: docName(org.relievingLetterDoc),
+    }));
+}
+
 export function buildSheetRecord(
   auth: IOnboardingAuth,
   data: IOnboardingData,
@@ -153,12 +172,13 @@ export function buildSheetRecord(
     return { header: column.header, value };
   });
 
-  return fixed.concat(extraColumns(auth, data));
+  return fixed.concat(orgLetterColumns(data)).concat(extraColumns(auth, data));
 }
 
 
 const DOC_FIELDS = [
-  'panDoc', 'idDoc', 'addressDoc', 'photoDoc', 'higherSecondaryDoc', 'highestDegreeDoc',
+  'orgs.relievingLetterDoc',
+  'panDoc', 'passportDoc', 'idDoc', 'addressDoc', 'photoDoc', 'higherSecondaryDoc', 'highestDegreeDoc',
   'resumeDoc', 'offerLetterDoc', 'lastIncrementDoc', 'salarySlipDoc', 'bonusLetterDoc',
   'experienceLetterDoc', 'relievingLetterDoc', 'bankDoc',
 ];

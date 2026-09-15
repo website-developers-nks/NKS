@@ -51,6 +51,9 @@
 
   var onboardingKey = sanitize(getParam('id'));
 
+  var previewMode = getParam('preview') === '1';
+  var PREVIEW_STORAGE_KEY = 'nk-onboarding-form-preview';
+
   var invalidLinkPanel = document.querySelector('#invalid-link-panel');
   var verifyLoadingPanel = document.querySelector('#verify-loading-panel');
   var verifyFailedPanel = document.querySelector('#verify-failed-panel');
@@ -65,7 +68,7 @@
     statePanels.forEach(function (panel) { panel.hidden = panel !== target; });
   }
 
-  if (!onboardingKey) {
+  if (!onboardingKey && !previewMode) {
     showStatePanel(invalidLinkPanel);
     return;
   }
@@ -201,9 +204,13 @@
     nationality: 'Nationality',
     marital_status: 'Marital status',
     blood_group: 'Blood group',
-    emergency_contact_name: 'Emergency contact name',
+    emergency_contact_name: 'Emergency contact name and relationship',
     emergency_contact_number: 'Emergency contact number',
     passport_number: 'Identity number (Aadhar/Passport)',
+    pan_number: 'PAN Card Number',
+    passport_no: 'Passport Number',
+    uan_number: 'UAN Number',
+    passport_doc: 'Passport',
     ssn: 'SSN',
     address: 'Permanent address',
     present_address: 'Current address',
@@ -287,7 +294,8 @@
   }
 
   var DOC_BASIS_LABELS = {
-    full_name: { dubai: 'Full name (As per Passport)', default: 'Full name (As per Aadhar)' },
+    first_name: { dubai: 'First name (As per Passport)', default: 'First name (As per Aadhar)' },
+    last_name: { dubai: 'Last name (As per Passport)', default: 'Last name (As per Aadhar)' },
     dob: { dubai: 'Date of birth (As per Passport)', default: 'Date of birth (As per Aadhar)' },
     identity_number: { dubai: 'Passport Number', default: 'Aadhar Number' },
     id_proof_type: { dubai: 'Passport', default: 'Aadhar' }
@@ -478,6 +486,17 @@
     return field.type === 'checkbox' ? field.closest('.consent-row') : field;
   }
 
+  // full_name is a hidden input fed by the First/Last name boxes, so its
+  // unsaved/error outline has to be drawn on those two instead.
+  function getFieldHighlightTargets(field) {
+    if (!(field instanceof RadioNodeList) && field.type === 'hidden' && field.name === 'full_name') {
+      return [document.getElementById('first_name'), document.getElementById('last_name')]
+        .filter(Boolean);
+    }
+    var target = getFieldHighlightTarget(field);
+    return target ? [target] : [];
+  }
+
   function ensureFieldSyncMessageEl(field) {
     // RadioNodeList doesn't have closest - get first element or skip
     if (field instanceof RadioNodeList) {
@@ -522,30 +541,31 @@
   }
 
   function setFieldUnsaved(field, isUnsaved) {
-    var target = getFieldHighlightTarget(field);
-    if (target) target.classList.toggle('field-unsaved', !!isUnsaved);
+    getFieldHighlightTargets(field).forEach(function (target) {
+      target.classList.toggle('field-unsaved', !!isUnsaved);
+    });
     updateSidebarStatus();
   }
 
   function setFieldSyncError(field, message) {
-    var target = getFieldHighlightTarget(field);
+    var targets = getFieldHighlightTargets(field);
     var messageEl = ensureFieldSyncMessageEl(field);
 
     if (message) {
-      if (target) {
+      targets.forEach(function (target) {
         target.classList.remove('field-unsaved');
         target.classList.add('field-sync-error');
-      }
+      });
       if (messageEl) messageEl.textContent = message;
     } else {
-      if (target) target.classList.remove('field-sync-error');
+      targets.forEach(function (target) { target.classList.remove('field-sync-error'); });
       if (messageEl) messageEl.textContent = '';
     }
     updateSidebarStatus();
   }
 
   function markFieldChanged(name) {
-    if (!name || sessionExpired) return;
+    if (!name || sessionExpired || previewMode) return;
 
     var field = form.elements[name];
     var value;
@@ -764,6 +784,15 @@
   }
 
   function highlightMissingItem(name) {
+    if (name === 'orgs' || name.indexOf(ORG_LETTER_DOC_PREFIX) === 0) {
+      var orgId = name === 'orgs' ? null : name.slice(ORG_LETTER_DOC_PREFIX.length);
+      var index = orgsData.findIndex(function (org) { return org.orgId === orgId; });
+      var chips = orgsChips ? orgsChips.querySelectorAll('.org-chip') : [];
+      var chip = index >= 0 ? chips[index] : chips[0];
+      if (chip) chip.classList.add('is-error');
+      return orgsChips;
+    }
+
     var field = form.elements[name];
     if (!field) return null;
     if (field.type === 'file') {
@@ -776,6 +805,11 @@
 
   function submitOnboarding() {
     if (sessionExpired || submitInProgress) return;
+
+    if (previewMode) {
+      showSubmitMessage('This is a preview - nothing is submitted from here.', 'error');
+      return;
+    }
 
     if (hasErroredFields()) {
       showSubmitMessage('Please fix the fields with errors before submitting.', 'error');
@@ -1152,6 +1186,45 @@
     updateProgress();
   }
 
+  // ---- Name split ----
+  //
+  // The form asks for first and last name, but the stored field is still a
+  // single full_name: the two inputs are joined into a hidden input, which is
+  // what syncs and submits. Keeping one stored field means existing responses,
+  // the sheet, the export and the admin views all keep working unchanged.
+
+  var firstNameInput = document.getElementById('first_name');
+  var lastNameInput = document.getElementById('last_name');
+  var fullNameInput = form.elements['full_name'];
+
+  function composeFullName() {
+    if (!firstNameInput || !lastNameInput || !fullNameInput) return;
+
+    var joined = [firstNameInput.value.trim(), lastNameInput.value.trim()].filter(Boolean).join(' ');
+    if (fullNameInput.value === joined) return;
+
+    fullNameInput.value = joined;
+    // The sync listeners are delegated on the form, but a programmatic value
+    // change fires no event - so this one is raised by hand.
+    fullNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** Splits a stored full name back across the two inputs on reload. */
+  function splitFullName(value) {
+    if (!firstNameInput || !lastNameInput) return;
+
+    var parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return;
+
+    firstNameInput.value = parts[0];
+    // Everything after the first word is the last name, so middle names and
+    // multi-word surnames survive the round trip.
+    lastNameInput.value = parts.slice(1).join(' ');
+  }
+
+  if (firstNameInput) firstNameInput.addEventListener('input', composeFullName);
+  if (lastNameInput) lastNameInput.addEventListener('input', composeFullName);
+
   function applyProgressData(data) {
     var fields = (data && data.fields) || {};
     Object.keys(fields).forEach(function (name) {
@@ -1176,6 +1249,8 @@
       var input = form.elements[name];
       if (input && input.type === 'file') restoreUploadedDoc(input, entry.name, entry.id);
     });
+
+    splitFullName(fields.full_name);
 
     // Display the location chip from info and update location-based visibility
     var info = (data && data.info) || {};
@@ -1215,9 +1290,20 @@
     // Restore orgs info (skipSync=true since data is already saved)
     if (fields.orgs && Array.isArray(fields.orgs)) {
       fields.orgs.forEach(function (org) {
-        if (org && org.name && org.duration) {
-          addOrg(org.name, org.duration, org.role || '', org.info || '', org.current, true);
-        }
+        if (!org || !org.name || !org.duration) return;
+        addOrg({
+          // Orgs saved before letters were per-org have no id - mint one now so
+          // a letter can be attached to them.
+          orgId: org.orgId || newOrgId(),
+          name: org.name,
+          duration: org.duration,
+          role: org.role || '',
+          info: org.info || '',
+          current: org.current,
+          letter: org.relievingLetterDoc
+            ? { docId: org.relievingLetterDoc.id, name: org.relievingLetterDoc.name }
+            : null
+        }, true);
       });
     }
 
@@ -1227,6 +1313,12 @@
   function uploadDocument(input) {
     var file = input.files && input.files[0];
     if (!file) return;
+
+    if (previewMode) {
+      setUploadStatus(input, 'Uploads are disabled in preview.', 'error');
+      resetUploadCard(input);
+      return;
+    }
 
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       setUploadStatus(input, 'File is too large. Max 10MB.', 'error');
@@ -1852,10 +1944,150 @@
   var orgModalInfo = document.querySelector('#orgModalInfo');
   var orgModalCurrent = document.querySelector('#orgModalCurrent');
   var orgModalError = document.querySelector('#orgModalError');
-  var orgsData = []; // Array of { name, duration, role, info, current }
+  var orgModalLetter = document.querySelector('#orgModalLetter');
+  var orgModalLetterLabel = document.querySelector('#orgModalLetterLabel');
+  var orgModalLetterStatus = document.querySelector('#orgModalLetterStatus');
+  var orgModalLetterRemove = document.querySelector('#orgModalLetterRemove');
+
+  // { orgId, name, duration, role, info, current, letter: { docId, name } | null }
+  var orgsData = [];
+
+  var ORG_LETTER_DOC_PREFIX = 'org_relieving_letter_';
+  var orgModalDraft = null; // { orgId, letter: { docId, name } | null }
+
+  function newOrgId() {
+    var id = '';
+    while (id.length < 12) id += Math.random().toString(36).slice(2);
+    return id.slice(0, 12);
+  }
+
+  function orgLetterDocType(orgId) {
+    return ORG_LETTER_DOC_PREFIX + orgId;
+  }
+
+  function setOrgLetterStatus(message, type) {
+    if (!orgModalLetterStatus) return;
+    orgModalLetterStatus.textContent = message || '';
+    orgModalLetterStatus.classList.toggle('is-error', type === 'error');
+  }
+
+  function syncOrgLetterVisibility() {
+    if (!orgModalLetterLabel) return;
+    var current = orgModalCurrent ? orgModalCurrent.checked : false;
+    orgModalLetterLabel.hidden = current;
+  }
+
+  function uploadOrgLetter(file) {
+    if (!orgModalDraft) return;
+
+    if (previewMode) {
+      setOrgLetterStatus('Uploads are disabled in preview.', 'error');
+      if (orgModalLetter) orgModalLetter.value = '';
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      setOrgLetterStatus('File is too large. Max 10MB.', 'error');
+      if (orgModalLetter) orgModalLetter.value = '';
+      return;
+    }
+
+    var docType = orgLetterDocType(orgModalDraft.orgId);
+    var formData = new FormData();
+    formData.append('file', file);
+    formData.append('docType', docType);
+
+    setOrgLetterStatus('Uploading…');
+    if (orgModalLetter) orgModalLetter.disabled = true;
+
+    fetch(DOC_UPLOAD_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    })
+      .then(function (res) { return res.json().then(function (data) { return { status: res.status, ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        if (orgModalLetter) orgModalLetter.disabled = false;
+
+        if (result.status === 401) {
+          sessionExpiredInWizard(result.data.reason, result.data.expiredReason);
+          return;
+        }
+
+        if (result.ok && result.data.uploaded) {
+          orgModalDraft.letter = { docId: result.data.docId, name: file.name };
+          setOrgLetterStatus(file.name + ' uploaded ✓');
+          if (orgModalLetterRemove) orgModalLetterRemove.hidden = false;
+          if (orgModalLetter) orgModalLetter.hidden = true;
+          return;
+        }
+
+        setOrgLetterStatus(UPLOAD_ERROR_MESSAGES[result.data.reason] || 'Upload failed. Please try again.', 'error');
+        if (orgModalLetter) orgModalLetter.value = '';
+      })
+      .catch(function (err) {
+        console.error('[onboarding-form] org letter upload failed:', err);
+        if (orgModalLetter) orgModalLetter.disabled = false;
+        setOrgLetterStatus('Upload failed. Please try again.', 'error');
+        if (orgModalLetter) orgModalLetter.value = '';
+      });
+  }
+
+  /** Deletes an org's letter server-side. Used by both Remove and Cancel. */
+  function deleteOrgLetter(orgId) {
+    if (previewMode || !orgId) return Promise.resolve();
+
+    return fetch(DOC_REMOVE_ENDPOINT + '?id=' + encodeURIComponent(onboardingKey), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docType: orgLetterDocType(orgId) })
+    }).catch(function (err) {
+      console.error('[onboarding-form] org letter remove failed:', err);
+    });
+  }
+
+  function clearOrgLetterField() {
+    if (orgModalLetter) {
+      orgModalLetter.value = '';
+      orgModalLetter.hidden = false;
+      orgModalLetter.disabled = false;
+    }
+    if (orgModalLetterRemove) orgModalLetterRemove.hidden = true;
+    setOrgLetterStatus('');
+  }
+
+  if (orgModalLetter) {
+    orgModalLetter.addEventListener('change', function () {
+      var file = orgModalLetter.files && orgModalLetter.files[0];
+      if (file) uploadOrgLetter(file);
+    });
+  }
+
+  if (orgModalLetterRemove) {
+    orgModalLetterRemove.addEventListener('click', function () {
+      if (!orgModalDraft || !orgModalDraft.letter) return;
+      deleteOrgLetter(orgModalDraft.orgId);
+      orgModalDraft.letter = null;
+      clearOrgLetterField();
+    });
+  }
+
+  if (orgModalCurrent) orgModalCurrent.addEventListener('change', syncOrgLetterVisibility);
 
   function getOrgsData() {
-    return orgsData.slice();
+    return orgsData.map(function (org) {
+      var payload = {
+        orgId: org.orgId,
+        name: org.name,
+        duration: org.duration,
+        role: org.role,
+        info: org.info,
+        current: org.current
+      };
+      if (org.letter && org.letter.docId) payload.relievingLetterDocId = org.letter.docId;
+      return payload;
+    });
   }
 
   function renderOrgsChips() {
@@ -1866,11 +2098,20 @@
       chip.className = 'org-chip';
       var roleHtml = org.role ? '<span class="org-chip-role">' + escapeHtml(org.role) + '</span>' : '';
       var currentBadge = org.current ? '<span class="org-chip-current">Current</span>' : '';
+
+      var letterHtml = '';
+      if (!org.current) {
+        letterHtml = org.letter
+          ? '<span class="org-chip-letter">Relieving letter: ' + escapeHtml(org.letter.name) + '</span>'
+          : '<span class="org-chip-letter">Relieving letter missing</span>';
+      }
+
       chip.innerHTML =
         '<div class="org-chip-info">' +
           '<span class="org-chip-name">' + escapeHtml(org.name) + currentBadge + '</span>' +
           '<span class="org-chip-duration">' + escapeHtml(org.duration) + '</span>' +
           roleHtml +
+          letterHtml +
         '</div>' +
         '<button type="button" class="child-chip-remove" aria-label="Remove organization" data-index="' + index + '">×</button>';
       orgsChips.appendChild(chip);
@@ -1884,8 +2125,16 @@
     });
   }
 
-  function addOrg(name, duration, role, info, current, skipSync) {
-    orgsData.push({ name: name, duration: duration, role: role || '', info: info || '', current: !!current });
+  function addOrg(org, skipSync) {
+    orgsData.push({
+      orgId: org.orgId || newOrgId(),
+      name: org.name,
+      duration: org.duration,
+      role: org.role || '',
+      info: org.info || '',
+      current: !!org.current,
+      letter: org.letter || null
+    });
     renderOrgsChips();
     if (!skipSync) {
       syncOrgsToBackend();
@@ -1893,7 +2142,10 @@
   }
 
   function removeOrg(index) {
+    var org = orgsData[index];
     orgsData.splice(index, 1);
+    // The letter belongs to the org, so it goes with it.
+    if (org && org.letter) deleteOrgLetter(org.orgId);
     renderOrgsChips();
     syncOrgsToBackend();
   }
@@ -1910,13 +2162,20 @@
     if (orgModalInfo) orgModalInfo.value = '';
     if (orgModalCurrent) orgModalCurrent.checked = false;
     if (orgModalError) orgModalError.hidden = true;
+    orgModalDraft = { orgId: newOrgId(), letter: null };
+    clearOrgLetterField();
+    syncOrgLetterVisibility();
     orgModal.hidden = false;
     document.body.style.overflow = 'hidden';
     if (orgModalName) orgModalName.focus();
   }
 
-  function closeOrgModal() {
+  function closeOrgModal(keepLetter) {
     if (!orgModal) return;
+    if (!keepLetter && orgModalDraft && orgModalDraft.letter) {
+      deleteOrgLetter(orgModalDraft.orgId);
+    }
+    orgModalDraft = null;
     orgModal.hidden = true;
     document.body.style.overflow = '';
   }
@@ -1943,21 +2202,45 @@
       return;
     }
 
-    addOrg(name, duration, role, info, current);
-    closeOrgModal();
+    var letter = orgModalDraft ? orgModalDraft.letter : null;
+    if (!current && !letter) {
+      if (orgModalError) {
+        orgModalError.textContent = 'Please attach the relieving letter for this organization.';
+        orgModalError.hidden = false;
+      }
+      return;
+    }
+
+    addOrg({
+      orgId: orgModalDraft ? orgModalDraft.orgId : undefined,
+      name: name,
+      duration: duration,
+      role: role,
+      info: info,
+      current: current,
+      letter: current ? null : letter
+    });
+
+    if (current && letter && orgModalDraft) deleteOrgLetter(orgModalDraft.orgId);
+
+    closeOrgModal(true);
   }
 
   if (addOrgBtn) {
     addOrgBtn.addEventListener('click', openOrgModal);
   }
+  function discardOrgModal() {
+    closeOrgModal();
+  }
+
   if (orgModalBackdrop) {
-    orgModalBackdrop.addEventListener('click', closeOrgModal);
+    orgModalBackdrop.addEventListener('click', discardOrgModal);
   }
   if (orgModalClose) {
-    orgModalClose.addEventListener('click', closeOrgModal);
+    orgModalClose.addEventListener('click', discardOrgModal);
   }
   if (orgModalCancel) {
-    orgModalCancel.addEventListener('click', closeOrgModal);
+    orgModalCancel.addEventListener('click', discardOrgModal);
   }
   if (orgModalSave) {
     orgModalSave.addEventListener('click', saveOrgFromModal);
@@ -1989,6 +2272,13 @@
   Array.prototype.forEach.call(form.querySelectorAll('input[type="file"][data-doc-type]'), bindUploadInput);
 
   saveBtn.addEventListener('click', function () {
+    if (previewMode) {
+      var previewText = saveBtn.textContent;
+      saveBtn.textContent = 'Preview only';
+      setTimeout(function () { saveBtn.textContent = previewText; }, 1400);
+      return;
+    }
+
     var data = {};
     new FormData(form).forEach(function (value, key) {
       if (!(value instanceof File)) data[key] = value;
@@ -2010,15 +2300,50 @@
     submitOnboarding();
   });
 
+  if (previewMode) {
+    applyPreviewConfig();
+    showStep(0);
+  } else {
   var saved = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
   Object.keys(saved).forEach(function (key) {
     var field = form.elements[key];
     if (field && field.type !== 'file') field.value = saved[key];
   });
+  // full_name is hidden, so the local draft has to be split back out too.
+  splitFullName(saved.full_name);
   var savedStep = parseInt(localStorage.getItem(STEP_STORAGE_KEY), 10);
   showStep(isNaN(savedStep) ? 0 : savedStep);
   loadProgressData();
+  }
+
+  function applyPreviewConfig() {
+    var config = {};
+    try {
+      config = JSON.parse(window.localStorage.getItem(PREVIEW_STORAGE_KEY) || '{}');
+    } catch (e) {
+      config = {};
+    }
+
+    var location = config.location || 'gurugram';
+
+    renderMoreInfoFields(config.extraFields, {}, {});
+    if (locationChip) {
+      locationChip.textContent = locationLabels[location] || location;
+      locationChip.hidden = false;
+    }
+    updateLocationVisibility(location);
+
+    var banner = document.getElementById('preview-banner');
+    if (banner) banner.hidden = false;
+
+    updateProgress();
+  }
   } // end initWizard
 
+  if (previewMode) {
+    showStatePanel(onboardingShell);
+    initWizard();
+  } else {
   runVerification();
+  }
 })();

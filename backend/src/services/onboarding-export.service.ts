@@ -9,8 +9,10 @@ import { OnboardingData } from '../db/models/onboarding-data.model';
 import { IDoc } from '../db/models/doc.model';
 import { IUser } from '../db/models/user.model';
 
+const ORG_DOC_FIELD = 'orgs.relievingLetterDoc';
+
 const DOC_FIELDS = [
-  'panDoc', 'idDoc', 'addressDoc', 'photoDoc',
+  'panDoc', 'passportDoc', 'idDoc', 'addressDoc', 'photoDoc',
   'higherSecondaryDoc', 'highestDegreeDoc',
   'resumeDoc', 'offerLetterDoc', 'lastIncrementDoc',
   'salarySlipDoc', 'bonusLetterDoc', 'experienceLetterDoc', 'relievingLetterDoc',
@@ -19,6 +21,7 @@ const DOC_FIELDS = [
 
 const DOC_LABELS: Record<string, string> = {
   panDoc: 'PAN Card',
+  passportDoc: 'Passport',
   idDoc: 'ID Proof',
   addressDoc: 'Address Proof',
   photoDoc: 'Personal Photo',
@@ -43,9 +46,12 @@ const FIELD_LABELS: Record<string, string> = {
   nationality: 'Nationality',
   maritalStatus: 'Marital Status',
   bloodGroup: 'Blood Group',
-  emergencyContactName: 'Emergency Contact Name',
+  emergencyContactName: 'Emergency Contact Name and Relationship',
   emergencyContactNumber: 'Emergency Contact Number',
   passportNumber: 'Passport / Aadhar Number',
+  panNumber: 'PAN Card Number',
+  passportNo: 'Passport Number',
+  uanNumber: 'UAN Number',
   ssn: 'SSN',
   fathersName: "Father's Name",
   fathersDob: "Father's DOB",
@@ -191,6 +197,7 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
 
   const data = await OnboardingData.findOne({ onboardingAuthId: auth._id })
     .populate(DOC_FIELDS)
+    .populate(ORG_DOC_FIELD)
     .lean();
 
   const record = (data ?? {}) as Record<string, unknown>;
@@ -215,8 +222,11 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
     fieldRows.push(fieldRow('Children', children.map((c) => `${c.name}${c.dob ? ' (' + formatDate(c.dob) + ')' : ''}`).join(', ')));
   }
   if (Array.isArray(record.orgs) && record.orgs.length) {
-    const orgs = record.orgs as { name: string; duration: string; role?: string; info?: string }[];
-    fieldRows.push(fieldRow('Employment History', orgs.map((o) => [`${o.name} (${o.duration})`, o.role, o.info].filter(Boolean).join(' — ')).join('; ')));
+    const orgs = record.orgs as { name: string; duration: string; role?: string; info?: string; current?: boolean; relievingLetterDoc?: IDoc }[];
+    fieldRows.push(fieldRow('Employment History', orgs.map((o) => {
+      const letter = o.current ? '' : (o.relievingLetterDoc ? 'relieving letter attached' : 'no relieving letter');
+      return [`${o.name} (${o.duration})`, o.role, o.info, letter].filter(Boolean).join(' — ');
+    }).join('; ')));
   }
 
   const extraDefs = (auth.extraFields ?? []) as ExtraFieldDef[];
@@ -263,6 +273,14 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
     if (!doc || !doc.path) continue;
     const dataUri = await fetchDocAsDataUri(doc);
     docCards.push(docCard(DOC_LABELS[field], doc, dataUri));
+  }
+
+  const orgs = (record.orgs ?? []) as { name: string; relievingLetterDoc?: IDoc }[];
+  for (const [index, org] of orgs.entries()) {
+    const doc = org.relievingLetterDoc;
+    if (!doc?.path) continue;
+    const dataUri = await fetchDocAsDataUri(doc);
+    docCards.push(docCard(`Relieving Letter ${index + 1} - ${org.name}`, doc, dataUri));
   }
 
   for (const def of extraDefs) {

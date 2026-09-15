@@ -157,7 +157,7 @@
       }
     }
 
-    // ---- Action card modals (Create User / Register Onboarding) ----
+    // ---- Modals (View Onboardings, Manage Google Sheet, change password) ----
 
     var openModal = null;
 
@@ -189,18 +189,6 @@
 
     // The markdown preview stacks on top of an already-open modal (e.g.
     // Register Onboarding) rather than replacing it, so it gets its own
-    // open/close outside the single-modal openModal/closeModal tracking above.
-    var markdownPreviewModal = document.getElementById('markdown-preview-modal');
-
-    function closeMarkdownPreview() {
-      if (markdownPreviewModal) markdownPreviewModal.hidden = true;
-    }
-
-    if (markdownPreviewModal) {
-      Array.prototype.forEach.call(markdownPreviewModal.querySelectorAll('[data-modal-close]'), function (el) {
-        el.addEventListener('click', closeMarkdownPreview);
-      });
-    }
 
     // ---- Toast notifications (top-right) ----
 
@@ -231,80 +219,6 @@
       setTimeout(dismiss, TOAST_VISIBLE_MS);
     }
 
-    var userIdSelect = document.getElementById('ro-user-id');
-
-    function setUserSelectMessage(message) {
-      userIdSelect.innerHTML = '';
-      var opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = message;
-      opt.disabled = true;
-      opt.selected = true;
-      userIdSelect.appendChild(opt);
-    }
-
-    function populateUserOptions(users) {
-      if (!users || !users.length) {
-        setUserSelectMessage('No users available');
-        return;
-      }
-
-      userIdSelect.innerHTML = '';
-      var placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = 'Select a user…';
-      placeholder.disabled = true;
-      placeholder.selected = true;
-      userIdSelect.appendChild(placeholder);
-
-      users.forEach(function (user) {
-        var opt = document.createElement('option');
-        opt.value = user.id;
-        var name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
-        opt.textContent = name ? name + ' — ' + user.email : user.email;
-        userIdSelect.appendChild(opt);
-      });
-    }
-
-    function loadUserList(selectUserId) {
-      setUserSelectMessage('Loading users…');
-
-      fetch(API_BASE + '/get-user-list', {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (handleApiFailure(result)) {
-            setUserSelectMessage('Could not load users');
-            return;
-          }
-          if (result.status !== 200 || !Array.isArray(result.data)) {
-            setUserSelectMessage('Could not load users');
-            return;
-          }
-          populateUserOptions(result.data);
-          if (selectUserId) userIdSelect.value = selectUserId;
-          syncInviteSubjectPlaceholder();
-        })
-        .catch(function (err) {
-          console.error('[admin] get-user-list failed:', err);
-          setUserSelectMessage('Could not load users');
-        });
-    }
-
-    var registerOnboardingCard = document.getElementById('admin-register-onboarding-card');
-    if (registerOnboardingCard) {
-      registerOnboardingCard.addEventListener('click', function () {
-        showModal('admin-register-onboarding-modal');
-        loadUserList();
-        loadTemplates();
-        loadSheets();
-        resetAttachments();
-        resetExtraFieldsDraft();
-      });
-    }
 
     // ---- View Onboardings (search/filter list + submitted-data viewer) ----
 
@@ -384,28 +298,28 @@
       var menuItems = [];
 
       if (item.status === 'pending' && can('manage_onboardings')) {
-          menuItems.push({
-            label: 'Send Reminder',
-            keepOpen: true,
-            onSelect: function (entry) { sendReminder(item, entry); }
-          });
+        menuItems.push({
+          label: 'Send Reminder',
+          keepOpen: true,
+          onSelect: function (entry) { sendReminder(item, entry); }
+        });
       }
 
       if (item.status === 'pending' && can('expire_onboardings')) {
-          menuItems.push({
-            label: 'Mark Expired',
-            danger: true,
-            keepOpen: true,
-            onSelect: function (entry) { expireOnboarding(item, entry); }
+        menuItems.push({
+          label: 'Mark Expired',
+          danger: true,
+          keepOpen: true,
+          onSelect: function (entry) { expireOnboarding(item, entry); }
         });
       }
 
       if (item.status === 'expired' && can('manage_onboardings')) {
-          menuItems.push({ label: 'Send Again', onSelect: function () { openResendOnboarding(item); } });
+        menuItems.push({ label: 'Send Again', onSelect: function () { openResendOnboarding(item); } });
       }
 
       if (item.status === 'completed') {
-      if (can('view_onboarding_results')) {
+        if (can('view_onboarding_results')) {
           menuItems.push({ label: 'View Submitted Data', onSelect: function () { openOnboardingData(item); } });
         }
       } else if (canViewProgress()) {
@@ -432,7 +346,7 @@
     var PROGRESS_FIELD_LABELS = {
       welcomeAck: 'Welcome acknowledged', fullName: 'Full name', preferredName: 'Preferred name',
       personalEmail: 'Personal email', mobile: 'Mobile', dob: 'Date of birth', nationality: 'Nationality',
-      maritalStatus: 'Marital status', bloodGroup: 'Blood group', emergencyContactName: 'Emergency contact name',
+      maritalStatus: 'Marital status', bloodGroup: 'Blood group', emergencyContactName: 'Emergency contact name and relationship',
       emergencyContactNumber: 'Emergency contact number', passportNumber: 'Passport / Aadhar number', ssn: 'SSN',
       address: 'Permanent address', presentAddress: 'Present address', fathersName: "Father's name",
       fathersDob: "Father's DOB", mothersName: "Mother's name", mothersDob: "Mother's DOB",
@@ -441,7 +355,8 @@
       accountNumber: 'Account number', ifsc: 'IFSC', introLine: 'Intro line', birthdayPref: 'Birthday preference',
       mealPreference: 'Meal preference', hobbies: 'Hobbies', funFact: 'Fun fact', declaration: 'Declaration',
       consent: 'Consent', experienceRating: 'Experience rating', experienceFeedback: 'Feedback',
-      panDoc: 'PAN card', idDoc: 'ID proof', addressDoc: 'Address proof', photoDoc: 'Personal photo',
+      panNumber: 'PAN card number', passportNo: 'Passport number', uanNumber: 'UAN number',
+      panDoc: 'PAN card', passportDoc: 'Passport', idDoc: 'ID proof', addressDoc: 'Address proof', photoDoc: 'Personal photo',
       higherSecondaryDoc: 'Higher secondary certificate', highestDegreeDoc: 'Highest degree certificate',
       resumeDoc: 'Resume', offerLetterDoc: 'Offer letter', lastIncrementDoc: 'Last increment letter',
       salarySlipDoc: 'Salary slip', bonusLetterDoc: 'Bonus letter', experienceLetterDoc: 'Experience letter',
@@ -578,193 +493,8 @@
       }
     }
 
-    var titleInput = document.getElementById('ro-title');
-    var COMPANY_EMAIL_NAMES = {
-      nksecurities: 'NK Securities Research',
-      'nk securities research & tech': 'NKS Research & Technology'
-    };
-
-    function defaultInviteSubject() {
-      var companyName = COMPANY_EMAIL_NAMES[document.getElementById('ro-company').value] || 'NK Securities Research';
-      var selected = userIdSelect.options[userIdSelect.selectedIndex];
-      var name = selected && selected.value ? String(selected.textContent).split(' — ')[0].trim() : '';
-      return (name || 'Full Name') + ' | Complete your onboarding - ' + companyName;
-    }
-
-    function syncInviteSubjectPlaceholder() {
-      if (titleInput) titleInput.placeholder = defaultInviteSubject();
-    }
-
-    ['ro-company', 'ro-user-id'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('change', syncInviteSubjectPlaceholder);
-    });
-
-    var extraFieldsDraft = [];
-    var extraFieldsList = document.getElementById('ro-extra-fields-list');
-    var extraFieldForm = document.getElementById('admin-extra-field-form');
-    var extraFieldStatus = document.getElementById('admin-extra-field-status');
-    var extraFieldTypeSelect = document.getElementById('ef-type');
-
-    var EXTRA_TYPE_LABELS = {
-      text: 'Short text',
-      textarea: 'Long text',
-      number: 'Number',
-      date: 'Date',
-      select: 'Choice',
-      checkbox: 'Yes / no',
-      document: 'Document'
-    };
-
-    function syncExtraFieldConstraints() {
-      var type = extraFieldTypeSelect.value;
-      Array.prototype.forEach.call(document.querySelectorAll('[data-ef-constraint]'), function (group) {
-        group.hidden = group.dataset.efConstraint.split(' ').indexOf(type) === -1;
-      });
-    }
-
-    if (extraFieldTypeSelect) extraFieldTypeSelect.addEventListener('change', syncExtraFieldConstraints);
-
-    function describeExtraField(field) {
-      var parts = [EXTRA_TYPE_LABELS[field.type] || field.type];
-      if (field.required) parts.push('required');
-      if (field.type === 'select' && field.options) parts.push(field.options.length + ' choices');
-      if (field.type === 'number') {
-        if (field.min !== undefined) parts.push('min ' + field.min);
-        if (field.max !== undefined) parts.push('max ' + field.max);
-      }
-      if ((field.type === 'text' || field.type === 'textarea') && field.maxLength) {
-        parts.push('max ' + field.maxLength + ' chars');
-      }
-      return parts.join(' · ');
-    }
-
-    function renderExtraFields() {
-      if (!extraFieldsList) return;
-      extraFieldsList.innerHTML = '';
-
-      extraFieldsDraft.forEach(function (field, index) {
-        var li = document.createElement('li');
-        li.className = 'ro-attachment-item';
-
-        var name = document.createElement('span');
-        name.className = 'ro-attachment-name';
-        name.textContent = field.label;
-        li.appendChild(name);
-
-        var meta = document.createElement('span');
-        meta.className = 'ro-attachment-size';
-        meta.textContent = describeExtraField(field);
-        li.appendChild(meta);
-
-        var remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'ro-attachment-remove';
-        remove.setAttribute('aria-label', 'Remove ' + field.label);
-        remove.textContent = '✕';
-        remove.addEventListener('click', function () {
-          extraFieldsDraft.splice(index, 1);
-          renderExtraFields();
-        });
-        li.appendChild(remove);
-
-        extraFieldsList.appendChild(li);
-      });
-    }
-
-    function resetExtraFieldsDraft() {
-      extraFieldsDraft = [];
-      renderExtraFields();
-    }
-
-    var addExtraFieldBtn = document.getElementById('ro-add-extra-field-btn');
-    if (addExtraFieldBtn) {
-      addExtraFieldBtn.addEventListener('click', function () {
-        extraFieldForm.reset();
-        clearFormStatus(extraFieldStatus);
-        syncExtraFieldConstraints();
-        var modal = document.getElementById('admin-extra-field-modal');
-        if (modal) modal.hidden = false;
-        document.getElementById('ef-label').focus();
-      });
-    }
-
-    function closeExtraFieldModal() {
-      var modal = document.getElementById('admin-extra-field-modal');
-      if (modal) modal.hidden = true;
-    }
-
-    Array.prototype.forEach.call(
-      document.querySelectorAll('#admin-extra-field-modal [data-modal-close]'),
-      function (el) { el.addEventListener('click', closeExtraFieldModal); }
-    );
-
-    if (extraFieldForm) {
-      extraFieldForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        clearFormStatus(extraFieldStatus);
-
-        var label = document.getElementById('ef-label').value.trim();
-        var type = extraFieldTypeSelect.value;
-
-        if (!label) {
-          setFormStatus(extraFieldStatus, 'Please name the field.', 'error');
-          return;
-        }
-
-        var duplicate = extraFieldsDraft.some(function (f) {
-          return f.label.toLowerCase() === label.toLowerCase();
-        });
-        if (duplicate) {
-          setFormStatus(extraFieldStatus, 'There is already a field with that name.', 'error');
-          return;
-        }
-
-        var field = {
-          label: label,
-          type: type,
-          required: document.getElementById('ef-required').checked
-        };
-
-        var help = document.getElementById('ef-help').value.trim();
-        if (help) field.help = help;
-
-        if (type === 'text' || type === 'textarea') {
-          var maxLength = parseInt(document.getElementById('ef-maxlength').value, 10);
-          if (!isNaN(maxLength) && maxLength > 0) field.maxLength = maxLength;
-        }
-
-        if (type === 'number') {
-          var min = document.getElementById('ef-min').value.trim();
-          var max = document.getElementById('ef-max').value.trim();
-          if (min !== '') field.min = Number(min);
-          if (max !== '') field.max = Number(max);
-          if (field.min !== undefined && field.max !== undefined && field.min > field.max) {
-            setFormStatus(extraFieldStatus, 'The minimum is above the maximum.', 'error');
-            return;
-          }
-        }
-
-        if (type === 'select') {
-          var options = document.getElementById('ef-options').value
-            .split('\n').map(function (o) { return o.trim(); }).filter(Boolean);
-          if (options.length < 2) {
-            setFormStatus(extraFieldStatus, 'Please give at least two choices, one per line.', 'error');
-            return;
-          }
-          field.options = options;
-        }
-
-        extraFieldsDraft.push(field);
-        renderExtraFields();
-        closeExtraFieldModal();
-        showToast('Extra field added.', 'success');
-      });
-    }
-
     var sheetsList = document.getElementById('sheets-list');
     var sheetsWarning = document.getElementById('sheets-config-warning');
-    var sheetSelect = document.getElementById('ro-sheet');
     var sheetsCache = [];
 
     function setListMessage(el, message) {
@@ -773,25 +503,6 @@
       p.className = 'onboardings-message';
       p.textContent = message;
       el.appendChild(p);
-    }
-
-    function renderSheetOptions(selectedId) {
-      if (!sheetSelect) return;
-      sheetSelect.innerHTML = '';
-
-      var none = document.createElement('option');
-      none.value = '';
-      none.textContent = sheetsCache.length ? "Don't record in a sheet" : 'No sheets set up yet';
-      sheetSelect.appendChild(none);
-
-      sheetsCache.forEach(function (sheet) {
-        var opt = document.createElement('option');
-        opt.value = sheet.id;
-        opt.textContent = sheet.name + ' — ' + sheet.tabName;
-        sheetSelect.appendChild(opt);
-      });
-
-      sheetSelect.value = selectedId || '';
     }
 
     function removeSheet(sheet, btn, force) {
@@ -885,7 +596,7 @@
       return row;
     }
 
-    function loadSheets(selectedId) {
+    function loadSheets() {
       if (sheetsList) setListMessage(sheetsList, 'Loading sheets…');
 
       return fetch(API_BASE + '/sheets', {
@@ -902,7 +613,6 @@
           }
 
           sheetsCache = result.data.sheets;
-          renderSheetOptions(selectedId);
 
           if (sheetsWarning) {
             if (result.data.configured) {
@@ -1102,46 +812,10 @@
         });
     }
 
-    
+    // "Send Again" hands off to the Register Onboarding page, which prefills
+    // itself from this onboarding's own register-data.
     function openResendOnboarding(item) {
-      registerOnboardingForm.reset();
-      resetAttachments();
-      resetExtraFieldsDraft();
-      clearFormStatus(registerOnboardingStatus);
-      showModal('admin-register-onboarding-modal');
-      loadUserList(item.userId);
-      loadTemplates();
-      loadSheets();
-
-      document.getElementById('ro-company').value = item.company || '';
-      document.getElementById('ro-location').value = item.location || '';
-      if (item.ttl) document.getElementById('ro-ttl').value = secondsToSessionLength(item.ttl);
-
-      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/register-data', {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (handleApiFailure(result)) return;
-          if (result.status !== 200 || !result.data) {
-            showToast((result.data && result.data.error) || 'Could not load onboarding details.', 'error');
-            return;
-          }
-
-          var data = result.data;
-          if (data.company) document.getElementById('ro-company').value = data.company;
-          if (data.location) document.getElementById('ro-location').value = data.location;
-          if (data.ttl) document.getElementById('ro-ttl').value = secondsToSessionLength(data.ttl);
-          document.getElementById('ro-cc').value = (Array.isArray(data.cc) ? data.cc.join(', ') : data.cc) || '';
-          document.getElementById('ro-bcc').value = (Array.isArray(data.bcc) ? data.bcc.join(', ') : data.bcc) || '';
-          document.getElementById('ro-extra-content').value = data.extraContent || '';
-        })
-        .catch(function (err) {
-          console.error('[admin] register-data fetch failed:', err);
-          showToast('Could not load onboarding details.', 'error');
-        });
+      window.location.href = 'register-onboarding.html?from=' + encodeURIComponent(item.id);
     }
 
     function applyOnboardingsFilter() {
@@ -1213,9 +887,12 @@
       nationality: 'Nationality',
       marital_status: 'Marital Status',
       blood_group: 'Blood Group',
-      emergency_contact_name: 'Emergency Contact Name',
+      emergency_contact_name: 'Emergency Contact Name and Relationship',
       emergency_contact_number: 'Emergency Contact Number',
-      passport_number: 'Passport Number',
+      passport_number: 'Passport / Aadhar Number',
+      pan_number: 'PAN Card Number',
+      passport_no: 'Passport Number',
+      uan_number: 'UAN Number',
       ssn: 'SSN',
       fathers_name: "Father's Name",
       fathers_dob: "Father's DOB",
@@ -1246,6 +923,7 @@
 
     var DOC_LABELS = {
       pan_doc: 'PAN Card',
+      passport_doc: 'Passport',
       id_doc: 'ID Proof',
       address_doc: 'Address Proof',
       photo_doc: 'Personal Photo',
@@ -1392,6 +1070,7 @@
           var parts = [o.name + ' (' + o.duration + ')'];
           if (o.role) parts.push(o.role);
           if (o.info) parts.push(o.info);
+          if (o.current) parts.push('Current');
           return parts.join(' — ');
         }).join('; '));
       }
@@ -1439,6 +1118,11 @@
         var label = DOC_LABELS[key];
         if (key === 'id_doc') label = 'ID Proof (' + (isDubai ? 'Passport' : 'Aadhar') + ')';
         appendDocField(docsGrid, label, doc, authId);
+      });
+
+      (fields.orgs || []).forEach(function (org) {
+        if (org.current) return;
+        appendDocField(docsGrid, 'Relieving Letter — ' + org.name, org.relievingLetterDoc, authId);
       });
 
       docsSection.appendChild(docsGrid);
@@ -1601,248 +1285,6 @@
       el.classList.remove('is-visible', 'is-success', 'is-error');
       el.textContent = '';
     }
-
-    function sessionLengthToSeconds(value) {
-      var match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value || '');
-      if (!match) return null;
-      return parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60;
-    }
-
-    function secondsToSessionLength(totalSeconds) {
-      var hours = Math.floor(totalSeconds / 3600);
-      var minutes = Math.floor((totalSeconds % 3600) / 60);
-      return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
-    }
-
-    // register-onboarding's cc/bcc accept a single address string or an array -
-    // let the admin type a comma/semicolon-separated list either way.
-    function parseEmailListInput(value) {
-      if (!value) return undefined;
-      var list = value.split(/[,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
-      if (!list.length) return undefined;
-      return list.length === 1 ? list[0] : list;
-    }
-
-    // Markdown -> inline-styled email HTML. Lives in js/markdown-email.js so
-    // this page and manage-users.html render admin-authored markdown the same way.
-    function markdownToHtml(markdown) {
-      return window.NKSMarkdown ? window.NKSMarkdown.toEmailHtml(markdown) : '';
-    }
-
-    // ---- Markdown toolbar + preview popup for the extra-message field ----
-
-    var extraContentInput = document.getElementById('ro-extra-content');
-    var markdownPreviewBody = document.getElementById('markdown-preview-body');
-
-    // The popup hosts the full-size editor and the preview on two tabs. Its
-    // textarea is a working copy of the form's own field, mirrored back on
-    // every keystroke, so the form stays the single source of truth for submit
-    // and for saving templates.
-
-    var mdEditor = document.getElementById('md-editor');
-    var mdTabs = Array.prototype.slice.call(document.querySelectorAll('[data-md-tab]'));
-    var mdPanels = Array.prototype.slice.call(document.querySelectorAll('[data-md-panel]'));
-
-    function renderMarkdownPreview() {
-        markdownPreviewBody.innerHTML = markdownToHtml(extraContentInput.value);
-    }
-
-    function selectMarkdownTab(name) {
-      mdTabs.forEach(function (tab) {
-        var active = tab.dataset.mdTab === name;
-        tab.classList.toggle('is-active', active);
-        tab.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      mdPanels.forEach(function (panel) { panel.hidden = panel.dataset.mdPanel !== name; });
-
-      if (name === 'preview') {
-        renderMarkdownPreview();
-      } else if (mdEditor) {
-        mdEditor.focus();
-      }
-    }
-
-    mdTabs.forEach(function (tab) {
-      tab.addEventListener('click', function () { selectMarkdownTab(tab.dataset.mdTab); });
-    });
-
-    if (mdEditor) {
-      mdEditor.addEventListener('input', function () {
-        extraContentInput.value = mdEditor.value;
-      });
-    }
-
-    function openMarkdownPopup(tab) {
-      if (!markdownPreviewModal) return;
-      if (mdEditor) mdEditor.value = extraContentInput.value;
-      hideTemplateSaveRow();
-      selectMarkdownTab(tab);
-      markdownPreviewModal.hidden = false;
-      if (tab === 'editor' && mdEditor) mdEditor.focus();
-    }
-
-    var previewBtn = document.getElementById('ro-preview-btn');
-    if (previewBtn) {
-      previewBtn.addEventListener('click', function () { openMarkdownPopup('preview'); });
-    }
-
-    var expandBtn = document.getElementById('ro-expand-btn');
-    if (expandBtn) {
-      expandBtn.addEventListener('click', function () { openMarkdownPopup('editor'); });
-    }
-
-    var templateSelect = document.getElementById('ro-template');
-    var templatesCache = [];
-
-    function renderTemplateOptions(selectedId) {
-      if (!templateSelect) return;
-      templateSelect.innerHTML = '';
-
-      var none = document.createElement('option');
-      none.value = '';
-      none.textContent = templatesCache.length ? 'No template' : 'No templates saved yet';
-      templateSelect.appendChild(none);
-
-      templatesCache.forEach(function (template) {
-        var opt = document.createElement('option');
-        opt.value = template.id;
-        opt.textContent = template.name;
-        templateSelect.appendChild(opt);
-      });
-
-      templateSelect.value = selectedId || '';
-    }
-
-    function loadTemplates(selectedId) {
-      if (!templateSelect) return Promise.resolve();
-
-      return fetch(API_BASE + '/message-templates', {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (handleApiFailure(result)) return;
-          if (result.status !== 200 || !Array.isArray(result.data)) {
-            console.error('[admin] templates fetch failed:', result.status);
-            return;
-          }
-          templatesCache = result.data;
-          renderTemplateOptions(selectedId);
-        })
-        .catch(function (err) {
-          console.error('[admin] templates fetch failed:', err);
-        });
-    }
-
-    if (templateSelect) {
-      templateSelect.addEventListener('change', function () {
-        var template = templatesCache.filter(function (t) { return t.id === templateSelect.value; })[0];
-        if (!template) return;
-
-        // Loading a template overwrites whatever is in the editor, so only ask
-        // when there is actually something to lose.
-        var current = extraContentInput.value.trim();
-        if (current && current !== template.content.trim() &&
-            !window.confirm('Replace the current message with the "' + template.name + '" template?')) {
-          templateSelect.value = '';
-          return;
-        }
-
-        extraContentInput.value = template.content;
-        extraContentInput.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-    }
-
-    // Save-as-template, from the preview popup's header
-
-    var saveTemplateBtn = document.getElementById('md-save-template-btn');
-    var saveTemplateRow = document.getElementById('md-save-template-row');
-    var templateNameInput = document.getElementById('md-template-name');
-    var saveTemplateConfirmBtn = document.getElementById('md-save-template-confirm');
-    var saveTemplateCancelBtn = document.getElementById('md-save-template-cancel');
-
-    function hideTemplateSaveRow() {
-      if (!saveTemplateRow) return;
-      saveTemplateRow.hidden = true;
-      templateNameInput.value = '';
-    }
-
-    if (saveTemplateBtn) {
-      saveTemplateBtn.addEventListener('click', function () {
-        if (!extraContentInput.value.trim()) {
-          showToast('There is nothing to save - write a message first.', 'error');
-          return;
-        }
-        saveTemplateRow.hidden = false;
-        templateNameInput.focus();
-      });
-    }
-
-    if (saveTemplateCancelBtn) {
-      saveTemplateCancelBtn.addEventListener('click', hideTemplateSaveRow);
-    }
-
-    function saveTemplate() {
-      var name = templateNameInput.value.trim();
-      var content = extraContentInput.value;
-
-      if (!name) {
-        showToast('Please name the template.', 'error');
-        templateNameInput.focus();
-        return;
-      }
-
-      var originalText = saveTemplateConfirmBtn.textContent;
-      saveTemplateConfirmBtn.disabled = true;
-      saveTemplateConfirmBtn.textContent = 'Saving…';
-
-      fetch(API_BASE + '/message-templates', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, content: content })
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (handleApiFailure(result)) return;
-
-          if (result.status === 201 && result.data && result.data.id) {
-            hideTemplateSaveRow();
-            showToast('Template saved.', 'success');
-            // Reload so the picker offers it straight away, already selected.
-            loadTemplates(result.data.id);
-            return;
-          }
-
-          showToast((result.data && result.data.error) || 'Could not save the template.', 'error');
-        })
-        .catch(function (err) {
-          console.error('[admin] save template failed:', err);
-          showToast('Could not save the template.', 'error');
-        })
-        .finally(function () {
-          saveTemplateConfirmBtn.disabled = false;
-          saveTemplateConfirmBtn.textContent = originalText;
-        });
-    }
-
-    if (saveTemplateConfirmBtn) saveTemplateConfirmBtn.addEventListener('click', saveTemplate);
-
-    if (templateNameInput) {
-      // The row lives inside no <form>, so Enter needs wiring by hand.
-      templateNameInput.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          saveTemplate();
-        }
-      });
-    }
-
-    // Formatting buttons for both toolbars on this page (inline + expanded),
-    // each targeting its own textarea via data-md-target.
-    if (window.NKSMarkdown) window.NKSMarkdown.initToolbars();
 
     var loginForm = document.getElementById('admin-login-form');
     var usernameInput = document.getElementById('admin-username');
@@ -2108,253 +1550,6 @@
       });
     }
 
-    var registerOnboardingForm = document.getElementById('admin-register-onboarding-form');
-    var registerOnboardingSubmitBtn = document.getElementById('admin-register-onboarding-submit');
-    var registerOnboardingStatus = document.getElementById('admin-register-onboarding-status');
-
-    // Expiration must be at least tomorrow - set min so the date picker itself
-    // blocks today/past dates instead of only catching it on submit.
-    var expirationDateInput = document.getElementById('ro-expiration-date');
-    if (expirationDateInput) {
-      var tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      var minYear = tomorrow.getFullYear();
-      var minMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
-      var minDay = String(tomorrow.getDate()).padStart(2, '0');
-      expirationDateInput.min = minYear + '-' + minMonth + '-' + minDay;
-    }
-
-    // <input type="time"/date"> only open their picker when the calendar/clock
-    // icon itself is clicked - showPicker() lets a click anywhere in the field do it.
-    ['ro-ttl', 'ro-expiration-date'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el && typeof el.showPicker === 'function') {
-        el.addEventListener('click', function () {
-          try { el.showPicker(); } catch (e) {}
-        });
-      }
-    });
-
-    // ---- Attachments (upload-first, same idea as the onboarding-form doc
-    // uploads: picking a file uploads it immediately via POST /attachments,
-    // and only the returned id travels with the rest of the register-onboarding
-    // submission - the file bytes themselves are never sent alongside the form data) ----
-
-    var attachmentsInput = document.getElementById('ro-attachments');
-    var attachmentsList = document.getElementById('ro-attachments-list');
-    var roAttachments = []; // [{ originalName, sizeBytes, id?, uploading?, error? }]
-    var roAttachmentsUploading = 0;
-
-    function formatAttachmentSize(bytes) {
-      if (!bytes) return '0 KB';
-      var kb = bytes / 1024;
-      return kb < 1024 ? Math.round(kb) + ' KB' : (kb / 1024).toFixed(1) + ' MB';
-    }
-
-    function renderAttachmentsList() {
-      if (!attachmentsList) return;
-      attachmentsList.innerHTML = '';
-
-      roAttachments.forEach(function (att) {
-        var li = document.createElement('li');
-        li.className = 'ro-attachment-item' + (att.error ? ' is-error' : '');
-
-        var name = document.createElement('span');
-        name.className = 'ro-attachment-name';
-        name.textContent = att.originalName;
-        li.appendChild(name);
-
-        var status = document.createElement('span');
-        if (att.error) {
-          status.className = 'ro-attachment-status';
-          status.textContent = att.error;
-        } else if (att.uploading) {
-          status.className = 'ro-attachment-status';
-          status.textContent = 'Uploading…';
-        } else {
-          status.className = 'ro-attachment-size';
-          status.textContent = formatAttachmentSize(att.sizeBytes);
-        }
-        li.appendChild(status);
-
-        var removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'ro-attachment-remove';
-        removeBtn.setAttribute('aria-label', 'Remove ' + att.originalName);
-        removeBtn.disabled = !!att.uploading;
-        removeBtn.textContent = '✕';
-        removeBtn.addEventListener('click', function () { removeAttachment(att); });
-        li.appendChild(removeBtn);
-
-        attachmentsList.appendChild(li);
-      });
-    }
-
-    function removeAttachment(att) {
-      roAttachments = roAttachments.filter(function (a) { return a !== att; });
-      renderAttachmentsList();
-
-      if (!att.id) return; // upload never finished (or failed) - nothing to delete server-side
-
-      fetch(API_BASE + '/attachments/' + encodeURIComponent(att.id), {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      }).catch(function (err) { console.error('[admin] attachment delete failed:', err); });
-    }
-
-    function resetAttachments() {
-      roAttachments = [];
-      roAttachmentsUploading = 0;
-      if (attachmentsInput) attachmentsInput.value = '';
-      renderAttachmentsList();
-    }
-
-    function uploadAttachment(file) {
-      var att = { originalName: file.name, sizeBytes: file.size, uploading: true };
-      roAttachments.push(att);
-      roAttachmentsUploading += 1;
-      renderAttachmentsList();
-
-      var formData = new FormData();
-      formData.append('file', file);
-
-      fetch(API_BASE + '/attachments', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      })
-        .then(parseJson)
-        .then(function (result) {
-          att.uploading = false;
-          roAttachmentsUploading -= 1;
-
-          // Unlike a dead session, a permission failure leaves the admin on the
-          // page - so the row has to stop saying "Uploading…" either way.
-          if (handleApiFailure(result)) {
-            att.error = 'Upload failed.';
-            renderAttachmentsList();
-            return;
-          }
-
-          if (result.status === 201 && result.data && result.data.id) {
-            att.id = result.data.id;
-          } else {
-            att.error = (result.data && result.data.error) || 'Upload failed.';
-          }
-          renderAttachmentsList();
-        })
-        .catch(function (err) {
-          console.error('[admin] attachment upload failed:', err);
-          att.uploading = false;
-          roAttachmentsUploading -= 1;
-          att.error = 'Upload failed.';
-          renderAttachmentsList();
-        });
-    }
-
-    if (attachmentsInput) {
-      attachmentsInput.addEventListener('change', function () {
-        var files = Array.prototype.slice.call(attachmentsInput.files);
-        attachmentsInput.value = ''; // let the same file be re-picked later if removed
-        files.forEach(uploadAttachment);
-      });
-    }
-
-    if (registerOnboardingForm) {
-      registerOnboardingForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        clearFormStatus(registerOnboardingStatus);
-
-        var company = document.getElementById('ro-company').value.trim();
-        var userId = document.getElementById('ro-user-id').value.trim();
-        var location = document.getElementById('ro-location').value.trim();
-        var ttl = sessionLengthToSeconds(document.getElementById('ro-ttl').value);
-        var expirationDate = document.getElementById('ro-expiration-date').value;
-        if (!company || !userId || !location || !ttl || ttl <= 0 || !expirationDate) {
-          setFormStatus(registerOnboardingStatus, 'Please select a company, a user, a location, enter a valid session length (HH:MM), and choose an expiration date.', 'error');
-          return;
-        }
-
-        if (new Date(expirationDate).getTime() <= Date.now()) {
-          setFormStatus(registerOnboardingStatus, 'Expiration date must be in the future.', 'error');
-          return;
-        }
-
-        if (roAttachmentsUploading > 0) {
-          setFormStatus(registerOnboardingStatus, 'Please wait for attachments to finish uploading.', 'error');
-          return;
-        }
-
-        if (roAttachments.some(function (a) { return a.error; })) {
-          setFormStatus(registerOnboardingStatus, 'Remove the failed attachment(s) before submitting.', 'error');
-          return;
-        }
-
-        var cc = parseEmailListInput(document.getElementById('ro-cc').value);
-        var bcc = parseEmailListInput(document.getElementById('ro-bcc').value);
-        var extraContentRaw = document.getElementById('ro-extra-content').value.trim();
-        var attachmentIds = roAttachments.filter(function (a) { return a.id; }).map(function (a) { return a.id; });
-
-        var sheetId = sheetSelect ? sheetSelect.value : '';
-
-        var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
-        if (sheetId) payload.sheetId = sheetId;
-        if (extraFieldsDraft.length) payload.extraFields = extraFieldsDraft;
-
-        var title = titleInput ? titleInput.value.trim() : '';
-        if (title) payload.title = title;
-        if (cc) payload.cc = cc;
-        if (bcc) payload.bcc = bcc;
-        if (extraContentRaw) {
-          payload.extraContent = markdownToHtml(extraContentRaw);
-          payload.extraContentMarkdown = extraContentRaw;
-        }
-        if (attachmentIds.length) payload.attachmentIds = attachmentIds;
-
-        var originalText = registerOnboardingSubmitBtn.textContent;
-        registerOnboardingSubmitBtn.disabled = true;
-        registerOnboardingSubmitBtn.textContent = 'Registering…';
-
-        fetch(API_BASE + '/register-onboarding', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-          .then(parseJson)
-          .then(function (result) {
-            if (handleApiFailure(result)) return;
-
-            if (result.status === 201 && result.data && result.data.onboardingKey) {
-              var link = window.location.origin + '/verify-onboarding.html?id=' + encodeURIComponent(result.data.onboardingKey);
-              registerOnboardingForm.reset();
-              resetAttachments();
-              resetExtraFieldsDraft();
-              registerOnboardingStatus.textContent = '';
-              registerOnboardingStatus.appendChild(document.createTextNode('Onboarding link ready:'));
-              registerOnboardingStatus.appendChild(document.createElement('br'));
-              var linkEl = document.createElement('span');
-              linkEl.className = 'admin-result-value';
-              linkEl.textContent = link;
-              registerOnboardingStatus.appendChild(linkEl);
-              registerOnboardingStatus.classList.remove('is-error');
-              registerOnboardingStatus.classList.add('is-visible', 'is-success');
-              return;
-            }
-
-            setFormStatus(registerOnboardingStatus, (result.data && result.data.error) || 'Something went wrong. Please try again.', 'error');
-          })
-          .catch(function (err) {
-            console.error('[admin] register-onboarding failed:', err);
-            setFormStatus(registerOnboardingStatus, 'Something went wrong while registering onboarding. Please try again.', 'error');
-          })
-          .finally(function () {
-            registerOnboardingSubmitBtn.disabled = false;
-            registerOnboardingSubmitBtn.textContent = originalText;
-          });
-      });
-    }
 
     checkAuth();
   });

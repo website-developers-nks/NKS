@@ -60,7 +60,8 @@ function parseSingleAttachment(req: Request, res: Response, next: NextFunction) 
 }
 
 const ONBOARDING_DOC_FIELDS = [
-  'panDoc', 'idDoc', 'addressDoc', 'photoDoc',
+  'orgs.relievingLetterDoc',
+  'panDoc', 'passportDoc', 'idDoc', 'addressDoc', 'photoDoc',
   'higherSecondaryDoc', 'highestDegreeDoc',
   'resumeDoc', 'offerLetterDoc', 'lastIncrementDoc',
   'salarySlipDoc', 'bonusLetterDoc', 'experienceLetterDoc', 'relievingLetterDoc',
@@ -1598,6 +1599,9 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
         emergency_contact_name:   data.emergencyContactName ?? null,
         emergency_contact_number: data.emergencyContactNumber ?? null,
         passport_number:        data.passportNumber ?? null,
+        pan_number:             data.panNumber ?? null,
+        passport_no:            data.passportNo ?? null,
+        uan_number:             data.uanNumber ?? null,
         ssn:                    data.ssn ?? null,
         address:                data.address ?? null,
         present_address:        data.presentAddress ?? null,
@@ -1610,7 +1614,14 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
         childs_info:            data.childsInfo?.map(c => ({ name: c.name, dob: formatDate(c.dob) })) ?? null,
         insurance_coverage:     data.insuranceCoverage ?? null,
         campus_name:            data.campusName ?? null,
-        orgs:                   data.orgs ?? null,
+        orgs:                   (data.orgs ?? []).map((org) => ({
+          name: org.name,
+          duration: org.duration,
+          role: org.role ?? null,
+          info: org.info ?? null,
+          current: org.current,
+          relievingLetterDoc: docEntry(org.relievingLetterDoc),
+        })),
         bank_name:              data.bankName ?? null,
         account_holder:         data.accountHolder ?? null,
         account_number:         data.accountNumber ?? null,
@@ -1628,6 +1639,7 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
       extraFields: await extraFieldsForAdmin(auth, data),
       docs: {
         pan_doc:               docEntry(data.panDoc),
+        passport_doc:          docEntry(data.passportDoc),
         id_doc:                docEntry(data.idDoc),
         address_doc:           docEntry(data.addressDoc),
         photo_doc:             docEntry(data.photoDoc),

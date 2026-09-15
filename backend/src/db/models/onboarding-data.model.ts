@@ -44,11 +44,15 @@ export interface IChildInfo {
 }
 
 export interface IOrg {
+  // Minted by the form so a relieving letter can be addressed to one org and
+  // survive the array being rewritten on every sync.
+  orgId?: string;
   name: string;
   duration: string;
   role?: string;
   info?: string;
   current: boolean;
+  relievingLetterDoc?: Types.ObjectId | IDoc;
 }
 
 export interface IAddressDetails {
@@ -76,6 +80,9 @@ export interface IOnboardingData extends Document {
   emergencyContactName: string;
   emergencyContactNumber: string;
   passportNumber: string;
+  panNumber?: string;
+  passportNo?: string;
+  uanNumber?: string;
   ssn: string;
   address: IAddressDetails;
   presentAddress?: IAddressDetails;
@@ -94,6 +101,7 @@ export interface IOnboardingData extends Document {
 
   // Identity & address docs
   panDoc?: Types.ObjectId | IDoc;
+  passportDoc?: Types.ObjectId | IDoc;
   idDoc?: Types.ObjectId | IDoc;
   addressDoc?: Types.ObjectId | IDoc;
   photoDoc?: Types.ObjectId | IDoc;
@@ -148,7 +156,7 @@ export interface IOnboardingData extends Document {
 }
 
 const ChildInfoSchema = new Schema<IChildInfo>({ name: { type: String, trim: true, required: true }, dob: { type: Date, required: true } }, { _id: false });
-const OrgSchema = new Schema<IOrg>({ name: { type: String, trim: true, required: true }, duration: { type: String, trim: true, required: true }, role: { type: String, trim: true }, info: { type: String, trim: true }, current: { type: Boolean, required: true } }, { _id: false });
+const OrgSchema = new Schema<IOrg>({ orgId: { type: String, trim: true }, name: { type: String, trim: true, required: true }, duration: { type: String, trim: true, required: true }, role: { type: String, trim: true }, info: { type: String, trim: true }, current: { type: Boolean, required: true }, relievingLetterDoc: { type: Schema.Types.ObjectId, ref: 'Doc' } }, { _id: false });
 const AddressDetailsSchema = new Schema<IAddressDetails>({ address: { type: String, trim: true }, city: { type: String, trim: true }, country: { type: String, trim: true }, pincode: { type: String, trim: true } }, { _id: false });
 
 const OnboardingDataSchema = new Schema<IOnboardingData>(
@@ -169,7 +177,10 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     bloodGroup: { type: String, enum: Object.values(BloodGroup) },
     emergencyContactName: { type: String, trim: true },
     emergencyContactNumber: { type: String, trim: true },
-    passportNumber: { type: String, trim: true },
+    passportNumber: { type: String, trim: true }, // Aadhar (India) / passport number the ID proof is based on
+    panNumber: { type: String, uppercase: true, trim: true },
+    passportNo: { type: String, uppercase: true, trim: true },
+    uanNumber: { type: String, trim: true },
     ssn: { type: String, trim: true },
     address: { type: AddressDetailsSchema },
     presentAddress: { type: AddressDetailsSchema },
@@ -188,6 +199,7 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
 
     // Identity & address docs
     panDoc: { type: Schema.Types.ObjectId, ref: 'Doc' },
+    passportDoc: { type: Schema.Types.ObjectId, ref: 'Doc' },
     idDoc: { type: Schema.Types.ObjectId, ref: 'Doc' },
     addressDoc: { type: Schema.Types.ObjectId, ref: 'Doc' },
     photoDoc: { type: Schema.Types.ObjectId, ref: 'Doc' },

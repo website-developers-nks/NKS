@@ -5,6 +5,7 @@ export enum DocType {
   // Identity & address
   AadharCard = 'aadhar_card',
   PanCard = 'pan_card',
+  Passport = 'passport',
   ProfilePhoto = 'profile_photo',
   AddressProof = 'address_proof',
   // Education
