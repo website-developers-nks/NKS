@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789474927">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789474927">
+  <link rel="stylesheet" href="css/styles.css?v=1789720671">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789720671">
 
   <style>
     html, body {
@@ -1607,8 +1607,8 @@
                   <label>Preferred name<input name="preferred_name" type="text" placeholder="What should we call you?"></label>
                   <label><span>Personal email <span class="required-mark">*</span></span><input data-required="true" name="email" type="email" placeholder="name@email.com"></label>
                   <label><span>Mobile number <span class="required-mark">*</span></span><input data-required="true" name="mobile" type="tel" placeholder="+91 XXXXX XXXXX"></label>
-                  <label><span><span data-doc-basis-label="dob">Date of birth (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="dob" type="date"></label>
-                  <label><span>Preferred date of birth</span><input name="preferred_dob" type="date"><span class="field-help">Only if your actual date of birth differs from the one on your <span data-doc-basis-label="id_proof_type">Aadhar</span>.</span></label>
+                  <label><span><span data-doc-basis-label="dob">Date of birth (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="dob" type="date" lang="en-GB"></label>
+                  <label><span>Preferred date of birth</span><input name="preferred_dob" type="date" lang="en-GB"><span class="field-help">Only if your actual date of birth differs from the one on your <span data-doc-basis-label="id_proof_type">Aadhar</span>.</span></label>
                   <label><span>Nationality <span class="required-mark">*</span></span><input data-required="true" name="nationality" type="text" placeholder="e.g. Indian"></label>
                   <label><span>Gender <span class="required-mark">*</span></span>
                     <select data-required="true" name="gender">
@@ -1669,11 +1669,11 @@
                 <h3>Family Details</h3>
                 <div class="field-grid">
                   <label><span>Father's name <span class="required-mark">*</span></span><input data-required="true" name="fathers_name" type="text" placeholder="Enter father's name"></label>
-                  <label><span>Father's date of birth <span class="required-mark">*</span></span><input data-required="true" name="fathers_dob" type="date"></label>
+                  <label><span>Father's date of birth <span class="required-mark">*</span></span><input data-required="true" name="fathers_dob" type="date" lang="en-GB"></label>
                   <label><span>Mother's name <span class="required-mark">*</span></span><input data-required="true" name="mothers_name" type="text" placeholder="Enter mother's name"></label>
-                  <label><span>Mother's date of birth <span class="required-mark">*</span></span><input data-required="true" name="mothers_dob" type="date"></label>
+                  <label><span>Mother's date of birth <span class="required-mark">*</span></span><input data-required="true" name="mothers_dob" type="date" lang="en-GB"></label>
                   <label>Spouse's name<input name="spouse_name" type="text" placeholder="Enter spouse's name (if applicable)"></label>
-                  <label>Spouse's date of birth<input name="spouse_dob" type="date"></label>
+                  <label>Spouse's date of birth<input name="spouse_dob" type="date" lang="en-GB"></label>
                 </div>
                 <div class="children-section" style="margin-top: 24px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1880,7 +1880,7 @@
       <div class="doc-modal-body" style="text-align: left;">
         <h3 style="margin: 0 0 24px; font-size: 20px;">Add Child</h3>
         <label class="child-modal-label">Child's name<input type="text" id="childModalName" placeholder="Enter child's name"></label>
-        <label class="child-modal-label" style="margin-bottom: 0;">Date of birth<input type="date" id="childModalDob"></label>
+        <label class="child-modal-label" style="margin-bottom: 0;">Date of birth<input type="date" lang="en-GB" id="childModalDob"></label>
         <p id="childModalError" class="child-modal-error" hidden></p>
       </div>
       <div class="doc-modal-footer" style="justify-content: flex-end; gap: 12px;">
@@ -1944,9 +1944,9 @@
     </div>
   </div>
 
-  <script src="js/vendor/three.min.js?v=1789474927"></script>
-  <script src="js/bundle-b.js?v=1789474927"></script>
-  <script src="js/onboarding-form.js?v=1789474927"></script>
+  <script src="js/vendor/three.min.js?v=1789720671"></script>
+  <script src="js/bundle-b.js?v=1789720671"></script>
+  <script src="js/onboarding-form.js?v=1789720671"></script>
 
 </body>
 </html>

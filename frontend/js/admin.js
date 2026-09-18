@@ -941,6 +941,15 @@
       bank_doc: 'Bank Document'
     };
 
+    var DATE_FIELD_KEYS = {
+      dob: true, preferred_dob: true, fathers_dob: true, mothers_dob: true, spouse_dob: true
+    };
+
+    function formatDisplayDate(value) {
+      var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+      return match ? match[3] + '/' + match[2] + '/' + match[1] : value;
+    }
+
     function appendDataField(grid, label, value) {
       var fieldEl = document.createElement('div');
       fieldEl.className = 'onboarding-data-field';
@@ -1044,6 +1053,7 @@
         if (key === 'passport_number') label = isDubai ? 'Passport Number' : 'Aadhar Number';
         var value = fields[key];
         if (key === 'experience_rating' && value != null) value = value + ' / 5';
+        if (DATE_FIELD_KEYS[key]) value = formatDisplayDate(value);
         appendDataField(grid, label, value);
       });
 
@@ -1063,7 +1073,7 @@
 
       if (fields.childs_info && fields.childs_info.length) {
         appendDataField(grid, 'Children', fields.childs_info.map(function (c) {
-          return c.name + (c.dob ? ' (' + c.dob + ')' : '');
+          return c.name + (c.dob ? ' (' + formatDisplayDate(c.dob) + ')' : '');
         }).join(', '));
       }
 

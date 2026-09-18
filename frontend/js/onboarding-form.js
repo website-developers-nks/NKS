@@ -63,7 +63,6 @@
   var verifyExpiredPanel = document.querySelector('#verify-expired-panel');
   var verifyErrorPanel = document.querySelector('#verify-error-panel');
   var onboardingShell = document.querySelector('#onboarding-shell');
-
   var previewDeniedPanel = document.querySelector('#preview-denied-panel');
 
   var statePanels = [invalidLinkPanel, previewDeniedPanel, verifyLoadingPanel, verifyFailedPanel, verifyCompletedPanel, verifyExpiredPanel, verifyErrorPanel, onboardingShell].filter(Boolean);
@@ -205,9 +204,9 @@
     email: 'Personal email',
     mobile: 'Mobile number',
     dob: 'Date of birth',
-    gender: 'Gender',
     preferred_dob: 'Preferred date of birth',
     nationality: 'Nationality',
+    gender: 'Gender',
     marital_status: 'Marital status',
     blood_group: 'Blood group',
     emergency_contact_name: 'Emergency contact name and relationship',

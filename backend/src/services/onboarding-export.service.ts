@@ -120,7 +120,9 @@ function escapeHtml(value: unknown): string {
 function formatDate(value: unknown): string {
   if (!value) return '';
   const date = new Date(value as string);
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()}`;
 }
 
 function formatAddress(value: unknown): string {

@@ -257,11 +257,11 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.mobile,                 'mobile');
     requireDoc(data.dob,                    'dob');
     requireStr(data.nationality,            'nationality');
-    requireStr(data.gender,                'gender');
     requireStr(data.maritalStatus,            'marital_status');
     requireStr(data.emergencyContactName,   'emergency_contact_name');
     requireStr(data.emergencyContactNumber, 'emergency_contact_number');
     requireStr(data.passportNumber,        'passport_number');
+    requireStr(data.gender,                'gender');
     requireStr(data.bloodGroup,            'blood_group');
     requireStr(data.panNumber,             'pan_number');
     requireStr(data.uanNumber,             'uan_number');
