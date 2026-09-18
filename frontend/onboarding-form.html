@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789720671">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789720671">
+  <link rel="stylesheet" href="css/styles.css?v=1789725386">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789725386">
 
   <style>
     html, body {
@@ -670,6 +670,13 @@
       font-size: 13px;
       color: #c62828;
       margin: 0;
+    }
+
+    .field-note {
+      margin: 10px 0 0;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-muted);
     }
 
     .address-summary {
@@ -1672,8 +1679,8 @@
                   <label><span>Father's date of birth <span class="required-mark">*</span></span><input data-required="true" name="fathers_dob" type="date" lang="en-GB"></label>
                   <label><span>Mother's name <span class="required-mark">*</span></span><input data-required="true" name="mothers_name" type="text" placeholder="Enter mother's name"></label>
                   <label><span>Mother's date of birth <span class="required-mark">*</span></span><input data-required="true" name="mothers_dob" type="date" lang="en-GB"></label>
-                  <label>Spouse's name<input name="spouse_name" type="text" placeholder="Enter spouse's name (if applicable)"></label>
-                  <label>Spouse's date of birth<input name="spouse_dob" type="date" lang="en-GB"></label>
+                  <label><span>Spouse's name <span class="required-mark" hidden>*</span></span><input name="spouse_name" type="text" placeholder="Enter spouse's name (if applicable)"></label>
+                  <label><span>Spouse's date of birth <span class="required-mark" hidden>*</span></span><input name="spouse_dob" type="date" lang="en-GB"></label>
                 </div>
                 <div class="children-section" style="margin-top: 24px;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -1681,6 +1688,7 @@
                     <button type="button" id="addChildBtn" class="btn-secondary" style="height: 36px; padding: 0 16px; font-size: 13px;">+ Add child</button>
                   </div>
                   <div id="childrenChips" class="children-chips"></div>
+                  <p id="childrenError" class="child-modal-error" style="margin-top: 10px;" hidden></p>
                 </div>
                 <div class="insurance-section" style="margin-top: 24px;">
                   <span class="label" style="margin-bottom: 12px;">Insurance Coverage <span class="required-mark">*</span></span>
@@ -1694,6 +1702,7 @@
                       <span>Employee + up to 2 Parents</span>
                     </label>
                   </div>
+                  <p id="insuranceNote" class="field-note" hidden></p>
                 </div>
               </div>
             </section>
@@ -1944,9 +1953,9 @@
     </div>
   </div>
 
-  <script src="js/vendor/three.min.js?v=1789720671"></script>
-  <script src="js/bundle-b.js?v=1789720671"></script>
-  <script src="js/onboarding-form.js?v=1789720671"></script>
+  <script src="js/vendor/three.min.js?v=1789725386"></script>
+  <script src="js/bundle-b.js?v=1789725386"></script>
+  <script src="js/onboarding-form.js?v=1789725386"></script>
 
 </body>
 </html>

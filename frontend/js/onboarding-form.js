@@ -258,7 +258,10 @@
     experience_feedback: 'Feedback'
   };
 
+  var currentLocation = 'gurugram';
+
   function updateLocationVisibility(location) {
+    currentLocation = location;
     var elements = document.querySelectorAll('[data-location]');
     elements.forEach(function (el) {
       var allowedLocations = el.getAttribute('data-location').split(',');
@@ -468,6 +471,7 @@
     if (sessionExpired) return 'Session expired';
     if (submitInProgress) return 'Submitting...';
     if (syncInProgress) return 'Saving changes...';
+    if (hasValidationErrors()) return 'Please fix the highlighted fields';
     if (hasErroredFields()) return 'Please fix the fields with errors';
     if (hasChangedFields()) return 'Please wait for changes to be saved';
     return '';
@@ -476,7 +480,7 @@
   // Update submit button state based on unsaved/errored changes
   function updateSubmitButtonState() {
     if (sessionExpired || submitInProgress) return;
-    var shouldDisable = hasChangedFields() || hasErroredFields() || syncInProgress;
+    var shouldDisable = hasChangedFields() || hasErroredFields() || hasValidationErrors() || syncInProgress;
     submitBtn.disabled = shouldDisable;
     submitBtn.title = shouldDisable ? getSubmitDisabledReason() : '';
   }
@@ -754,7 +758,422 @@
       });
   }
 
-  function scheduleSync(fieldName) {
+  var MIN_EMPLOYEE_AGE = 15;  
+  var MAX_EMPLOYEE_AGE = 100;
+  var MIN_PARENT_GAP = 15;     
+  var MAX_PARENT_AGE = 120;
+  var MIN_SPOUSE_AGE = 18;
+  var MIN_INTRO_LENGTH = 20;
+
+  var NAME_RE = /^[A-Za-z][A-Za-z .'-]*$/;
+  var CONTACT_NAME_RE = /^[A-Za-z][A-Za-z .,'()/-]*$/;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+  var PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+  var IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+  var AADHAR_RE = /^[2-9][0-9]{11}$/;
+  var PASSPORT_RE = /^[A-Za-z0-9]{6,12}$/;
+  var BANK_NAME_RE = /^[A-Za-z][A-Za-z0-9 .,'&-]*$/;
+
+  var validationErrors = {}; // { fieldName: message }
+
+
+  function parseDateValue(value) {
+    var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+    if (!parts) return null;
+    var year = +parts[1], month = +parts[2] - 1, day = +parts[3];
+    var date = new Date(Date.UTC(year, month, day));
+    if (isNaN(date.getTime())) return null;
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month || date.getUTCDate() !== day) return null;
+    return date;
+  }
+
+  function todayUTC() {
+    var now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  }
+
+  function toISODate(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function shiftYears(date, years) {
+    return new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth(), date.getUTCDate()));
+  }
+
+  function yearsBetween(from, to) {
+    var years = to.getUTCFullYear() - from.getUTCFullYear();
+    if (shiftYears(from, years).getTime() > to.getTime()) years -= 1;
+    return years;
+  }
+
+  
+  function checkDateOfBirth(value, minAge, maxAge, subject) {
+    var date = parseDateValue(value);
+    if (!date) return 'Please enter a valid date.';
+
+    var today = todayUTC();
+    if (date.getTime() > today.getTime()) return 'Date of birth cannot be in the future.';
+
+    var age = yearsBetween(date, today);
+    if (age < minAge) return subject + ' must be at least ' + minAge + ' years old.';
+    if (age > maxAge) return 'Please check this date - it works out to an age over ' + maxAge + '.';
+    return '';
+  }
+
+  function checkParentDob(value, subject) {
+    var message = checkDateOfBirth(value, MIN_PARENT_GAP, MAX_PARENT_AGE, subject);
+    if (message) return message;
+
+    var ownDob = validOwnDob();
+    if (!ownDob) return '';
+
+    var parentDob = parseDateValue(value);
+    if (yearsBetween(parentDob, ownDob) < MIN_PARENT_GAP) {
+      return subject + ' must be at least ' + MIN_PARENT_GAP + ' years older than you.';
+    }
+    return '';
+  }
+
+  function normalizePhone(value) {
+    return String(value || '').replace(/[\s()\-.]/g, '');
+  }
+
+  function checkPhone(value) {
+    var cleaned = normalizePhone(value);
+    if (!/^\+?\d+$/.test(cleaned)) return 'Use digits only, optionally starting with +.';
+
+    var digits = cleaned.replace(/^\+/, '').replace(/^0+/, '');
+    if (digits.length < 10 || digits.length > 15) return 'Enter a valid phone number (10-15 digits).';
+
+    var local = digits.length === 12 && digits.indexOf('91') === 0 ? digits.slice(2) : digits;
+    if (local.length === 10 && !/^[6-9]/.test(local)) return 'Enter a valid 10-digit mobile number.';
+    return '';
+  }
+
+  function phoneIdentity(value) {
+    var digits = normalizePhone(value).replace(/\D/g, '');
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  }
+
+  function isDubai() {
+    return currentLocation === 'dubai';
+  }
+
+  var FIELD_VALIDATORS = {
+    full_name: function (value) {
+      return NAME_RE.test(value) ? '' : 'Name can only contain letters, spaces, apostrophes, dots and hyphens.';
+    },
+    preferred_name: function (value) {
+      return NAME_RE.test(value) ? '' : 'Use letters only.';
+    },
+    email: function (value) {
+      return EMAIL_RE.test(value) ? '' : 'Enter a valid email address, e.g. name@email.com.';
+    },
+    mobile: checkPhone,
+    emergency_contact_number: function (value) {
+      var message = checkPhone(value);
+      if (message) return message;
+      var mobile = fieldValue('mobile');
+      if (mobile && phoneIdentity(mobile) && phoneIdentity(mobile) === phoneIdentity(value)) {
+        return 'Emergency contact should be different from your own mobile number.';
+      }
+      return '';
+    },
+    dob: function (value) {
+      return checkDateOfBirth(value, MIN_EMPLOYEE_AGE, MAX_EMPLOYEE_AGE, 'You');
+    },
+    preferred_dob: function (value) {
+      if (value === fieldValue('dob')) return 'Leave this blank if it matches your actual date of birth.';
+      return checkDateOfBirth(value, MIN_EMPLOYEE_AGE, MAX_EMPLOYEE_AGE, 'You');
+    },
+    fathers_dob: function (value) {
+      return checkParentDob(value, 'Your father');
+    },
+    mothers_dob: function (value) {
+      return checkParentDob(value, 'Your mother');
+    },
+    
+    spouse_name: function (value) {
+      var marital = fieldValue('marital_status');
+      if (!value) return marital === 'married' ? 'Please add your spouse\u2019s name.' : '';
+      if (marital === 'unmarried') return 'You selected Unmarried - clear this or update your marital status.';
+      return NAME_RE.test(value) ? '' : 'Name can only contain letters, spaces, apostrophes, dots and hyphens.';
+    },
+    spouse_dob: function (value) {
+      var marital = fieldValue('marital_status');
+      if (!value) return marital === 'married' ? 'Please add your spouse\u2019s date of birth.' : '';
+      if (marital === 'unmarried') return 'You selected Unmarried - clear this or update your marital status.';
+      return checkDateOfBirth(value, MIN_SPOUSE_AGE, MAX_EMPLOYEE_AGE, 'Your spouse');
+    },
+    nationality: function (value) {
+      return NAME_RE.test(value) ? '' : 'Enter a valid nationality, e.g. Indian.';
+    },
+    fathers_name: function (value) {
+      return NAME_RE.test(value) ? '' : 'Name can only contain letters, spaces, apostrophes, dots and hyphens.';
+    },
+    mothers_name: function (value) {
+      return NAME_RE.test(value) ? '' : 'Name can only contain letters, spaces, apostrophes, dots and hyphens.';
+    },
+    emergency_contact_name: function (value) {
+      if (!CONTACT_NAME_RE.test(value)) return 'Use letters only, e.g. Rekha Rao (Mother).';
+      return value.length >= 3 ? '' : 'Enter the contact name and their relationship to you.';
+    },
+    passport_number: function (value) {
+      if (isDubai()) {
+        return PASSPORT_RE.test(value) ? '' : 'Enter a valid passport number (6-12 letters or digits).';
+      }
+      return AADHAR_RE.test(value.replace(/\s/g, '')) ? '' : 'Enter a valid 12-digit Aadhar number.';
+    },
+    passport_no: function (value) {
+      return PASSPORT_RE.test(value) ? '' : 'Enter a valid passport number (6-12 letters or digits).';
+    },
+    pan_number: function (value) {
+      if (/^NA$/i.test(value)) return '';
+      return PAN_RE.test(value.toUpperCase()) ? '' : 'Enter a valid PAN, e.g. ABCDE1234F (or NA if you do not have one).';
+    },
+    uan_number: function (value) {
+      if (/^NA$/i.test(value)) return '';
+      return /^\d{12}$/.test(value.replace(/\s/g, '')) ? '' : 'Enter a valid 12-digit UAN (or NA if you do not have one).';
+    },
+    bank_name: function (value) {
+      return BANK_NAME_RE.test(value) ? '' : 'Enter a valid bank name.';
+    },
+    account_holder: function (value) {
+      return NAME_RE.test(value) ? '' : 'Name can only contain letters, spaces, apostrophes, dots and hyphens.';
+    },
+    account_number: function (value) {
+      var cleaned = value.replace(/\s/g, '');
+      if (isDubai()) {
+        return /^[A-Za-z0-9]{8,34}$/.test(cleaned) ? '' : 'Enter a valid account number.';
+      }
+      return /^\d{9,18}$/.test(cleaned) ? '' : 'Enter a valid account number (9-18 digits).';
+    },
+    intro_line: function (value) {
+      return value.length >= MIN_INTRO_LENGTH
+        ? ''
+        : 'Please write at least a sentence (' + MIN_INTRO_LENGTH + '+ characters) - this one is shared with the whole team.';
+    },
+    ifsc: function (value) {
+      if (isDubai()) return ''; 
+      return IFSC_RE.test(value.toUpperCase()) ? '' : 'Enter a valid IFSC code, e.g. HDFC0001234.';
+    }
+  };
+
+  
+  function validOwnDob() {
+    var value = fieldValue('dob');
+    if (!value || FIELD_VALIDATORS.dob(value)) return null;
+    return parseDateValue(value);
+  }
+
+  var VALIDATE_WHILE_TYPING = { dob: true, preferred_dob: true, fathers_dob: true, mothers_dob: true, spouse_dob: true };
+
+  var VALIDATE_WHEN_EMPTY = { spouse_name: true, spouse_dob: true };
+
+  var VALIDATION_DEPENDENTS = {
+    dob: ['preferred_dob', 'fathers_dob', 'mothers_dob', 'spouse_dob', 'childs_info'],
+    mobile: ['emergency_contact_number'],
+    marital_status: ['spouse_name', 'spouse_dob', 'insurance_coverage'],
+    spouse_name: ['insurance_coverage'],
+    spouse_dob: ['insurance_coverage']
+  };
+
+  function fieldValue(name) {
+    var field = form.elements[name];
+    if (!field) return '';
+    return typeof field.value === 'string' ? field.value.trim() : '';
+  }
+
+  function hasValidationErrors() {
+    return Object.keys(validationErrors).length > 0;
+  }
+
+  function setValidationError(name, message, silent) {
+    if (message) validationErrors[name] = message;
+    else delete validationErrors[name];
+
+    if (name === 'childs_info') {
+      if (childrenError) {
+        childrenError.textContent = message || '';
+        childrenError.hidden = !message;
+      }
+      updateSubmitButtonState();
+      return;
+    }
+
+    var field = form.elements[name];
+    if (field && (!message || !silent)) setFieldSyncError(field, message || null);
+    updateSubmitButtonState();
+  }
+
+  function validateFieldByName(name, silent) {
+    if (name === 'childs_info') return validateChildren();
+    if (name === 'insurance_coverage') return validateInsurance();
+
+    var validator = FIELD_VALIDATORS[name];
+    if (!validator) return true;
+
+    var field = form.elements[name];
+    if (!field || field instanceof RadioNodeList) return true;
+
+    var value = String(field.value || '').trim();
+    var checkable = isFieldVisible(field) && (value || VALIDATE_WHEN_EMPTY[name]);
+    var message = checkable ? validator(value) : '';
+    setValidationError(name, message, silent);
+    return !message;
+  }
+
+  function revalidateDependents(name) {
+    var dependents = VALIDATION_DEPENDENTS[name];
+    if (!dependents) return;
+
+    if (name === 'dob') applyDateBounds();
+    if (name === 'marital_status') updateSpouseRequirement();
+    dependents.forEach(function (dependent) { validateFieldByName(dependent); });
+  }
+
+  function validateAllFields() {
+    updateSpouseRequirement();
+    Object.keys(FIELD_VALIDATORS).forEach(function (name) { validateFieldByName(name); });
+    validateChildren();
+    validateInsurance();
+    applyDateBounds();
+  }
+
+  var SPOUSE_FIELD_NAMES = ['spouse_name', 'spouse_dob'];
+
+  function updateSpouseRequirement() {
+    var required = fieldValue('marital_status') === 'married';
+    SPOUSE_FIELD_NAMES.forEach(function (name) {
+      var field = form.elements[name];
+      if (!field || field instanceof RadioNodeList) return;
+
+      if (required) field.setAttribute('data-required', 'true');
+      else field.removeAttribute('data-required');
+
+      var label = field.closest('label');
+      var mark = label ? label.querySelector('.required-mark') : null;
+      if (mark) mark.hidden = !required;
+    });
+    updateProgress();
+  }
+
+  var INSURANCE_FAMILY_PLAN = 'employee_spouse_kids';
+  var INSURANCE_PLAN_CHILDREN = 2;
+
+  function validateInsurance() {
+    var plan = fieldValue('insurance_coverage');
+    var childCount = Array.isArray(childrenData) ? childrenData.length : 0;
+    var hasSpouse = fieldValue('marital_status') === 'married' || !!fieldValue('spouse_name');
+
+    var message = plan === INSURANCE_FAMILY_PLAN && !hasSpouse && !childCount
+      ? 'This plan covers a spouse and children, but neither is on your form. Add them, or pick the parents plan.'
+      : '';
+    setValidationError('insurance_coverage', message);
+
+    if (insuranceNote) {
+      var note = !message && plan === INSURANCE_FAMILY_PLAN && childCount > INSURANCE_PLAN_CHILDREN
+        ? 'This plan covers ' + INSURANCE_PLAN_CHILDREN + ' children and you have added ' + childCount + '. HR will confirm the cover for the others.'
+        : '';
+      insuranceNote.textContent = note;
+      insuranceNote.hidden = !note;
+    }
+    return !message;
+  }
+
+  function checkChildDob(value) {
+    var date = parseDateValue(value);
+    if (!date) return 'Please enter a valid date of birth.';
+
+    var today = todayUTC();
+    if (date.getTime() > today.getTime()) return 'Date of birth must be in the past.';
+
+    var ownDob = validOwnDob();
+    if (ownDob && yearsBetween(ownDob, date) < MIN_PARENT_GAP) {
+      return 'A child’s date of birth must be at least ' + MIN_PARENT_GAP + ' years after your own.';
+    }
+    return '';
+  }
+
+  function validateChildren() {
+    if (!Array.isArray(childrenData) || !childrenData.length) {
+      setValidationError('childs_info', '');
+      return true;
+    }
+
+    var message = '';
+    childrenData.some(function (child) {
+      var childMessage = checkChildDob(child && child.dob);
+      if (!childMessage) return false;
+      message = ((child && child.name) || 'This child') + ': ' + childMessage.charAt(0).toLowerCase() + childMessage.slice(1);
+      return true;
+    });
+
+    setValidationError('childs_info', message);
+    return !message;
+  }
+
+  function checkOrgDuration(duration) {
+    var years = (String(duration).match(/\b(?:19|20)\d{2}\b/g) || []).map(Number);
+    if (!years.length) return '';
+
+    var thisYear = todayUTC().getUTCFullYear();
+    if (years.some(function (year) { return year > thisYear; })) return 'Duration cannot include a future year.';
+
+    var ownDob = validOwnDob();
+    if (ownDob && years.some(function (year) { return year < ownDob.getUTCFullYear() + MIN_EMPLOYEE_AGE; })) {
+      return 'Duration starts before you turned ' + MIN_EMPLOYEE_AGE + '. Please check the years.';
+    }
+    if (years.length > 1 && years[years.length - 1] < years[0]) return 'The end year cannot be before the start year.';
+    return '';
+  }
+
+  function setDateBounds(name, min, max) {
+    var field = form.elements[name];
+    if (!field || field instanceof RadioNodeList) return;
+    if (min) field.min = min; else field.removeAttribute('min');
+    if (max) field.max = max; else field.removeAttribute('max');
+  }
+
+  function applyDateBounds() {
+    var today = todayUTC();
+    var selfMin = toISODate(shiftYears(today, -MAX_EMPLOYEE_AGE));
+    var selfMax = toISODate(shiftYears(today, -MIN_EMPLOYEE_AGE));
+
+    setDateBounds('dob', selfMin, selfMax);
+    setDateBounds('preferred_dob', selfMin, selfMax);
+    setDateBounds('spouse_dob', selfMin, toISODate(shiftYears(today, -MIN_SPOUSE_AGE)));
+
+    var ownDob = validOwnDob();
+    var parentMin = toISODate(shiftYears(today, -MAX_PARENT_AGE));
+    var parentMax = ownDob ? toISODate(shiftYears(ownDob, -MIN_PARENT_GAP)) : selfMax;
+    setDateBounds('fathers_dob', parentMin, parentMax);
+    setDateBounds('mothers_dob', parentMin, parentMax);
+
+    if (childModalDob) {
+      childModalDob.max = toISODate(today);
+      if (ownDob) childModalDob.min = toISODate(shiftYears(ownDob, MIN_PARENT_GAP));
+      else childModalDob.removeAttribute('min');
+    }
+  }
+
+  applyDateBounds();
+
+  function scheduleSync(fieldName, phase) {
+    var silent = phase === 'input' && !VALIDATE_WHILE_TYPING[fieldName];
+    var valid = validateFieldByName(fieldName, silent);
+    revalidateDependents(fieldName);
+
+    if (!valid) {
+      if (changedFields[fieldName]) {
+        delete changedFields[fieldName];
+        var field = form.elements[fieldName];
+        if (field) setFieldUnsaved(field, false);
+      }
+      updateSubmitButtonState();
+      return;
+    }
+
     markFieldChanged(fieldName);
   }
 
@@ -807,7 +1226,24 @@
     } else {
       setFieldSyncError(field, 'This field is required.');
     }
-    return field;
+    return field instanceof RadioNodeList ? field[0] : field;
+  }
+
+  function showInvalidFieldsMessage() {
+    var names = Object.keys(validationErrors);
+    names.forEach(function (name) { setValidationError(name, validationErrors[name]); });
+
+    var first = names.map(function (name) {
+      if (name === 'childs_info') return childrenChips;
+      var field = form.elements[name];
+      return field instanceof RadioNodeList ? field[0] : field;
+    }).filter(Boolean)[0];
+
+    if (first) {
+      var panel = first.closest('.step-panel');
+      if (panel) showStep(parseInt(panel.dataset.panel, 10));
+    }
+    showSubmitMessage('Please fix the ' + names.length + ' highlighted field(s) before submitting.', 'error');
   }
 
   function submitOnboarding() {
@@ -815,6 +1251,11 @@
 
     if (previewMode) {
       showSubmitMessage('This is a preview - nothing is submitted from here.', 'error');
+      return;
+    }
+
+    if (hasValidationErrors()) {
+      showInvalidFieldsMessage();
       return;
     }
 
@@ -1314,6 +1755,7 @@
       });
     }
 
+    validateAllFields();
     updateProgress();
   }
 
@@ -1595,15 +2037,31 @@
   form.addEventListener('change', updateProgress);
 
   form.addEventListener('input', function (e) {
-    if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name);
+    if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name, 'input');
   });
   form.addEventListener('change', function (e) {
-    if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name);
+    if (e.target && e.target.name && e.target.type !== 'file') scheduleSync(e.target.name, 'change');
+  });
+
+  var UPPERCASE_FIELDS = ['pan_number', 'ifsc', 'passport_number', 'passport_no', 'uan_number'];
+  var TEXT_INPUT_TYPES = ['text', 'email', 'tel', 'search', 'url'];
+
+  form.addEventListener('change', function (e) {
+    var field = e.target;
+    if (!field || !field.name) return;
+    if (field.tagName !== 'TEXTAREA' && TEXT_INPUT_TYPES.indexOf(field.type) === -1) return;
+
+    var normalized = field.value.trim();
+    if (UPPERCASE_FIELDS.indexOf(field.name) !== -1) normalized = normalized.toUpperCase();
+    if (normalized === field.value) return;
+
+    field.value = normalized;
+    scheduleSync(field.name, 'change');
   });
 
   // Warn user about unsaved changes before leaving
   window.addEventListener('beforeunload', function (e) {
-    if (hasChangedFields() || hasErroredFields()) {
+    if (hasChangedFields() || hasErroredFields() || hasValidationErrors()) {
       e.preventDefault();
       e.returnValue = '';
       return '';
@@ -1740,11 +2198,32 @@
     var country = addressModalCountry ? addressModalCountry.value.trim() : '';
     var pincode = addressModalPincode ? addressModalPincode.value.trim() : '';
 
-    if (!line || !city || !country || !pincode) {
+    function failAddress(message) {
       if (addressModalError) {
-        addressModalError.textContent = 'Please fill in all address fields.';
+        addressModalError.textContent = message;
         addressModalError.hidden = false;
       }
+    }
+
+    if (!line || !city || !country || !pincode) {
+      failAddress('Please fill in all address fields.');
+      return;
+    }
+    if (!NAME_RE.test(city)) {
+      failAddress('Please enter a valid city name.');
+      return;
+    }
+    if (!NAME_RE.test(country)) {
+      failAddress('Please enter a valid country name.');
+      return;
+    }
+
+    var indianAddress = /^india$/i.test(country);
+    var pincodeOk = indianAddress
+      ? /^[1-9]\d{5}$/.test(pincode)
+      : /^[A-Za-z0-9][A-Za-z0-9 -]{2,9}$/.test(pincode);
+    if (!pincodeOk) {
+      failAddress(indianAddress ? 'Please enter a valid 6-digit pincode.' : 'Please enter a valid postal code.');
       return;
     }
 
@@ -1789,6 +2268,8 @@
   var childModalName = document.querySelector('#childModalName');
   var childModalDob = document.querySelector('#childModalDob');
   var childModalError = document.querySelector('#childModalError');
+  var childrenError = document.querySelector('#childrenError');
+  var insuranceNote = document.querySelector('#insuranceNote');
   var MAX_CHILDREN = 10;
   var childrenData = []; // Array of { name, dob }
 
@@ -1849,11 +2330,14 @@
   }
 
   function syncChildrenToBackend() {
+    validateChildren();
+    validateInsurance();
     markFieldChanged('childs_info');
   }
 
   function openChildModal() {
     if (!childModal) return;
+    applyDateBounds();
     if (childModalName) childModalName.value = '';
     if (childModalDob) childModalDob.value = '';
     if (childModalError) childModalError.hidden = true;
@@ -1888,10 +2372,21 @@
       return;
     }
 
-    var dobDate = new Date(dob);
-    if (dobDate >= new Date()) {
+    var dobError = checkChildDob(dob);
+    if (dobError) {
       if (childModalError) {
-        childModalError.textContent = 'Date of birth must be in the past.';
+        childModalError.textContent = dobError;
+        childModalError.hidden = false;
+      }
+      return;
+    }
+
+    var duplicateChild = childrenData.some(function (child) {
+      return child && String(child.name).trim().toLowerCase() === name.toLowerCase() && child.dob === dob;
+    });
+    if (duplicateChild) {
+      if (childModalError) {
+        childModalError.textContent = 'This child has already been added.';
         childModalError.hidden = false;
       }
       return;
@@ -2209,6 +2704,34 @@
       return;
     }
 
+    var durationError = checkOrgDuration(duration);
+    if (durationError) {
+      if (orgModalError) {
+        orgModalError.textContent = durationError;
+        orgModalError.hidden = false;
+      }
+      return;
+    }
+
+    var duplicateOrg = orgsData.some(function (org) {
+      return org && String(org.name).trim().toLowerCase() === name.toLowerCase();
+    });
+    if (duplicateOrg) {
+      if (orgModalError) {
+        orgModalError.textContent = 'You have already added this organization.';
+        orgModalError.hidden = false;
+      }
+      return;
+    }
+
+    if (current && orgsData.some(function (org) { return org && org.current; })) {
+      if (orgModalError) {
+        orgModalError.textContent = 'Another organization is already marked as current - only one can be your current employer.';
+        orgModalError.hidden = false;
+      }
+      return;
+    }
+
     var letter = orgModalDraft ? orgModalDraft.letter : null;
     if (!current && !letter) {
       if (orgModalError) {
@@ -2343,6 +2866,7 @@
     var banner = document.getElementById('preview-banner');
     if (banner) banner.hidden = false;
 
+    validateAllFields();
     updateProgress();
   }
   } // end initWizard

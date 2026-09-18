@@ -1,80 +1,20 @@
-import { createSign } from 'crypto';
+import { getAccessToken, isGoogleConfigured, SHEETS_SCOPE, GoogleNotConfiguredError } from './google-auth';
 
-const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
-const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 
-export class GoogleSheetsNotConfiguredError extends Error {
+export class GoogleSheetsNotConfiguredError extends GoogleNotConfiguredError {
   constructor() {
-    super('Google Sheets is not configured: set GOOGLE_SA_EMAIL and GOOGLE_SA_PRIVATE_KEY.');
+    super('Google Sheets');
     this.name = 'GoogleSheetsNotConfiguredError';
   }
 }
 
 export function isGoogleSheetsConfigured(): boolean {
-  return !!(process.env.GOOGLE_SA_EMAIL && process.env.GOOGLE_SA_PRIVATE_KEY);
-}
-
-function base64url(input: Buffer | string): string {
-  return Buffer.from(input)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
-
-function privateKey(): string {
-  return (process.env.GOOGLE_SA_PRIVATE_KEY ?? '').replace(/\\n/g, '\n');
-}
-
-let cachedToken: { value: string; expiresAt: number } | null = null;
-
-async function getAccessToken(): Promise<string> {
-  if (!isGoogleSheetsConfigured()) throw new GoogleSheetsNotConfiguredError();
-
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
-    return cachedToken.value;
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const claims = base64url(JSON.stringify({
-    iss: process.env.GOOGLE_SA_EMAIL,
-    scope: SCOPE,
-    aud: TOKEN_URL,
-    iat: now,
-    exp: now + 3600,
-  }));
-
-  const signer = createSign('RSA-SHA256');
-  signer.update(`${header}.${claims}`);
-  const signature = base64url(signer.sign(privateKey()));
-  const assertion = `${header}.${claims}.${signature}`;
-
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion,
-    }),
-  });
-
-  const body = await res.json().catch(() => ({})) as { access_token?: string; expires_in?: number; error_description?: string; error?: string };
-
-  if (!res.ok || !body.access_token) {
-    throw new Error(`Google auth failed: ${body.error_description || body.error || res.status}`);
-  }
-
-  cachedToken = {
-    value: body.access_token,
-    expiresAt: Date.now() + (body.expires_in ?? 3600) * 1000,
-  };
-  return cachedToken.value;
+  return isGoogleConfigured();
 }
 
 async function sheetsFetch(path: string, init?: RequestInit): Promise<any> {
-  const token = await getAccessToken();
+  const token = await getAccessToken(SHEETS_SCOPE);
   const res = await fetch(`${SHEETS_API}${path}`, {
     ...init,
     headers: {

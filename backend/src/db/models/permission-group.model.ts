@@ -12,6 +12,7 @@ export enum Permission {
   ViewOnboardingDocs = 'view_onboarding_docs',
   ExportOnboardingData = 'export_onboarding_data',
   ManageSheets = 'manage_sheets',
+  ManageDrive = 'manage_drive',
 }
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -26,6 +27,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [Permission.ViewOnboardingDocs]: 'View Onboarding Docs',
   [Permission.ExportOnboardingData]: 'Export Onboarding Data',
   [Permission.ManageSheets]: 'Manage Google Sheets',
+  [Permission.ManageDrive]: 'Manage Google Drive',
 };
 
 export interface IPermissionGroup extends Document {

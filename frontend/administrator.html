@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789720671">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789720671">
+  <link rel="stylesheet" href="css/styles.css?v=1789725386">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789725386">
 
-  <link rel="stylesheet" href="css/admin.css?v=1789720671">
+  <link rel="stylesheet" href="css/admin.css?v=1789725386">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -162,15 +162,17 @@
             <p class="body-text">Search and review onboarding links and their status.</p>
           </button>
 
-          <button type="button" class="admin-action-card" id="admin-manage-sheets-card">
+          <button type="button" class="admin-action-card" id="admin-integrations-card">
             <div class="admin-action-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="3.5" width="16" height="17" rx="1.5"/>
-                <path d="M4 9h16M4 14.5h16M9.5 9v11.5M15 9v11.5"/>
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                <path d="M17.5 14v7M14 17.5h7"/>
               </svg>
             </div>
-            <h3>Manage Google Sheet</h3>
-            <p class="body-text">Sheets that completed onboardings are written into.</p>
+            <h3>Integrations</h3>
+            <p class="body-text">Where completed onboardings are sent - Sheets, Drive and more.</p>
           </button>
         </div>
 
@@ -281,6 +283,7 @@
         </svg>
       </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <button type="button" class="integration-back" data-integrations-back>&#8592; Integrations</button>
       <h3>Google Sheets</h3>
       <p class="body-text" id="sheets-intro">Completed onboardings are appended to the sheet chosen when they were registered.</p>
 
@@ -306,6 +309,86 @@
         <button type="submit" class="form-submit" id="admin-add-sheet-submit">Add Sheet</button>
         <div class="form-status" id="admin-add-sheet-status" role="alert" aria-live="polite"></div>
       </form>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-integrations-modal" data-expandable hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-label="Integrations">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3>Integrations</h3>
+      <p class="body-text">Choose where a completed onboarding's answers and documents are sent.</p>
+
+      <div class="integration-list" id="integration-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-drive-modal" data-expandable hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Google Drive sync">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <button type="button" class="integration-back" data-integrations-back>&#8592; Integrations</button>
+      <h3>Google Drive</h3>
+      <p class="body-text">When an onboarding completes, each uploaded document is filed into the folder mapped to it.</p>
+
+      <div class="form-status" id="drive-config-warning" role="alert"></div>
+
+      <div class="onboardings-list users-list" id="drive-list"></div>
+
+      <form class="admin-form" id="admin-add-drive-form" novalidate>
+        <h4 class="email-detail-body-heading">Add a Drive sync</h4>
+        <div class="form-group">
+          <label for="drive-name">Name</label>
+          <input type="text" id="drive-name" name="name" placeholder="Gurugram joiners - documents" maxlength="80" required>
+        </div>
+        <div class="form-group">
+          <label for="drive-default-folder">Default folder (optional)</label>
+          <input type="text" id="drive-default-folder" name="defaultFolder" placeholder="https://drive.google.com/drive/folders/...">
+          <p class="markdown-hint">Used for any document type with no folder of its own. Share it with the service account first.</p>
+        </div>
+        <button type="submit" class="form-submit" id="admin-add-drive-submit">Add Drive Sync</button>
+        <div class="form-status" id="admin-add-drive-status" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-drive-mapping-modal" data-expandable data-stacked hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Drive folder mapping">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3>Document Folders</h3>
+      <p class="body-text" id="drive-mapping-intro">Give each document a Drive folder link. Anything left blank falls back to the default folder, or is skipped if there is none.</p>
+
+      <div class="form-status" id="drive-mapping-note" role="alert"></div>
+
+      <div class="field-map-list" id="drive-mapping-list"></div>
+
+      <button type="button" class="form-submit" id="drive-save-mapping-btn">Save Folders</button>
+      <div class="form-status" id="drive-mapping-status" role="alert" aria-live="polite"></div>
     </div>
   </div>
 
@@ -369,11 +452,11 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1789720671"></script>
-  <script src="js/row-menu.js?v=1789720671"></script>
-  <script src="js/bundle-b.js?v=1789720671"></script>
-  <script src="js/modal-expand.js?v=1789720671"></script>
-  <script src="js/admin.js?v=1789720671"></script>
+  <script src="js/vendor/three.min.js?v=1789725386"></script>
+  <script src="js/row-menu.js?v=1789725386"></script>
+  <script src="js/bundle-b.js?v=1789725386"></script>
+  <script src="js/modal-expand.js?v=1789725386"></script>
+  <script src="js/admin.js?v=1789725386"></script>
 
 </body>
 </html>

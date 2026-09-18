@@ -503,6 +503,44 @@
       sheetSelect.value = selectedId || '';
     }
 
+    var driveSelect = document.getElementById('ro-drive');
+
+    function loadDriveConfigs() {
+      if (!driveSelect) return Promise.resolve();
+
+      return fetch(API_BASE + '/drive', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !result.data || !Array.isArray(result.data.configs)) return;
+
+          var configs = result.data.configs;
+          driveSelect.innerHTML = '';
+
+          var none = document.createElement('option');
+          none.value = '';
+          none.textContent = configs.length ? "Don't file documents" : 'No Drive sync set up yet';
+          driveSelect.appendChild(none);
+
+          configs.forEach(function (config) {
+            var usable = config.mappedCount || config.defaultFolderId;
+            var opt = document.createElement('option');
+            opt.value = config.id;
+            opt.textContent = usable ? config.name : config.name + ' — no folders set';
+            opt.disabled = !usable;
+            driveSelect.appendChild(opt);
+          });
+
+          driveSelect.value = '';
+        })
+        .catch(function (err) {
+          console.error('[register-onboarding] drive fetch failed:', err);
+        });
+    }
+
     function loadSheets(selectedId) {
       return fetch(API_BASE + '/sheets', {
         method: 'GET',
@@ -929,9 +967,11 @@
         var attachmentIds = roAttachments.filter(function (a) { return a.id; }).map(function (a) { return a.id; });
 
         var sheetId = sheetSelect ? sheetSelect.value : '';
+        var driveId = driveSelect ? driveSelect.value : '';
 
         var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
         if (sheetId) payload.sheetId = sheetId;
+        if (driveId) payload.driveId = driveId;
         if (extraFieldsDraft.length) payload.extraFields = extraFieldsDraft;
 
         var title = titleInput ? titleInput.value.trim() : '';
@@ -1127,6 +1167,7 @@
           }
           loadTemplates();
           loadSheets();
+          loadDriveConfigs();
           resetAttachments();
           resetExtraFieldsDraft();
         })

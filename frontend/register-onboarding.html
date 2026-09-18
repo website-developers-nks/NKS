@@ -26,10 +26,10 @@
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
   </noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789720671">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789720671">
+  <link rel="stylesheet" href="css/styles.css?v=1789725386">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789725386">
 
-  <link rel="stylesheet" href="css/admin.css?v=1789720671">
+  <link rel="stylesheet" href="css/admin.css?v=1789725386">
 </head>
 
 <body>
@@ -149,14 +149,6 @@
                   </div>
                 </div>
                 <div class="form-group">
-                  <label for="ro-sheet">Google Sheet (optional)</label>
-                  <div class="select-wrapper">
-                    <select id="ro-sheet" name="sheetId">
-                      <option value="" selected>Don't record in a sheet</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group">
                   <label for="ro-ttl">Session length (HH:MM)</label>
                   <input type="time" id="ro-ttl" name="sessionLength" lang="en-GB" min="00:01" max="23:59" step="60"
                     value="10:00" required>
@@ -166,11 +158,33 @@
                   <input type="date" id="ro-expiration-date" name="expirationDate" required>
                 </div>
               </div>
-              <p class="markdown-hint">Their submitted data is appended to the chosen sheet when they finish.</p>
             </section>
           </div>
 
           <div class="ro-col">
+            <section class="ro-section">
+              <h4 class="ro-section-title">Integrations</h4>
+              <div class="ro-field-grid">
+                <div class="form-group">
+                  <label for="ro-sheet">Google Sheet</label>
+                  <div class="select-wrapper">
+                    <select id="ro-sheet" name="sheetId">
+                      <option value="" selected>Don't record in a sheet</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="ro-drive">Google Drive</label>
+                  <div class="select-wrapper">
+                    <select id="ro-drive" name="driveId">
+                      <option value="" selected>Don't file documents</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <p class="markdown-hint">Where this person's answers and documents go once they finish. Both are optional, and are set up under Integrations on the dashboard.</p>
+            </section>
+
             <section class="ro-section">
               <h4 class="ro-section-title">Attachments</h4>
               <div class="form-group">
@@ -468,12 +482,12 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1789720671"></script>
-  <script src="js/vendor/marked.js?v=1789720671"></script>
-  <script src="js/markdown-email.js?v=1789720671"></script>
-  <script src="js/bundle-b.js?v=1789720671"></script>
-  <script src="js/modal-expand.js?v=1789720671"></script>
-  <script src="js/register-onboarding.js?v=1789720671"></script>
+  <script src="js/vendor/three.min.js?v=1789725386"></script>
+  <script src="js/vendor/marked.js?v=1789725386"></script>
+  <script src="js/markdown-email.js?v=1789725386"></script>
+  <script src="js/bundle-b.js?v=1789725386"></script>
+  <script src="js/modal-expand.js?v=1789725386"></script>
+  <script src="js/register-onboarding.js?v=1789725386"></script>
 
 </body>
 

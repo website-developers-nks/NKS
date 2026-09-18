@@ -15,6 +15,7 @@ import { Permission, PermissionGroup, IPermissionGroup } from '../db/models/perm
 import { MessageTemplate } from '../db/models/message-template.model';
 import { ScheduledEmail, ScheduledEmailStatus } from '../db/models/scheduled-email.model';
 import { SheetConfig } from '../db/models/sheet-config.model';
+import { DriveConfig, IDriveConfig } from '../db/models/drive-config.model';
 import { requireAdminAuth, requirePermission } from '../middleware/admin-auth.middleware';
 import { ADMIN_COOKIE, ADMIN_COOKIE_OPTIONS, isAdminSessionExpired, endAdminSession, clearAdminCookie } from '../lib/admin-session';
 import { emailEngine, getEmailEngineByCompany, getSenderByCompany } from '../email';
@@ -28,6 +29,9 @@ import { buildOnboardingExportHtml } from '../services/onboarding-export.service
 import { createScheduledEmail, deliverScheduledEmail } from '../services/scheduled-email.service';
 import { sendReminderFor } from '../services/onboarding-reminder.service';
 import { isGoogleSheetsConfigured, parseSpreadsheetId, getSpreadsheetInfo } from '../lib/google-sheets';
+import { parseFolderId, checkFolder } from '../lib/google-drive';
+import { isGoogleConfigured, serviceAccountEmail } from '../lib/google-auth';
+import { DRIVE_DOCUMENTS, pushOnboardingToDrive } from '../services/onboarding-drive.service';
 import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
 import { normalizeExtraFields, ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
 import {
@@ -265,7 +269,7 @@ router.post('/create-user', requireAdminAuth, requirePermission(Permission.Manag
 });
 
 router.post('/register-onboarding', requireAdminAuth, requirePermission(Permission.ManageOnboardings), async (req: Request, res: Response) => {
-  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds, sheetId, extraFields, title } = req.body as {
+  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds, sheetId, driveId, extraFields, title } = req.body as {
     userId?: string;
     ttl?: number;
     location?: string;
@@ -277,6 +281,7 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
     expirationDate?: string;
     attachmentIds?: string[];
     sheetId?: string;
+    driveId?: string;
     extraFields?: unknown;
     title?: string;
   };
@@ -344,6 +349,17 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       return;
     }
   }
+  if (driveId) {
+    if (!Types.ObjectId.isValid(driveId)) {
+      res.status(400).json({ error: 'Invalid Drive sync.' });
+      return;
+    }
+    if (!(await DriveConfig.exists({ _id: driveId }))) {
+      res.status(404).json({ error: 'That Drive sync is no longer set up.' });
+      return;
+    }
+  }
+
   let attachments;
   if (attachmentIds?.length) {
     try {
@@ -370,6 +386,7 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       bcc: toArray(bcc),
       extraContent: extraContentMarkdown,
       sheetConfig: sheetId || undefined,
+      driveConfig: driveId || undefined,
       extraFields: normalizedExtraFields.length ? normalizedExtraFields : undefined,
     });
 
@@ -589,6 +606,243 @@ router.delete(
       console.error('[admin/sheets/:id] delete', err);
       res.status(500).json({ error: 'Failed to remove the sheet.' });
     }
+  },
+);
+
+function driveConfigJson(config: IDriveConfig) {
+  const mapping = config.mapping instanceof Map
+    ? Object.fromEntries(config.mapping)
+    : ((config.mapping ?? {}) as Record<string, unknown>);
+
+  return {
+    id: (config._id as object).toString(),
+    name: config.name,
+    mapping,
+    mappedCount: Object.values(mapping).filter((t) => (t as { folderId?: string })?.folderId).length,
+    defaultFolderId: config.defaultFolderId ?? null,
+    defaultFolderName: config.defaultFolderName ?? null,
+    fileCount: config.fileCount ?? 0,
+    lastSyncAt: config.lastSyncAt ?? null,
+    lastError: config.lastError ?? null,
+    createdAt: config.createdAt,
+  };
+}
+
+router.get(
+  '/drive',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive, Permission.ManageOnboardings),
+  async (_req: Request, res: Response) => {
+    try {
+      const configs = await DriveConfig.find().sort({ name: 1 });
+      res.json({
+        configured: isGoogleConfigured(),
+        serviceAccount: serviceAccountEmail(),
+        documents: DRIVE_DOCUMENTS,
+        configs: configs.map(driveConfigJson),
+      });
+    } catch (err) {
+      console.error('[admin/drive]', err);
+      res.status(500).json({ error: 'Failed to fetch Drive configurations.' });
+    }
+  },
+);
+
+router.post(
+  '/drive',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive),
+  async (req: Request, res: Response) => {
+    const { name, defaultFolder } = req.body as { name?: string; defaultFolder?: string };
+
+    if (!name?.trim()) {
+      res.status(400).json({ error: 'A name is required.' });
+      return;
+    }
+    if (!isGoogleConfigured()) {
+      res.status(503).json({ error: 'Google credentials are not configured on the server.' });
+      return;
+    }
+
+    let defaultFolderId: string | undefined;
+    let defaultFolderName: string | undefined;
+
+    if (defaultFolder?.trim()) {
+      const folderId = parseFolderId(defaultFolder);
+      if (!folderId) {
+        res.status(400).json({ error: "That doesn't look like a Google Drive folder link or ID." });
+        return;
+      }
+      try {
+        const folder = await checkFolder(folderId);
+        defaultFolderId = folder.id;
+        defaultFolderName = folder.name;
+      } catch (err) {
+        res.status(400).json({ error: (err as Error).message });
+        return;
+      }
+    }
+
+    try {
+      const config = await DriveConfig.create({
+        name: name.trim(),
+        mapping: new Map(),
+        defaultFolderId,
+        defaultFolderName,
+        createdBy: req.admin!._id as Types.ObjectId,
+      });
+      res.status(201).json(driveConfigJson(config));
+    } catch (err) {
+      console.error('[admin/drive] create', err);
+      res.status(500).json({ error: 'Failed to save the Drive configuration.' });
+    }
+  },
+);
+
+// Checks one folder before it is saved into a mapping, so a bad share is
+// caught here rather than when a candidate finishes.
+router.post(
+  '/drive/check-folder',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive),
+  async (req: Request, res: Response) => {
+    const { folder } = req.body as { folder?: string };
+    const folderId = parseFolderId(folder ?? '');
+
+    if (!folderId) {
+      res.status(400).json({ error: "That doesn't look like a Google Drive folder link or ID." });
+      return;
+    }
+
+    try {
+      const info = await checkFolder(folderId);
+      res.json({
+        ...info,
+        warning: info.inSharedDrive
+          ? null
+          : 'This folder is in a personal My Drive. A service account has no storage of its own, so uploads there usually fail on quota - a Shared Drive folder is recommended.',
+      });
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+    }
+  },
+);
+
+router.patch(
+  '/drive/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid configuration id.' });
+      return;
+    }
+
+    const { name, mapping, defaultFolderId, defaultFolderName } = req.body as {
+      name?: string;
+      mapping?: Record<string, { folderId?: string; folderName?: string }>;
+      defaultFolderId?: string;
+      defaultFolderName?: string;
+    };
+
+    const update: Record<string, unknown> = {};
+    if (name?.trim()) update.name = name.trim();
+    if (defaultFolderId !== undefined) update.defaultFolderId = defaultFolderId?.trim() || undefined;
+    if (defaultFolderName !== undefined) update.defaultFolderName = defaultFolderName?.trim() || undefined;
+
+    if (mapping) {
+      const known = new Set(DRIVE_DOCUMENTS.map((d) => d.key));
+      const clean: Record<string, { folderId: string; folderName?: string }> = {};
+      for (const [key, value] of Object.entries(mapping)) {
+        if (!known.has(key)) continue;
+        const folderId = String(value?.folderId ?? '').trim();
+        if (!folderId) continue;
+        clean[key] = { folderId, folderName: value?.folderName?.trim() || undefined };
+      }
+      update.mapping = clean;
+    }
+
+    if (!Object.keys(update).length) {
+      res.status(400).json({ error: 'Nothing to update.' });
+      return;
+    }
+
+    try {
+      const config = await DriveConfig.findByIdAndUpdate(id, update, { returnDocument: 'after' });
+      if (!config) {
+        res.status(404).json({ error: 'Configuration not found.' });
+        return;
+      }
+      res.json(driveConfigJson(config));
+    } catch (err) {
+      console.error('[admin/drive/:id] update', err);
+      res.status(500).json({ error: 'Failed to update the Drive configuration.' });
+    }
+  },
+);
+
+router.delete(
+  '/drive/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid configuration id.' });
+      return;
+    }
+
+    try {
+      const inUse = await OnboardingAuth.countDocuments({ driveConfig: id, completed: false });
+      if (inUse && req.query.force !== 'true') {
+        res.status(409).json({
+          error: `${inUse} onboarding${inUse === 1 ? '' : 's'} still point at this Drive sync and their documents would stop being filed.`,
+          reason: 'in_use',
+          onboardings: inUse,
+        });
+        return;
+      }
+
+      const config = await DriveConfig.findByIdAndDelete(id);
+      if (!config) {
+        res.status(404).json({ error: 'Configuration not found.' });
+        return;
+      }
+
+      await OnboardingAuth.updateMany({ driveConfig: id }, { $unset: { driveConfig: 1 } });
+      res.json({ id, deleted: true });
+    } catch (err) {
+      console.error('[admin/drive/:id] delete', err);
+      res.status(500).json({ error: 'Failed to remove the Drive configuration.' });
+    }
+  },
+);
+
+router.post(
+  '/onboardings/:id/drive-sync',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive, Permission.ManageOnboardings),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid onboarding id.' });
+      return;
+    }
+
+    const result = await pushOnboardingToDrive(id);
+    if (result.synced) {
+      res.json({ id, synced: true, uploaded: result.uploaded, skipped: result.skipped, failed: result.failed });
+      return;
+    }
+
+    const messages: Record<string, string> = {
+      not_configured: 'This onboarding is not linked to a Drive sync.',
+      no_data: 'This onboarding has no submitted data yet.',
+      nothing_mapped: 'No document type on that Drive configuration has a folder, so there was nothing to file.',
+      failed: result.error ?? 'The upload to Drive failed.',
+    };
+    res.status(400).json({ id, synced: false, reason: result.reason, error: messages[result.reason] });
   },
 );
 
@@ -1521,6 +1775,9 @@ router.get('/onboardings', requireAdminAuth, requirePermission(Permission.ViewOn
           expirationDate: auth.expirationDate,
           lastReminderAt: auth.lastReminderAt ?? null,
           reminderCount: auth.reminderCount ?? 0,
+          driveConfigured: !!auth.driveConfig,
+          driveSyncedAt: auth.driveSyncedAt ?? null,
+          driveError: auth.driveError ?? null,
           createdAt: auth.createdAt,
         };
       })

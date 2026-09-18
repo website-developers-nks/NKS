@@ -211,22 +211,26 @@ async function resolveExtraDocNames(auth: IOnboardingAuth, data: IOnboardingData
   }
 }
 
-export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId | string): Promise<boolean> {
+export type SheetAppendResult =
+  | { appended: true }
+  | { appended: false; reason: 'not_configured' | 'no_data' | 'failed'; error?: string };
+
+export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId | string): Promise<SheetAppendResult> {
   try {
     const auth = await OnboardingAuth.findById(onboardingAuthId)
       .populate<{ user: IUser }>('user', 'firstName lastName email');
 
-    if (!auth?.sheetConfig) return false;
+    if (!auth?.sheetConfig) return { appended: false, reason: 'not_configured' };
 
     if (!isGoogleSheetsConfigured()) {
       console.warn('[onboarding-sheet] skipped: Google Sheets is not configured.');
-      return false;
+      return { appended: false, reason: 'failed', error: 'Google Sheets is not configured on the server.' };
     }
 
     const config = await SheetConfig.findById(auth.sheetConfig);
     if (!config) {
       console.warn('[onboarding-sheet] skipped: the configured sheet no longer exists.');
-      return false;
+      return { appended: false, reason: 'not_configured' };
     }
 
     const data = await OnboardingData.findOne({ onboardingAuthId: auth._id })
@@ -234,7 +238,7 @@ export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId |
 
     if (!data) {
       console.warn('[onboarding-sheet] skipped: no submitted data found.');
-      return false;
+      return { appended: false, reason: 'no_data' };
     }
 
     await resolveExtraDocNames(auth, data);
@@ -247,14 +251,14 @@ export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId |
         { _id: config._id },
         { lastAppendAt: new Date(), $inc: { appendCount: 1 }, $unset: { lastError: 1 } },
       );
-      return true;
+      return { appended: true };
     } catch (err) {
       console.error('[onboarding-sheet] append failed', err);
       await SheetConfig.updateOne({ _id: config._id }, { lastError: (err as Error).message });
-      return false;
+      return { appended: false, reason: 'failed', error: (err as Error).message };
     }
   } catch (err) {
     console.error('[onboarding-sheet]', err);
-    return false;
+    return { appended: false, reason: 'failed', error: (err as Error).message };
   }
 }

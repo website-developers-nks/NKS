@@ -131,7 +131,7 @@
       'admin-manage-users-card': ['manage_users', 'manage_permissions'],
       'admin-register-onboarding-card': ['manage_onboardings'],
       'admin-view-onboardings-card': ['view_onboarding_list', 'view_onboarding_results', 'manage_onboardings'],
-      'admin-manage-sheets-card': ['manage_sheets']
+      'admin-integrations-card': ['manage_sheets', 'manage_drive']
     };
 
     function showDashboard(user) {
@@ -321,6 +321,14 @@
       if (item.status === 'completed') {
         if (can('view_onboarding_results')) {
           menuItems.push({ label: 'View Submitted Data', onSelect: function () { openOnboardingData(item); } });
+        }
+
+        if (item.driveConfigured && can('manage_drive')) {
+          menuItems.push({
+            label: item.driveSyncedAt ? 'Re-file to Drive' : 'File to Drive',
+            keepOpen: true,
+            onSelect: function (entry) { syncOnboardingToDrive(item, entry); }
+          });
         }
       } else if (canViewProgress()) {
         menuItems.push({ label: 'View Progress', onSelect: function () { openOnboardingProgress(item); } });
@@ -638,14 +646,514 @@
         });
     }
 
-    var manageSheetsCard = document.getElementById('admin-manage-sheets-card');
-    if (manageSheetsCard) {
-      manageSheetsCard.addEventListener('click', function () {
+
+    var driveList = document.getElementById('drive-list');
+    var driveConfigs = [];
+    var driveDocuments = [];
+    var driveMappingConfig = null;
+    var driveMappingDraft = {};
+    var driveServiceAccount = null;
+
+    function renderDriveRow(config) {
+      var row = document.createElement('div');
+      row.className = 'onboarding-row';
+
+      var info = document.createElement('div');
+      info.className = 'onboarding-row-info';
+
+      var name = document.createElement('div');
+      name.className = 'onboarding-row-name';
+      name.textContent = config.name;
+      info.appendChild(name);
+
+      var metaParts = [config.mappedCount + ' of ' + driveDocuments.length + ' document types mapped'];
+      if (config.defaultFolderName) metaParts.push('Default: ' + config.defaultFolderName);
+      metaParts.push(config.fileCount + ' file' + (config.fileCount === 1 ? '' : 's') + ' filed');
+      if (config.lastSyncAt) metaParts.push('Last ' + new Date(config.lastSyncAt).toLocaleString());
+
+      var meta = document.createElement('div');
+      meta.className = 'onboarding-row-meta';
+      meta.textContent = metaParts.join(' · ');
+      info.appendChild(meta);
+
+      if (!config.mappedCount && !config.defaultFolderId) {
+        var warn = document.createElement('div');
+        warn.className = 'onboarding-row-key';
+        warn.textContent = 'No folders set, so nothing would be filed.';
+        info.appendChild(warn);
+      }
+
+      if (config.lastError) {
+        var error = document.createElement('div');
+        error.className = 'onboarding-row-key';
+        error.style.color = '#c62828';
+        error.textContent = config.lastError;
+        info.appendChild(error);
+      }
+
+      row.appendChild(info);
+
+      var actions = document.createElement('div');
+      actions.className = 'onboarding-row-actions';
+      actions.appendChild(window.NKSRowMenu.build([
+        { label: 'Edit folders', onSelect: function () { openDriveMapping(config); } },
+        { label: 'Remove', danger: true, keepOpen: true, onSelect: function (entry) { removeDriveConfig(config, entry); } }
+      ]));
+      row.appendChild(actions);
+      return row;
+    }
+
+    function loadDriveConfigs() {
+      if (driveList) setListMessage(driveList, 'Loading…');
+
+      return fetch(API_BASE + '/drive', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !result.data) {
+            handleApiFailure(result);
+            if (driveList) setListMessage(driveList, 'Could not load Drive configurations.');
+            return;
+          }
+
+          driveConfigs = result.data.configs || [];
+          driveDocuments = result.data.documents || [];
+          driveServiceAccount = result.data.serviceAccount || null;
+
+          var warning = document.getElementById('drive-config-warning');
+          if (warning) {
+            if (result.data.configured) {
+              clearFormStatus(warning);
+            } else {
+              setFormStatus(warning, 'Google credentials are not configured on the server. Set GOOGLE_SA_EMAIL and GOOGLE_SA_PRIVATE_KEY.', 'error');
+            }
+          }
+
+          if (!driveList) return;
+          driveList.innerHTML = '';
+          if (!driveConfigs.length) {
+            setListMessage(driveList, 'No Drive sync yet. Add one below.');
+            return;
+          }
+          driveConfigs.forEach(function (config) { driveList.appendChild(renderDriveRow(config)); });
+        })
+        .catch(function (err) {
+          console.error('[admin] drive fetch failed:', err);
+          if (driveList) setListMessage(driveList, 'Could not load Drive configurations.');
+        });
+    }
+
+    function removeDriveConfig(config, btn, force) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Removing…';
+
+      fetch(API_BASE + '/drive/' + encodeURIComponent(config.id) + (force ? '?force=true' : ''), {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (handleApiFailure(result)) return;
+
+          if (result.status === 409 && result.data && result.data.reason === 'in_use') {
+            if (window.confirm(result.data.error + '\n\nRemove it anyway?')) removeDriveConfig(config, btn, true);
+            return;
+          }
+          if (result.status !== 200) {
+            showToast((result.data && result.data.error) || 'Could not remove the Drive sync.', 'error');
+            return;
+          }
+          showToast('Drive sync removed.', 'success');
+          loadDriveConfigs();
+        })
+        .catch(function (err) {
+          console.error('[admin] drive delete failed:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showToast('Could not remove the Drive sync.', 'error');
+        });
+    }
+
+    // ---- Integrations chooser ----
+    //
+    // One tile on the dashboard; each integration is a row here. Adding another
+    // later means one more entry in this list, not another dashboard tile.
+
+    var SHEETS_ICON =
+      '<svg viewBox="0 0 48 66" role="img" aria-hidden="true">' +
+        '<path fill="#0F9D58" d="M29.5 0H4.5A4.5 4.5 0 0 0 0 4.5v57A4.5 4.5 0 0 0 4.5 66h39a4.5 4.5 0 0 0 4.5-4.5V18.5z"/>' +
+        '<path fill="#0B8043" d="M29.5 0v14a4.5 4.5 0 0 0 4.5 4.5h14z"/>' +
+        '<path fill="#F1F1F1" d="M11 27h26v22H11z"/>' +
+        '<path fill="#0F9D58" d="M13 29h10v4H13zm12 0h10v4H25zM13 35h10v4H13zm12 0h10v4H25zM13 41h10v4H13zm12 0h10v4H25z"/>' +
+      '</svg>';
+
+    var DRIVE_ICON =
+      '<svg viewBox="0 0 87.3 78" role="img" aria-hidden="true">' +
+        '<path fill="#0066da" d="M6.6 66.85 10.45 73.5a9 9 0 0 0 3.3 3.3l13.75-23.8H0a9.06 9.06 0 0 0 1.2 4.5z"/>' +
+        '<path fill="#00ac47" d="M43.65 25 29.9 1.2a9 9 0 0 0-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z"/>' +
+        '<path fill="#ea4335" d="M73.55 76.8a9 9 0 0 0 3.3-3.3l1.6-2.75 7.65-13.25a9.06 9.06 0 0 0 1.2-4.5H59.8l5.85 11.5z"/>' +
+        '<path fill="#00832d" d="M43.65 25 57.4 1.2A9.06 9.06 0 0 0 52.9 0H34.4a9.06 9.06 0 0 0-4.5 1.2z"/>' +
+        '<path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8a9.06 9.06 0 0 0 4.5 1.2h50.8a9.06 9.06 0 0 0 4.5-1.2z"/>' +
+        '<path fill="#ffba00" d="M73.4 26.5 60.7 4.5a9 9 0 0 0-3.3-3.3L43.65 25 59.8 53h27.45a9.06 9.06 0 0 0-1.2-4.5z"/>' +
+      '</svg>';
+
+    var INTEGRATIONS = [
+      {
+        id: 'sheets',
+        name: 'Google Sheets',
+        description: 'Append each completed onboarding as a row.',
+        permission: 'manage_sheets',
+        icon: SHEETS_ICON,
+        open: function () { openSheetsModal(); }
+      },
+      {
+        id: 'drive',
+        name: 'Google Drive',
+        description: 'File uploaded documents into Drive folders.',
+        permission: 'manage_drive',
+        icon: DRIVE_ICON,
+        open: function () { openDriveModal(); }
+      }
+    ];
+
+    var integrationList = document.getElementById('integration-list');
+
+    function renderIntegrations() {
+      if (!integrationList) return;
+      integrationList.innerHTML = '';
+
+      var allowed = INTEGRATIONS.filter(function (entry) { return can(entry.permission); });
+
+      if (!allowed.length) {
+        setListMessage(integrationList, 'Your permission group does not allow managing any integration.');
+        return;
+      }
+
+      allowed.forEach(function (entry) {
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'integration-row';
+
+        row.innerHTML =
+          '<span class="integration-row-icon">' + entry.icon + '</span>' +
+          '<span class="integration-row-text"><span class="integration-row-name"></span>' +
+          '<span class="integration-row-desc"></span></span>' +
+          '<span class="integration-row-go" aria-hidden="true">&#8594;</span>';
+
+        row.querySelector('.integration-row-name').textContent = entry.name;
+        row.querySelector('.integration-row-desc').textContent = entry.description;
+        row.addEventListener('click', entry.open);
+
+        integrationList.appendChild(row);
+      });
+    }
+
+    var integrationsCard = document.getElementById('admin-integrations-card');
+    if (integrationsCard) {
+      integrationsCard.addEventListener('click', function () {
+        showModal('admin-integrations-modal');
+        renderIntegrations();
+      });
+    }
+
+    // The drill-down modals replace the chooser, so each offers a way back.
+    Array.prototype.forEach.call(document.querySelectorAll('[data-integrations-back]'), function (btn) {
+      btn.addEventListener('click', function () {
+        showModal('admin-integrations-modal');
+        renderIntegrations();
+      });
+    });
+
+    function openDriveModal() {
+      showModal('admin-drive-modal');
+      if (addDriveForm) addDriveForm.reset();
+      if (addDriveStatus) clearFormStatus(addDriveStatus);
+      loadDriveConfigs();
+    }
+
+    var addDriveForm = document.getElementById('admin-add-drive-form');
+    var addDriveSubmitBtn = document.getElementById('admin-add-drive-submit');
+    var addDriveStatus = document.getElementById('admin-add-drive-status');
+
+    if (addDriveForm) {
+      addDriveForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearFormStatus(addDriveStatus);
+
+        var payload = {
+          name: document.getElementById('drive-name').value.trim(),
+          defaultFolder: document.getElementById('drive-default-folder').value.trim()
+        };
+        if (!payload.name) {
+          setFormStatus(addDriveStatus, 'A name is required.', 'error');
+          return;
+        }
+
+        var originalText = addDriveSubmitBtn.textContent;
+        addDriveSubmitBtn.disabled = true;
+        addDriveSubmitBtn.textContent = 'Checking folder…';
+
+        fetch(API_BASE + '/drive', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(parseJson)
+          .then(function (result) {
+            if (handleApiFailure(result)) return;
+            if (result.status === 201 && result.data && result.data.id) {
+              addDriveForm.reset();
+              showToast('Drive sync added. Set the folders next.', 'success');
+              loadDriveConfigs().then(function () {
+                var created = driveConfigs.filter(function (c) { return c.id === result.data.id; })[0];
+                if (created) openDriveMapping(created);
+              });
+              return;
+            }
+            setFormStatus(addDriveStatus, (result.data && result.data.error) || 'Could not add the Drive sync.', 'error');
+          })
+          .catch(function (err) {
+            console.error('[admin] drive create failed:', err);
+            setFormStatus(addDriveStatus, 'Could not add the Drive sync.', 'error');
+          })
+          .finally(function () {
+            addDriveSubmitBtn.disabled = false;
+            addDriveSubmitBtn.textContent = originalText;
+          });
+      });
+    }
+
+    // ---- Folder mapping editor ----
+
+    var driveMappingModal = document.getElementById('admin-drive-mapping-modal');
+    var driveMappingList = document.getElementById('drive-mapping-list');
+    var driveMappingIntro = document.getElementById('drive-mapping-intro');
+    var driveMappingNote = document.getElementById('drive-mapping-note');
+    var driveMappingStatus = document.getElementById('drive-mapping-status');
+    var driveSaveMappingBtn = document.getElementById('drive-save-mapping-btn');
+
+    function closeDriveMapping() {
+      if (driveMappingModal) driveMappingModal.hidden = true;
+      driveMappingConfig = null;
+    }
+
+    if (driveMappingModal) {
+      Array.prototype.forEach.call(driveMappingModal.querySelectorAll('[data-modal-close]'), function (el) {
+        el.addEventListener('click', closeDriveMapping);
+      });
+    }
+
+    // Each row checks its own folder against Drive: the link is resolved to a
+    // real folder and its name shown, which is also where a missing share or a
+    // My Drive folder (no service-account storage) gets caught.
+    function verifyDriveFolder(key, value, statusEl, nameEl, refreshBtn) {
+      statusEl.textContent = 'Checking…';
+      statusEl.classList.remove('is-error');
+      if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('is-spinning');
+      }
+
+      var done = function () {
+        if (!refreshBtn) return;
+        refreshBtn.disabled = false;
+        refreshBtn.classList.remove('is-spinning');
+      };
+
+      fetch(API_BASE + '/drive/check-folder', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: value })
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) return;
+
+          if (result.status !== 200 || !result.data || !result.data.id) {
+            statusEl.textContent = (result.data && result.data.error) || 'Could not read that folder.';
+            statusEl.classList.add('is-error');
+            delete driveMappingDraft[key];
+            return;
+          }
+
+          driveMappingDraft[key] = { folderId: result.data.id, folderName: result.data.name };
+          nameEl.textContent = result.data.name;
+          statusEl.textContent = result.data.warning || 'Shared Drive folder ✓';
+          statusEl.classList.toggle('is-error', !!result.data.warning);
+        })
+        .catch(function (err) {
+          console.error('[admin] folder check failed:', err);
+          statusEl.textContent = 'Could not reach Drive.';
+          statusEl.classList.add('is-error');
+        })
+        .finally(done);
+    }
+
+    var REFRESH_ICON_SVG =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 5v6h-6"/></svg>';
+
+    function renderDriveMapping() {
+      if (!driveMappingList) return;
+      driveMappingList.innerHTML = '';
+
+      driveDocuments.forEach(function (docType) {
+        var current = driveMappingDraft[docType.key];
+
+        var row = document.createElement('div');
+        row.className = 'field-map-row' + (current && current.folderId ? ' is-mapped' : '');
+
+        var left = document.createElement('div');
+        left.className = 'field-map-source';
+        var label = document.createElement('span');
+        label.className = 'field-map-label';
+        label.textContent = docType.label;
+        var folderName = document.createElement('span');
+        folderName.className = 'field-map-sub';
+        folderName.textContent = (current && current.folderName) || 'no folder';
+        left.appendChild(label);
+        left.appendChild(folderName);
+
+        var arrow = document.createElement('span');
+        arrow.className = 'field-map-arrow';
+        arrow.textContent = '→';
+
+        var right = document.createElement('div');
+        right.className = 'drive-mapping-target';
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'field-map-input';
+        input.placeholder = 'Drive folder link, or blank for the default';
+        input.value = (current && current.folderId) ? 'https://drive.google.com/drive/folders/' + current.folderId : '';
+
+        var status = document.createElement('span');
+        status.className = 'drive-folder-status';
+
+        // Re-runs the check without having to retype the link - the usual case
+        // is sharing the folder with the service account after a failed check.
+        var refresh = document.createElement('button');
+        refresh.type = 'button';
+        refresh.className = 'drive-folder-refresh';
+        refresh.title = 'Check this folder again';
+        refresh.setAttribute('aria-label', 'Check ' + docType.label + ' folder again');
+        refresh.innerHTML = REFRESH_ICON_SVG;
+        refresh.addEventListener('click', function () {
+          var value = input.value.trim();
+          if (!value) {
+            status.textContent = 'Add a folder link first.';
+            status.classList.add('is-error');
+            return;
+          }
+          verifyDriveFolder(docType.key, value, status, folderName, refresh);
+        });
+
+        input.addEventListener('change', function () {
+          var value = input.value.trim();
+          if (!value) {
+            delete driveMappingDraft[docType.key];
+            folderName.textContent = 'no folder';
+            status.textContent = '';
+            status.classList.remove('is-error');
+            row.classList.remove('is-mapped');
+            return;
+          }
+          row.classList.add('is-mapped');
+          verifyDriveFolder(docType.key, value, status, folderName, refresh);
+        });
+
+        var inputRow = document.createElement('div');
+        inputRow.className = 'drive-folder-input-row';
+        inputRow.appendChild(input);
+        inputRow.appendChild(refresh);
+
+        right.appendChild(inputRow);
+        right.appendChild(status);
+
+        row.appendChild(left);
+        row.appendChild(arrow);
+        row.appendChild(right);
+        driveMappingList.appendChild(row);
+      });
+    }
+
+    function openDriveMapping(config) {
+      driveMappingConfig = config;
+      driveMappingDraft = {};
+      Object.keys(config.mapping || {}).forEach(function (key) {
+        driveMappingDraft[key] = config.mapping[key];
+      });
+
+      if (driveMappingIntro) {
+        driveMappingIntro.textContent = config.defaultFolderName
+          ? 'Give each document a Drive folder link. Anything left blank goes to the default folder, "' + config.defaultFolderName + '".'
+          : 'Give each document a Drive folder link. There is no default folder, so anything left blank is skipped.';
+      }
+      if (driveMappingNote) {
+        if (driveServiceAccount) {
+          setFormStatus(driveMappingNote, 'Share each folder with ' + driveServiceAccount + ' as a Content manager first.', 'success');
+        } else {
+          clearFormStatus(driveMappingNote);
+        }
+      }
+      if (driveMappingStatus) clearFormStatus(driveMappingStatus);
+
+      renderDriveMapping();
+      if (driveMappingModal) driveMappingModal.hidden = false;
+    }
+
+    if (driveSaveMappingBtn) {
+      driveSaveMappingBtn.addEventListener('click', function () {
+        if (!driveMappingConfig) return;
+        clearFormStatus(driveMappingStatus);
+
+        var originalText = driveSaveMappingBtn.textContent;
+        driveSaveMappingBtn.disabled = true;
+        driveSaveMappingBtn.textContent = 'Saving…';
+
+        fetch(API_BASE + '/drive/' + encodeURIComponent(driveMappingConfig.id), {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mapping: driveMappingDraft })
+        })
+          .then(parseJson)
+          .then(function (result) {
+            if (handleApiFailure(result)) return;
+            if (result.status === 200) {
+              showToast('Folders saved.', 'success');
+              closeDriveMapping();
+              loadDriveConfigs();
+              return;
+            }
+            setFormStatus(driveMappingStatus, (result.data && result.data.error) || 'Could not save the folders.', 'error');
+          })
+          .catch(function (err) {
+            console.error('[admin] drive mapping save failed:', err);
+            setFormStatus(driveMappingStatus, 'Could not save the folders.', 'error');
+          })
+          .finally(function () {
+            driveSaveMappingBtn.disabled = false;
+            driveSaveMappingBtn.textContent = originalText;
+          });
+      });
+    }
+
+    function openSheetsModal() {
         showModal('admin-sheets-modal');
         addSheetForm.reset();
         clearFormStatus(addSheetStatus);
         loadSheets();
-      });
     }
 
     var addSheetForm = document.getElementById('admin-add-sheet-form');
@@ -1139,6 +1647,39 @@
 
       docsSection.appendChild(docsGrid);
       container.appendChild(docsSection);
+    }
+
+    function syncOnboardingToDrive(item, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Filing…';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/drive-sync', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (handleApiFailure(result)) return;
+
+          if (result.status === 200 && result.data && result.data.synced) {
+            item.driveSyncedAt = new Date().toISOString();
+            var msg = 'Filed ' + result.data.uploaded + ' document(s) to Drive.';
+            if (result.data.failed) msg += ' ' + result.data.failed + ' failed.';
+            showToast(msg, result.data.failed ? 'error' : 'success');
+            return;
+          }
+          showToast((result.data && result.data.error) || 'Could not file to Drive.', 'error');
+        })
+        .catch(function (err) {
+          console.error('[admin] drive sync failed:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showToast('Could not file to Drive.', 'error');
+        });
     }
 
     var currentExportOnboardingId = null;

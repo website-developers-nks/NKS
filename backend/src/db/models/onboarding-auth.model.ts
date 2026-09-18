@@ -51,6 +51,14 @@ export interface IOnboardingAuth extends Document {
   inviteMessageId?: string;
   inviteSubject?: string;
   sheetConfig?: Types.ObjectId;
+  syncQueuedAt?: Date;
+  syncAttempts: number;
+  sheetSyncedAt?: Date;
+  sheetError?: string;
+  driveConfig?: Types.ObjectId;
+  driveSyncedAt?: Date;
+  driveError?: string;
+  driveFiles?: Map<string, string>;
   extraFields?: ExtraFieldDef[];
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +89,14 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     inviteMessageId: { type: String },
     inviteSubject: { type: String },
     sheetConfig: { type: Schema.Types.ObjectId, ref: 'SheetConfig' },
+    syncQueuedAt: { type: Date },
+    syncAttempts: { type: Number, default: 0 },
+    sheetSyncedAt: { type: Date },
+    sheetError: { type: String },
+    driveConfig: { type: Schema.Types.ObjectId, ref: 'DriveConfig' },
+    driveSyncedAt: { type: Date },
+    driveError: { type: String },
+    driveFiles: { type: Map, of: String, default: undefined },
     extraFields: {
       type: [new Schema<ExtraFieldDef>({
         key: { type: String, required: true },

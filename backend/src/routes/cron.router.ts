@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { timingSafeEqual } from 'crypto';
 import { sendOnboardingReminders } from '../services/onboarding-reminder.service';
 import { sendDueScheduledEmails } from '../services/scheduled-email.service';
+import { runPendingOnboardingSyncs } from '../services/onboarding-sync.service';
 
 const router = Router();
 
@@ -45,8 +46,15 @@ router.get('/scheduled-emails', requireCronSecret, async (_req: Request, res: Re
 
   try {
     const result = await sendDueScheduledEmails();
-    console.log('[cron/scheduled-emails]', { ...result, ms: Date.now() - startedAt });
-    res.json({ ok: true, ...result, ms: Date.now() - startedAt });
+
+    const remainingMs = Math.max(5_000, 22_000 - (Date.now() - startedAt));
+    const sync = await runPendingOnboardingSyncs(remainingMs).catch((err) => {
+      console.error('[cron/scheduled-emails] onboarding sync failed', err);
+      return null;
+    });
+
+    console.log('[cron/scheduled-emails]', { ...result, sync, ms: Date.now() - startedAt });
+    res.json({ ok: true, ...result, sync, ms: Date.now() - startedAt });
   } catch (err) {
     console.error('[cron/scheduled-emails]', err);
     res.status(500).json({ ok: false, error: 'Scheduled email run failed.' });
