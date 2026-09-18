@@ -825,7 +825,7 @@
       {
         id: 'slack',
         name: 'Slack',
-        description: 'Post to a channel when an onboarding is sent, opened, completed or expires.',
+        description: 'Post different events in channels.',
         permission: 'manage_slack',
         icon: SLACK_ICON,
         open: function () { openSlackModal(); }
