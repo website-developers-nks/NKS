@@ -2834,16 +2834,16 @@
     applyPreviewConfig();
     showStep(0);
   } else {
-  var saved = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
-  Object.keys(saved).forEach(function (key) {
-    var field = form.elements[key];
-    if (field && field.type !== 'file') field.value = saved[key];
-  });
-  // full_name is hidden, so the local draft has to be split back out too.
-  splitFullName(saved.full_name);
-  var savedStep = parseInt(localStorage.getItem(STEP_STORAGE_KEY), 10);
-  showStep(isNaN(savedStep) ? 0 : savedStep);
-  loadProgressData();
+    var saved = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
+    Object.keys(saved).forEach(function (key) {
+      var field = form.elements[key];
+      if (field && field.type !== 'file') field.value = saved[key];
+    });
+    // full_name is hidden, so the local draft has to be split back out too.
+    splitFullName(saved.full_name);
+    var savedStep = parseInt(localStorage.getItem(STEP_STORAGE_KEY), 10);
+    showStep(isNaN(savedStep) ? 0 : savedStep);
+    loadProgressData();
   }
 
   function applyPreviewConfig() {

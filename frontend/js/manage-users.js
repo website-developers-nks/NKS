@@ -1195,8 +1195,8 @@
           // Keeps the menu open: deleteUser writes progress into this element.
           keepOpen: true,
           onSelect: function (item) {
-          var label = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email;
-          if (!window.confirm('Delete ' + label + ' (' + user.email + ')?')) return;
+            var label = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email;
+            if (!window.confirm('Delete ' + label + ' (' + user.email + ')?')) return;
             deleteUser(user, item, false);
           }
         });

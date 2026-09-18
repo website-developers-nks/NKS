@@ -1150,10 +1150,10 @@
     }
 
     function openSheetsModal() {
-        showModal('admin-sheets-modal');
-        addSheetForm.reset();
-        clearFormStatus(addSheetStatus);
-        loadSheets();
+      showModal('admin-sheets-modal');
+      addSheetForm.reset();
+      clearFormStatus(addSheetStatus);
+      loadSheets();
     }
 
     var addSheetForm = document.getElementById('admin-add-sheet-form');

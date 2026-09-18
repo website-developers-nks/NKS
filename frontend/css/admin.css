@@ -366,6 +366,10 @@ body {
   margin-top: 22px;
 }
 
+.ro-attachments-group {
+  margin-top: 22px;
+}
+
 .ro-field-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
