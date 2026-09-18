@@ -883,6 +883,7 @@
     var slackEventsBox = document.getElementById('slack-events');
     var slackConfigs = [];
     var slackEvents = [];
+    var slackDefaultBot = null;
 
     function renderSlackEventChecklist(selected) {
       if (!slackEventsBox) return;
@@ -935,7 +936,9 @@
 
       var name = document.createElement('div');
       name.className = 'onboarding-row-name';
-      name.textContent = config.name + (config.channelLabel ? ' · ' + config.channelLabel : '');
+      name.textContent = config.name
+        + (config.channelLabel ? ' · ' + config.channelLabel : '')
+        + (config.channelId ? '  ' + config.channelId : '');
       info.appendChild(name);
 
       var labels = config.events.map(function (key) {
@@ -947,6 +950,7 @@
       meta.className = 'onboarding-row-meta';
       meta.textContent = [
         config.enabled ? labels.length + ' event' + (labels.length === 1 ? '' : 's') : 'Paused',
+        config.usesDefaultBot ? 'default bot' : 'own bot',
         config.notifyCount + ' sent',
         config.lastNotifiedAt ? 'Last ' + new Date(config.lastNotifiedAt).toLocaleString() : null
       ].filter(Boolean).join(' · ');
@@ -1007,6 +1011,9 @@
 
           slackConfigs = result.data.configs || [];
           slackEvents = result.data.events || [];
+          slackDefaultBot = result.data.defaultBot || { configured: false };
+
+          syncSlackBotChoice();
           renderSlackEventChecklist(['onboarding_completed', 'onboarding_expired']);
 
           if (!slackList) return;
@@ -1102,14 +1109,50 @@
       });
     }
 
-    var slackWebhookInfoBtn = document.getElementById('slack-webhook-info-btn');
-    var slackWebhookInfo = document.getElementById('slack-webhook-info');
+    var slackUseOwnBot = document.getElementById('slack-use-own-bot');
+    var slackBotBlock = document.getElementById('slack-bot-block');
+    var slackDefaultBotNote = document.getElementById('slack-default-bot-note');
 
-    if (slackWebhookInfoBtn && slackWebhookInfo) {
-      slackWebhookInfoBtn.addEventListener('click', function () {
-        var open = slackWebhookInfo.hidden;
-        slackWebhookInfo.hidden = !open;
-        slackWebhookInfoBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    function syncSlackBotChoice() {
+      var loaded = !!slackDefaultBot;
+      var working = !!(slackDefaultBot && slackDefaultBot.configured && !slackDefaultBot.error);
+
+      if (slackUseOwnBot && loaded) {
+        if (!working) {
+          slackUseOwnBot.checked = true;
+          slackUseOwnBot.disabled = true;
+        } else {
+          if (slackUseOwnBot.disabled) slackUseOwnBot.checked = false;
+          slackUseOwnBot.disabled = false;
+        }
+      }
+
+      var own = slackUseOwnBot ? slackUseOwnBot.checked : true;
+      if (slackBotBlock) slackBotBlock.hidden = !own;
+
+      if (!slackDefaultBotNote) return;
+
+      if (!loaded) {
+        slackDefaultBotNote.textContent = '';
+      } else if (working) {
+        slackDefaultBotNote.textContent = own ? '' : 'Posting as default bot.';
+      } else if (slackDefaultBot.configured) {
+        slackDefaultBotNote.textContent = 'The default bot is not working: ' + slackDefaultBot.error;
+      } else {
+        slackDefaultBotNote.textContent = 'No default bot on the server.';
+      }
+    }
+
+    if (slackUseOwnBot) slackUseOwnBot.addEventListener('change', syncSlackBotChoice);
+
+    var slackBotInfoBtn = document.getElementById('slack-bot-info-btn');
+    var slackBotInfo = document.getElementById('slack-bot-info');
+
+    if (slackBotInfoBtn && slackBotInfo) {
+      slackBotInfoBtn.addEventListener('click', function () {
+        var open = slackBotInfo.hidden;
+        slackBotInfo.hidden = !open;
+        slackBotInfoBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
     }
 
@@ -1121,6 +1164,8 @@
       showModal('admin-slack-modal');
       if (addSlackForm) addSlackForm.reset();
       if (addSlackStatus) clearFormStatus(addSlackStatus);
+      if (slackUseOwnBot) slackUseOwnBot.disabled = false;
+      syncSlackBotChoice();
       loadSlackConfigs();
     }
 
@@ -1132,12 +1177,23 @@
         var payload = {
           name: document.getElementById('slack-name').value.trim(),
           channelLabel: document.getElementById('slack-channel').value.trim(),
-          webhookUrl: document.getElementById('slack-webhook').value.trim(),
+          botToken: (slackUseOwnBot && slackUseOwnBot.checked)
+            ? document.getElementById('slack-bot-token').value.trim()
+            : '',
+          channelId: document.getElementById('slack-channel-id').value.trim(),
           events: chosenSlackEvents()
         };
 
-        if (!payload.name || !payload.webhookUrl) {
-          setFormStatus(addSlackStatus, 'A name and the webhook URL are both required.', 'error');
+        if (!payload.name) {
+          setFormStatus(addSlackStatus, 'A name is required.', 'error');
+          return;
+        }
+        if (!payload.channelId) {
+          setFormStatus(addSlackStatus, 'A channel ID is required.', 'error');
+          return;
+        }
+        if (slackUseOwnBot && slackUseOwnBot.checked && !payload.botToken) {
+          setFormStatus(addSlackStatus, 'Enter the bot token, or untick "Use a different bot".', 'error');
           return;
         }
         if (!payload.events.length) {

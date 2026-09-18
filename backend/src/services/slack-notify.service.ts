@@ -1,37 +1,18 @@
 import { Types } from 'mongoose';
-import { SlackConfig, SlackEvent } from '../db/models/slack-config.model';
+import { SlackConfig, ISlackConfig, SlackEvent } from '../db/models/slack-config.model';
 import { OnboardingAuth, IOnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { IUser } from '../db/models/user.model';
-import { postToSlack, SlackMessage } from '../lib/slack';
-
-async function notify(event: SlackEvent, build: () => SlackMessage): Promise<void> {
-  try {
-    const configs = await SlackConfig.find({ enabled: true, events: event }).lean();
-    if (!configs.length) return;
-
-    const message = build();
-
-    await Promise.all(configs.map(async (config) => {
-      try {
-        await postToSlack(config.webhookUrl, message);
-        await SlackConfig.updateOne(
-          { _id: config._id },
-          { lastNotifiedAt: new Date(), $inc: { notifyCount: 1 }, $unset: { lastError: 1 } },
-        );
-      } catch (err) {
-        console.error('[slack-notify]', event, (err as Error).message);
-        await SlackConfig.updateOne({ _id: config._id }, { lastError: (err as Error).message });
-      }
-    }));
-  } catch (err) {
-    console.error('[slack-notify] fan-out failed', err);
-  }
-}
+import { postToSlack, SlackMessage, SlackTarget, defaultBotToken } from '../lib/slack';
 
 const LOCATION_LABELS: Record<string, string> = {
   gurugram: 'Gurugram',
   gift_city: 'GIFT City',
   dubai: 'Dubai',
+};
+
+const COMPANY_LABELS: Record<string, string> = {
+  nksecurities: 'NK Securities Research',
+  'nk securities research & tech': 'NKS Research & Technology',
 };
 
 const EXPIRY_REASONS: Record<string, string> = {
@@ -44,101 +25,179 @@ const EXPIRY_REASONS: Record<string, string> = {
   [OnboardingExpiryReason.AdminExpired]: 'an administrator ended it',
 };
 
+export function targetOf(config: ISlackConfig): SlackTarget {
+  const token = config.botToken || defaultBotToken();
+  if (!token) {
+    throw new Error('No Slack bot token: set DEFAULT_BOT_TOKEN, or give this channel its own token.');
+  }
+  return { botToken: token, channelId: config.channelId };
+}
+
 function personOf(auth: IOnboardingAuth): { name: string; email: string } {
   const user = auth.user as IUser | undefined;
   const name = user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '';
   return { name: name || 'Unknown', email: user?.email ?? '' };
 }
 
-function baseFields(auth: IOnboardingAuth) {
-  const person = personOf(auth);
-  return [
-    { label: 'Who', value: person.email ? `${person.name} (${person.email})` : person.name },
-    { label: 'Location', value: LOCATION_LABELS[auth.location] ?? auth.location },
-  ];
+function footer(auth: IOnboardingAuth): string {
+  const company = COMPANY_LABELS[auth.company] ?? auth.company;
+  const key = (auth.onboardingKey ?? '').split('-')[0];
+  return `${company}  ·  ${LOCATION_LABELS[auth.location] ?? auth.location}  ·  \`${key}\``;
 }
 
-async function withUser(onboardingAuthId: Types.ObjectId | string): Promise<IOnboardingAuth | null> {
+function rootMessage(auth: IOnboardingAuth): SlackMessage {
+  return { title: `${personOf(auth).name} Onboarding` };
+}
+
+function errorRootMessage(integration: string): SlackMessage {
+  return { title: `${integration} Sync Errors` };
+}
+
+async function onboardingThread(
+  config: ISlackConfig,
+  auth: IOnboardingAuth,
+  target: SlackTarget,
+): Promise<{ ts?: string; created: boolean }> {
+  const key = String(config._id);
+  const existing = auth.slackThreads instanceof Map ? auth.slackThreads.get(key) : undefined;
+  if (existing) return { ts: existing, created: false };
+
+  const root = await postToSlack(target, rootMessage(auth));
+  if (!root.ts) return { created: false };
+
+  const threads = auth.slackThreads instanceof Map ? new Map(auth.slackThreads) : new Map<string, string>();
+  threads.set(key, root.ts);
+  auth.slackThreads = threads as Map<string, string>;
+  await OnboardingAuth.updateOne({ _id: auth._id }, { $set: { slackThreads: threads } });
+
+  return { ts: root.ts, created: true };
+}
+
+async function errorThread(
+  config: ISlackConfig,
+  integration: string,
+  target: SlackTarget,
+): Promise<string | undefined> {
+  const existing = config.errorThreads instanceof Map ? config.errorThreads.get(integration) : undefined;
+  if (existing) return existing;
+
+  const root = await postToSlack(target, errorRootMessage(integration));
+  if (!root.ts) return undefined;
+
+  const threads = config.errorThreads instanceof Map ? new Map(config.errorThreads) : new Map<string, string>();
+  threads.set(integration, root.ts);
+  await SlackConfig.updateOne({ _id: config._id }, { $set: { errorThreads: threads } });
+
+  return root.ts;
+}
+
+async function markSent(config: ISlackConfig): Promise<void> {
+  await SlackConfig.updateOne(
+    { _id: config._id },
+    { lastNotifiedAt: new Date(), $inc: { notifyCount: 1 }, $unset: { lastError: 1 } },
+  );
+}
+
+async function deliver(
+  event: SlackEvent,
+  auth: IOnboardingAuth,
+  message: SlackMessage,
+): Promise<void> {
+  try {
+    const configs = await SlackConfig.find({ enabled: true, events: event });
+    if (!configs.length) return;
+
+    await Promise.all(configs.map(async (config) => {
+      const target = targetOf(config);
+      try {
+        const thread = await onboardingThread(config, auth, target);
+        await postToSlack(target, message, thread.ts);
+        await markSent(config);
+      } catch (err) {
+        console.error('[slack-notify]', event, (err as Error).message);
+        await SlackConfig.updateOne({ _id: config._id }, { lastError: (err as Error).message });
+      }
+    }));
+  } catch (err) {
+    console.error('[slack-notify] fan-out failed', err);
+  }
+}
+
+async function load(onboardingAuthId: Types.ObjectId | string): Promise<IOnboardingAuth | null> {
   return OnboardingAuth.findById(onboardingAuthId)
     .populate<{ user: IUser }>('user', 'firstName lastName email');
 }
 
 export async function notifyOnboardingRegistered(onboardingAuthId: Types.ObjectId | string): Promise<void> {
-  const auth = await withUser(onboardingAuthId);
+  const auth = await load(onboardingAuthId);
   if (!auth) return;
 
-  await notify(SlackEvent.OnboardingRegistered, () => ({
+  await deliver(SlackEvent.OnboardingRegistered, auth, {
+    compact: true,
     emoji: ':envelope_with_arrow:',
-    text: `Onboarding sent to ${personOf(auth).name}`,
+    title: '*Invite sent*',
     fields: [
-      ...baseFields(auth),
       { label: 'Expires', value: auth.expirationDate ? auth.expirationDate.toISOString().slice(0, 10) : 'no date set' },
+      { label: 'Session length', value: `${Math.round((auth.ttl ?? 0) / 3600)}h` },
     ],
-  }));
+    context: footer(auth),
+  });
 }
 
 export async function notifyOnboardingOpened(onboardingAuthId: Types.ObjectId | string): Promise<void> {
-  const auth = await withUser(onboardingAuthId);
+  const auth = await load(onboardingAuthId);
   if (!auth) return;
 
-  await notify(SlackEvent.OnboardingOpened, () => ({
+  await deliver(SlackEvent.OnboardingOpened, auth, {
+    compact: true,
     emoji: ':eyes:',
-    text: `${personOf(auth).name} started their onboarding`,
-    fields: baseFields(auth),
-  }));
+    title: '*Started filling the form*',
+    context: footer(auth),
+  });
 }
 
 export async function notifyOnboardingCompleted(onboardingAuthId: Types.ObjectId | string): Promise<void> {
-  const auth = await withUser(onboardingAuthId);
+  const auth = await load(onboardingAuthId);
   if (!auth) return;
 
-  await notify(SlackEvent.OnboardingCompleted, () => ({
+  await deliver(SlackEvent.OnboardingCompleted, auth, {
+    compact: true,
     emoji: ':white_check_mark:',
-    text: `${personOf(auth).name} completed their onboarding`,
-    fields: [
-      ...baseFields(auth),
-      { label: 'Documents', value: String(auth.docCount ?? 0) },
-    ],
-    context: 'Their answers and documents are filed by the next sync run.',
-  }));
+    title: '*Completed* — everything submitted',
+    fields: [{ label: 'Documents', value: String(auth.docCount ?? 0) }],
+    context: footer(auth),
+  });
 }
 
 export async function notifyOnboardingExpired(
   onboardingAuthId: Types.ObjectId | string,
   reason?: string,
 ): Promise<void> {
-  const auth = await withUser(onboardingAuthId);
+  const auth = await load(onboardingAuthId);
   if (!auth) return;
-
   const why = EXPIRY_REASONS[reason ?? ''] ?? 'the link is no longer usable';
 
-  await notify(SlackEvent.OnboardingExpired, () => ({
+  await deliver(SlackEvent.OnboardingExpired, auth, {
+    compact: true,
     emoji: ':no_entry:',
-    text: `${personOf(auth).name}'s onboarding expired`,
-    fields: [
-      ...baseFields(auth),
-      { label: 'Why', value: why },
-      { label: 'Completed first', value: auth.completed ? 'yes' : 'no' },
-    ],
-    context: auth.completed ? undefined : 'They will need a fresh link to finish.',
-  }));
+    title: `*Expired* — ${why}`,
+    context: auth.completed ? footer(auth) : `They need a fresh link to finish.  ·  ${footer(auth)}`,
+  });
 }
 
 export async function notifyReminderSent(
   onboardingAuthId: Types.ObjectId | string,
   reminderCount: number,
 ): Promise<void> {
-  const auth = await withUser(onboardingAuthId);
+  const auth = await load(onboardingAuthId);
   if (!auth) return;
 
-  await notify(SlackEvent.ReminderSent, () => ({
+  await deliver(SlackEvent.ReminderSent, auth, {
+    compact: true,
     emoji: ':bell:',
-    text: `Reminder sent to ${personOf(auth).name}`,
-    fields: [
-      ...baseFields(auth),
-      { label: 'Reminders so far', value: String(reminderCount) },
-    ],
-  }));
+    title: `*Reminder sent* — nudge ${reminderCount}`,
+    context: footer(auth),
+  });
 }
 
 export async function notifySyncFailed(
@@ -146,24 +205,42 @@ export async function notifySyncFailed(
   integration: string,
   error: string,
 ): Promise<void> {
-  const auth = await withUser(onboardingAuthId);
+  const auth = await load(onboardingAuthId);
   if (!auth) return;
+  const person = personOf(auth);
 
-  await notify(SlackEvent.SyncFailed, () => ({
+  const message: SlackMessage = {
+    compact: true,
     emoji: ':warning:',
-    text: `${integration} sync failed for ${personOf(auth).name}`,
-    fields: [
-      ...baseFields(auth),
-      { label: 'Error', value: error.slice(0, 300) },
-    ],
-    context: 'Retry it from View Onboardings once the cause is fixed.',
-  }));
+    title: `*${person.name}* — ${integration} sync failed`,
+    fields: [{ label: 'Error', value: error.slice(0, 300) }],
+    context: `Retry from View Onboardings once it is fixed.  ·  ${footer(auth)}`,
+  };
+
+  try {
+    const configs = await SlackConfig.find({ enabled: true, events: SlackEvent.SyncFailed });
+    if (!configs.length) return;
+
+    await Promise.all(configs.map(async (config) => {
+      const target = targetOf(config);
+      try {
+        const ts = await errorThread(config, integration, target);
+        await postToSlack(target, message, ts);
+        await markSent(config);
+      } catch (err) {
+        console.error('[slack-notify] sync_failed', (err as Error).message);
+        await SlackConfig.updateOne({ _id: config._id }, { lastError: (err as Error).message });
+      }
+    }));
+  } catch (err) {
+    console.error('[slack-notify] fan-out failed', err);
+  }
 }
 
-export async function sendSlackTest(webhookUrl: string): Promise<void> {
-  await postToSlack(webhookUrl, {
+export async function sendSlackTest(target: SlackTarget): Promise<void> {
+  await postToSlack(target, {
     emoji: ':satellite_antenna:',
-    text: 'Onboarding portal connected',
-    context: 'If you can read this, notifications will arrive here.',
+    title: 'Onboarding portal connected',
+    summary: 'Each person gets one thread here, and every update replies inside it.',
   });
 }

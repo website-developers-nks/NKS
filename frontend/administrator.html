@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789733311">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789733311">
+  <link rel="stylesheet" href="css/styles.css?v=1789736864">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789736864">
 
-  <link rel="stylesheet" href="css/admin.css?v=1789733311">
+  <link rel="stylesheet" href="css/admin.css?v=1789736864">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -344,7 +344,6 @@
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
       <button type="button" class="integration-back" data-integrations-back>&#8592; Integrations</button>
       <h3>Slack</h3>
-      <p class="body-text">Post a message to a channel when something happens to an onboarding.</p>
 
       <div class="onboardings-list users-list" id="slack-list"></div>
 
@@ -360,36 +359,47 @@
           <p class="markdown-hint">Only a label, so the list says where messages land.</p>
         </div>
         <div class="form-group">
+          <label for="slack-channel-id">Channel ID</label>
+          <input type="text" id="slack-channel-id" name="channelId" placeholder="C0123456789" maxlength="40" required>
+          <p class="markdown-hint">Slack &rarr; the channel &rarr; <strong>About</strong> &rarr; Channel ID at the bottom.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Notify about</label>
+          <div class="permissions-checklist" id="slack-events"></div>
+        </div>
+        <div class="form-group form-checkbox">
+          <input type="checkbox" id="slack-use-own-bot">
+          <label for="slack-use-own-bot">Use a different bot</label>
+        </div>
+        <p class="markdown-hint" id="slack-default-bot-note"></p>
+
+        <div class="form-group" id="slack-bot-block" hidden>
           <div class="label-row">
-            <label for="slack-webhook">Incoming Webhook URL</label>
-            <button type="button" class="info-icon-btn" id="slack-webhook-info-btn"
-                    aria-expanded="false" aria-controls="slack-webhook-info"
-                    aria-label="How to get a webhook URL" title="How to get a webhook URL">
+            <label for="slack-bot-token">Bot token</label>
+            <button type="button" class="info-icon-btn" id="slack-bot-info-btn"
+                    aria-expanded="false" aria-controls="slack-bot-info"
+                    aria-label="How to get a bot token" title="How to get a bot token">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
               </svg>
             </button>
           </div>
-          <input type="password" id="slack-webhook" name="webhookUrl" autocomplete="new-password"
-                 placeholder="https://hooks.slack.com/services/..." required>
+          <input type="password" id="slack-bot-token" name="botToken" autocomplete="new-password" placeholder="xoxb-...">
 
-          <div class="field-info" id="slack-webhook-info" hidden>
-            <p class="field-info-lead">Create the webhook from a <strong>Slack app</strong>:</p>
+          <div class="field-info" id="slack-bot-info" hidden>
+            <p class="field-info-lead">Create the bot from a <strong>Slack app</strong>:</p>
             <ol>
               <li>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a> and choose <strong>Create New App</strong>.</li>
               <li>Pick <strong>Blank app</strong>.</li>
-              <li>Name it (for example <strong>NKS Onboarding</strong>) and choose your workspace.</li>
-              <li>In the left sidebar open <strong>Incoming Webhooks</strong> and toggle it <strong>On</strong>.</li>
-              <li>Click <strong>Add New Webhook to Workspace</strong>, choose the channel, and click <strong>Allow</strong>.</li>
-              <li>Copy the <code>https://hooks.slack.com/services/&hellip;</code> URL it shows and paste it above.</li>
+              <li>Name it and choose your workspace.</li>
+              <li>Open <strong>OAuth &amp; Permissions</strong> and under <strong>Bot Token Scopes</strong> add <code>chat:write</code>, then <code>chat:write.public</code> so it can post without being invited.</li>
+              <li>Click <strong>Install to Workspace</strong> and allow it.</li>
+              <li>Copy the <strong>Bot User OAuth Token</strong> (<code>xoxb-&hellip;</code>) and paste it above.</li>
             </ol>
-            <p class="field-info-note">A test message is sent to the channel before this saves, so a wrong URL fails here rather than at the first real event.</p>
           </div>
         </div>
-        <div class="form-group">
-          <label>Notify about</label>
-          <div class="permissions-checklist" id="slack-events"></div>
-        </div>
+
         <button type="submit" class="form-submit" id="admin-add-slack-submit">Connect Channel</button>
         <div class="form-status" id="admin-add-slack-status" role="alert" aria-live="polite"></div>
       </form>
@@ -517,11 +527,11 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1789733311"></script>
-  <script src="js/row-menu.js?v=1789733311"></script>
-  <script src="js/bundle-b.js?v=1789733311"></script>
-  <script src="js/modal-expand.js?v=1789733311"></script>
-  <script src="js/admin.js?v=1789733311"></script>
+  <script src="js/vendor/three.min.js?v=1789736864"></script>
+  <script src="js/row-menu.js?v=1789736864"></script>
+  <script src="js/bundle-b.js?v=1789736864"></script>
+  <script src="js/modal-expand.js?v=1789736864"></script>
+  <script src="js/admin.js?v=1789736864"></script>
 
 </body>
 </html>

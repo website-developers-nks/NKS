@@ -43,7 +43,8 @@ import {
 } from '../services/admin-attachment.service';
 import { notifyOnboardingRegistered, sendSlackTest } from '../services/slack-notify.service';
 import { SlackConfig, ISlackConfig, SlackEvent, SLACK_EVENT_LABELS } from '../db/models/slack-config.model';
-import { isWebhookUrl } from '../lib/slack';
+import { isBotToken, hasDefaultBot, defaultBotToken, describeBot } from '../lib/slack';
+import { targetOf } from '../services/slack-notify.service';
 
 const router = Router();
 
@@ -853,6 +854,8 @@ function slackConfigJson(config: ISlackConfig) {
   return {
     id: (config._id as object).toString(),
     name: config.name,
+    channelId: config.channelId ?? null,
+    usesDefaultBot: !config.botToken,
     channelLabel: config.channelLabel ?? null,
     events: config.events ?? [],
     enabled: config.enabled !== false,
@@ -870,7 +873,20 @@ router.get(
   async (_req: Request, res: Response) => {
     try {
       const configs = await SlackConfig.find().sort({ name: 1 });
+
+      let defaultBot: { configured: boolean; name?: string; team?: string; error?: string } = {
+        configured: hasDefaultBot(),
+      };
+      if (defaultBot.configured) {
+        try {
+          defaultBot = { configured: true, ...(await describeBot(defaultBotToken()!)) };
+        } catch (err) {
+          defaultBot = { configured: true, error: (err as Error).message };
+        }
+      }
+
       res.json({
+        defaultBot,
         events: Object.values(SlackEvent).map((key) => ({ key, ...SLACK_EVENT_LABELS[key] })),
         configs: configs.map(slackConfigJson),
       });
@@ -886,21 +902,34 @@ router.post(
   requireAdminAuth,
   requirePermission(Permission.ManageSlack),
   async (req: Request, res: Response) => {
-    const { name, webhookUrl, channelLabel, events } = req.body as {
-      name?: string; webhookUrl?: string; channelLabel?: string; events?: string[];
+    const { name, botToken, channelId, channelLabel, events } = req.body as {
+      name?: string; botToken?: string; channelId?: string; channelLabel?: string; events?: string[];
     };
 
     if (!name?.trim()) {
       res.status(400).json({ error: 'A name is required.' });
       return;
     }
-    if (!isWebhookUrl(webhookUrl ?? '')) {
-      res.status(400).json({ error: 'That is not a Slack Incoming Webhook URL (https://hooks.slack.com/services/...).' });
+    const ownToken = botToken?.trim();
+    if (ownToken && !isBotToken(ownToken)) {
+      res.status(400).json({ error: 'That is not a Slack bot token (xoxb-...).' });
+      return;
+    }
+    if (!ownToken && !hasDefaultBot()) {
+      res.status(400).json({
+        error: 'No default bot on the server. Set DEFAULT_BOT_TOKEN, or give this channel its own token.',
+      });
+      return;
+    }
+    if (!channelId?.trim()) {
+      res.status(400).json({ error: 'A channel ID is required.' });
       return;
     }
 
+    const target = { botToken: ownToken || defaultBotToken()!, channelId: channelId.trim() };
+
     try {
-      await sendSlackTest(webhookUrl!.trim());
+      await sendSlackTest(target);
     } catch (err) {
       res.status(400).json({ error: (err as Error).message });
       return;
@@ -912,7 +941,8 @@ router.post(
     try {
       const config = await SlackConfig.create({
         name: name.trim(),
-        webhookUrl: webhookUrl!.trim(),
+        botToken: ownToken || undefined,
+        channelId: target.channelId,
         channelLabel: channelLabel?.trim() || undefined,
         events: chosen,
         createdBy: req.admin!._id as Types.ObjectId,
@@ -936,8 +966,9 @@ router.patch(
       return;
     }
 
-    const { name, channelLabel, events, enabled, webhookUrl } = req.body as {
-      name?: string; channelLabel?: string; events?: string[]; enabled?: boolean; webhookUrl?: string;
+    const { name, channelLabel, events, enabled, botToken, channelId } = req.body as {
+      name?: string; channelLabel?: string; events?: string[]; enabled?: boolean;
+      botToken?: string; channelId?: string;
     };
 
     const update: Record<string, unknown> = {};
@@ -945,13 +976,15 @@ router.patch(
     if (channelLabel !== undefined) update.channelLabel = channelLabel?.trim() || undefined;
     if (typeof enabled === 'boolean') update.enabled = enabled;
 
-    if (webhookUrl?.trim()) {
-      if (!isWebhookUrl(webhookUrl)) {
-        res.status(400).json({ error: 'That is not a Slack Incoming Webhook URL.' });
+    if (botToken?.trim()) {
+      if (!isBotToken(botToken)) {
+        res.status(400).json({ error: 'That is not a Slack bot token (xoxb-...).' });
         return;
       }
-      update.webhookUrl = webhookUrl.trim();
+      update.botToken = botToken.trim();
     }
+
+    if (channelId?.trim()) update.channelId = channelId.trim();
 
     if (events) {
       const known = new Set(Object.values(SlackEvent) as string[]);
@@ -994,7 +1027,7 @@ router.post(
         res.status(404).json({ error: 'Configuration not found.' });
         return;
       }
-      await sendSlackTest(config.webhookUrl);
+      await sendSlackTest(targetOf(config));
       await SlackConfig.updateOne({ _id: config._id }, { $unset: { lastError: 1 } });
       res.json({ id, sent: true });
     } catch (err) {

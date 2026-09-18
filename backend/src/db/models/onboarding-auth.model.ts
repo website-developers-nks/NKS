@@ -55,6 +55,7 @@ export interface IOnboardingAuth extends Document {
   syncAttempts: number;
   sheetSyncedAt?: Date;
   sheetError?: string;
+  slackThreads?: Map<string, string>;
   driveConfig?: Types.ObjectId;
   driveSyncedAt?: Date;
   driveError?: string;
@@ -93,6 +94,7 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     syncAttempts: { type: Number, default: 0 },
     sheetSyncedAt: { type: Date },
     sheetError: { type: String },
+    slackThreads: { type: Map, of: String, default: undefined },
     driveConfig: { type: Schema.Types.ObjectId, ref: 'DriveConfig' },
     driveSyncedAt: { type: Date },
     driveError: { type: String },

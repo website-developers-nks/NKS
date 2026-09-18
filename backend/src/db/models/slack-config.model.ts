@@ -38,11 +38,13 @@ export const SLACK_EVENT_LABELS: Record<SlackEvent, { label: string; hint: strin
 
 export interface ISlackConfig extends Document {
   name: string;
-  webhookUrl: string;
+  botToken?: string;
+  channelId: string;
   channelLabel?: string;
   events: SlackEvent[];
   enabled: boolean;
   createdBy?: Types.ObjectId;
+  errorThreads?: Map<string, string>;
   lastNotifiedAt?: Date;
   lastError?: string;
   notifyCount: number;
@@ -53,11 +55,13 @@ export interface ISlackConfig extends Document {
 const SlackConfigSchema = new Schema<ISlackConfig>(
   {
     name: { type: String, required: true, trim: true },
-    webhookUrl: { type: String, required: true, trim: true },
+    botToken: { type: String, trim: true },
+    channelId: { type: String, required: true, trim: true },
     channelLabel: { type: String, trim: true },
     events: { type: [{ type: String, enum: Object.values(SlackEvent) }], default: [] },
     enabled: { type: Boolean, default: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    errorThreads: { type: Map, of: String, default: undefined },
     lastNotifiedAt: { type: Date },
     lastError: { type: String },
     notifyCount: { type: Number, default: 0 },
