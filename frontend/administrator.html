@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789728513">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789728513">
+  <link rel="stylesheet" href="css/styles.css?v=1789733311">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789733311">
 
-  <link rel="stylesheet" href="css/admin.css?v=1789728513">
+  <link rel="stylesheet" href="css/admin.css?v=1789733311">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -239,7 +239,6 @@
     </div>
   </div>
 
-
   <div class="admin-modal" id="admin-view-onboardings-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="View onboardings">
@@ -328,6 +327,72 @@
       <p class="body-text">Choose where a completed onboarding's answers and documents are sent.</p>
 
       <div class="integration-list" id="integration-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="admin-slack-modal" data-expandable hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Slack notifications">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <button type="button" class="integration-back" data-integrations-back>&#8592; Integrations</button>
+      <h3>Slack</h3>
+      <p class="body-text">Post a message to a channel when something happens to an onboarding.</p>
+
+      <div class="onboardings-list users-list" id="slack-list"></div>
+
+      <form class="admin-form" id="admin-add-slack-form" novalidate>
+        <h4 class="email-detail-body-heading">Add a channel</h4>
+        <div class="form-group">
+          <label for="slack-name">Name</label>
+          <input type="text" id="slack-name" name="name" placeholder="HR notifications" maxlength="80" required>
+        </div>
+        <div class="form-group">
+          <label for="slack-channel">Channel (optional)</label>
+          <input type="text" id="slack-channel" name="channelLabel" placeholder="#people-ops" maxlength="80">
+          <p class="markdown-hint">Only a label, so the list says where messages land.</p>
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="slack-webhook">Incoming Webhook URL</label>
+            <button type="button" class="info-icon-btn" id="slack-webhook-info-btn"
+                    aria-expanded="false" aria-controls="slack-webhook-info"
+                    aria-label="How to get a webhook URL" title="How to get a webhook URL">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+              </svg>
+            </button>
+          </div>
+          <input type="password" id="slack-webhook" name="webhookUrl" autocomplete="new-password"
+                 placeholder="https://hooks.slack.com/services/..." required>
+
+          <div class="field-info" id="slack-webhook-info" hidden>
+            <p class="field-info-lead">Create the webhook from a <strong>Slack app</strong>:</p>
+            <ol>
+              <li>Go to <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a> and choose <strong>Create New App</strong>.</li>
+              <li>Pick <strong>Blank app</strong>.</li>
+              <li>Name it (for example <strong>NKS Onboarding</strong>) and choose your workspace.</li>
+              <li>In the left sidebar open <strong>Incoming Webhooks</strong> and toggle it <strong>On</strong>.</li>
+              <li>Click <strong>Add New Webhook to Workspace</strong>, choose the channel, and click <strong>Allow</strong>.</li>
+              <li>Copy the <code>https://hooks.slack.com/services/&hellip;</code> URL it shows and paste it above.</li>
+            </ol>
+            <p class="field-info-note">A test message is sent to the channel before this saves, so a wrong URL fails here rather than at the first real event.</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notify about</label>
+          <div class="permissions-checklist" id="slack-events"></div>
+        </div>
+        <button type="submit" class="form-submit" id="admin-add-slack-submit">Connect Channel</button>
+        <div class="form-status" id="admin-add-slack-status" role="alert" aria-live="polite"></div>
+      </form>
     </div>
   </div>
 
@@ -452,11 +517,11 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1789728513"></script>
-  <script src="js/row-menu.js?v=1789728513"></script>
-  <script src="js/bundle-b.js?v=1789728513"></script>
-  <script src="js/modal-expand.js?v=1789728513"></script>
-  <script src="js/admin.js?v=1789728513"></script>
+  <script src="js/vendor/three.min.js?v=1789733311"></script>
+  <script src="js/row-menu.js?v=1789733311"></script>
+  <script src="js/bundle-b.js?v=1789733311"></script>
+  <script src="js/modal-expand.js?v=1789733311"></script>
+  <script src="js/admin.js?v=1789733311"></script>
 
 </body>
 </html>

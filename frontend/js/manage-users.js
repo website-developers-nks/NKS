@@ -73,7 +73,8 @@
     view_onboarding_docs: { label: 'View Onboarding Docs', hint: 'Open documents uploaded during onboarding' },
     export_onboarding_data: { label: 'Export Onboarding Data', hint: 'Download a full response, documents included' },
     manage_sheets: { label: 'Manage Google Sheets', hint: 'Add and remove the sheets onboarding data is written to' },
-    manage_drive: { label: 'Manage Google Drive', hint: 'Choose the Drive folders uploaded documents are filed into' }
+    manage_drive: { label: 'Manage Google Drive', hint: 'Choose the Drive folders uploaded documents are filed into' },
+    manage_slack: { label: 'Manage Slack Notifications', hint: 'Connect channels and choose which events are posted' }
   };
 
   function permissionLabel(key) {

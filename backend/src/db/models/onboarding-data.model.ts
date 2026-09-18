@@ -51,8 +51,6 @@ export interface IChildInfo {
 }
 
 export interface IOrg {
-  // Minted by the form so a relieving letter can be addressed to one org and
-  // survive the array being rewritten on every sync.
   orgId?: string;
   name: string;
   duration: string;
@@ -81,7 +79,6 @@ export interface IOnboardingData extends Document {
   personalEmail: string;
   mobile: string;
   dob: Date;
-  // Given when the real date of birth differs from the one on the ID proof.
   preferredDob?: Date;
   nationality?: string;
   gender?: Gender;
@@ -189,7 +186,7 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     bloodGroup: { type: String, enum: Object.values(BloodGroup) },
     emergencyContactName: { type: String, trim: true },
     emergencyContactNumber: { type: String, trim: true },
-    passportNumber: { type: String, trim: true }, // Aadhar (India) / passport number the ID proof is based on
+    passportNumber: { type: String, trim: true },
     panNumber: { type: String, uppercase: true, trim: true },
     passportNo: { type: String, uppercase: true, trim: true },
     uanNumber: { type: String, trim: true },

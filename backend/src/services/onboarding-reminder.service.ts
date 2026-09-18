@@ -1,9 +1,11 @@
+import { Types } from 'mongoose';
 import { OnboardingAuth, Company, IOnboardingAuth } from '../db/models/onboarding-auth.model';
 import { IUser } from '../db/models/user.model';
 import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingReminderEmail } from '../email/emails/onboarding-reminder.email';
 import { getCompanyName } from '../email/base.email';
 import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
+import { notifyReminderSent } from './slack-notify.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -147,4 +149,8 @@ async function markReminded(auth: IOnboardingAuth, now: Date, counted: boolean):
       ? { lastReminderAt: now, $inc: { reminderCount: 1 } }
       : { lastReminderAt: now },
   );
+
+  if (counted) {
+    await notifyReminderSent(auth._id as Types.ObjectId, (auth.reminderCount ?? 0) + 1);
+  }
 }

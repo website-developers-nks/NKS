@@ -55,7 +55,6 @@ function extension(doc: IDoc): string {
   return match ? match[0] : '';
 }
 
-
 function fileNameFor(person: string, label: string, doc: IDoc, onboardingKey: string): string {
   const clean = (s: string) => s.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim();
   const tag = (onboardingKey ?? '').split('-')[0] || 'unknown';
@@ -130,7 +129,6 @@ function folderFor(config: IDriveConfig, key: string): string | null {
 export type DriveSyncResult =
   | { synced: true; uploaded: number; skipped: number; failed: number }
   | { synced: false; reason: 'not_configured' | 'no_data' | 'nothing_mapped' | 'failed'; error?: string };
-
 
 export async function pushOnboardingToDrive(
   onboardingAuthId: Types.ObjectId | string,

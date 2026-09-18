@@ -13,6 +13,7 @@ import { verifyDocToken } from '../lib/doc-links';
 import { Doc, DocType } from '../db/models/doc.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { OnboardingAuth, IOnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { expireOnboarding } from '../services/onboarding-expiry.service';
 
 const router = Router();
 
@@ -46,8 +47,6 @@ function resolveDocTarget(auth: IOnboardingAuth, docType: string):
     return { config: DOC_TYPE_CONFIG[docType as DocType], field: DOC_TYPE_FIELD[docType as DocType] };
   }
 
-  // One relieving letter per previous organization - stored on the org itself,
-  // so there is no single field to write; field: null says "just bank the file".
   if (isOrgDocType(docType)) {
     return { config: IMAGE_OR_PDF_CONFIG, field: null };
   }
@@ -62,7 +61,6 @@ function resolveDocTarget(auth: IOnboardingAuth, docType: string):
 
   return null;
 }
-
 
 const STATUS_MAP: Record<string, number> = {
   file_too_large: 413,
@@ -168,10 +166,7 @@ router.post(
         { returnDocument: 'after' }
       );
       if (updated && updated.docCount >= Limits.MAX_DOC_UPLOADS) {
-        await OnboardingAuth.updateOne(
-          { _id: authId },
-          { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManyDocUploads } },
-        );
+        await expireOnboarding(authId, OnboardingExpiryReason.TooManyDocUploads);
       }
 
       res.status(201).json(result);
@@ -208,8 +203,6 @@ router.post(
 
       await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: doc.path })).catch(() => undefined);
 
-      // An org's letter lives in the orgs array the form owns - it drops the
-      // reference itself and syncs, so there is nothing to unset here.
       if (target.field !== null) {
         await OnboardingData.updateOne({ onboardingAuthId: authId }, { $unset: { [target.field]: 1 } });
       }
@@ -251,10 +244,7 @@ router.get(
 
       // Check if presign limit exceeded and mark onboarding as expired
       if (doc.presignUrlCount >= Limits.MAX_PRESIGN_PER_DOC) {
-        await OnboardingAuth.updateOne(
-          { _id: authId },
-          { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManyPresignRequests } },
-        );
+        await expireOnboarding(authId, OnboardingExpiryReason.TooManyPresignRequests);
       }
 
       const url = await getSignedUrl(

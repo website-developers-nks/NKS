@@ -15,6 +15,8 @@ import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
 import { Doc } from '../db/models/doc.model';
 import { orgDocType } from '../lib/org-docs';
 import { extraFieldName, validateExtraValue, ExtraFieldType } from '../lib/extra-fields';
+import { expireOnboarding } from '../services/onboarding-expiry.service';
+import { notifyOnboardingCompleted } from '../services/slack-notify.service';
 
 const router = Router();
 
@@ -64,7 +66,6 @@ async function extraDocsFor(
   }
   return out;
 }
-
 
 const COOKIE_NAME = 'onboarding-auth';
 const COOKIE_OPTIONS = {
@@ -211,10 +212,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     );
 
     if (authUpdate && authUpdate.submitAttempts >= Limits.MAX_SUBMIT_ATTEMPTS) {
-      await OnboardingAuth.updateOne(
-        { _id: authId },
-        { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManySubmitAttempts } },
-      );
+      await expireOnboarding(authId, OnboardingExpiryReason.TooManySubmitAttempts);
       res.status(429).json({
         submitted: false,
         error: 'Too many submission attempts.',
@@ -335,6 +333,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     ]);
 
     await queueOnboardingSync(authId);
+    await notifyOnboardingCompleted(authId);
 
     const u = req.onboarding!.user as IUser;
     const sender = getSenderByCompany(auth.auth.company);

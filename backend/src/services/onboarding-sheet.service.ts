@@ -144,9 +144,6 @@ function extraColumns(
   });
 }
 
-// A relieving letter now belongs to an organization rather than to the
-// onboarding, so the sheet grows one column per org that has one. Headings are
-// appended as they first appear, the same way extra fields are handled.
 function orgLetterColumns(
   data: IOnboardingData,
 ): Array<{ header: string; value: string | number | null }> {
@@ -176,7 +173,6 @@ export function buildSheetRecord(
 
   return fixed.concat(orgLetterColumns(data)).concat(extraColumns(auth, data));
 }
-
 
 const DOC_FIELDS = [
   'orgs.relievingLetterDoc',

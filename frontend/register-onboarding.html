@@ -26,10 +26,10 @@
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
   </noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789728513">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789728513">
+  <link rel="stylesheet" href="css/styles.css?v=1789733311">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789733311">
 
-  <link rel="stylesheet" href="css/admin.css?v=1789728513">
+  <link rel="stylesheet" href="css/admin.css?v=1789733311">
 </head>
 
 <body>
@@ -91,18 +91,15 @@
     <button type="button" class="mobile-menu-logout" id="admin-logout-btn-mobile">LOG OUT</button>
   </div>
 
-
   <section class="admin-section">
     <div class="container">
 
-      <!-- Shown while GET /api/admin/auth is in flight -->
       <div class="admin-card admin-panel text-center" id="ro-loading-panel">
         <div class="admin-icon is-spinner"></div>
         <h2 class="display-sm mb-16">Checking Session…</h2>
         <p class="body-text">Hold tight while we confirm your admin session.</p>
       </div>
 
-      <!-- Shown when GET /api/admin/auth reports auth: true -->
       <div class="admin-card admin-card-wide admin-panel ro-panel" id="ro-content-panel" hidden>
         <a href="administrator.html" class="admin-back-link">&#8592; Back to dashboard</a>
 
@@ -280,7 +277,6 @@
         </form>
       </div>
 
-      <!-- Shown when the session is fine but the group lacks manage_onboardings -->
       <div class="admin-card admin-panel text-center" id="ro-no-permission-panel" hidden>
         <h2 class="display-sm mb-16">No Access</h2>
         <p class="body-text mb-24">Your permission group does not allow registering onboardings. Ask an administrator
@@ -288,7 +284,6 @@
         <a href="administrator.html" class="form-submit">Back to dashboard</a>
       </div>
 
-      <!-- Shown when the session check itself fails -->
       <div class="admin-card admin-panel text-center" id="ro-error-panel" hidden>
         <h2 class="display-sm mb-16">Something Went Wrong</h2>
         <p class="body-text mb-24">We could not check your admin session. Please try again.</p>
@@ -477,15 +472,14 @@
     </div>
   </div>
 
-
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1789728513"></script>
-  <script src="js/vendor/marked.js?v=1789728513"></script>
-  <script src="js/markdown-email.js?v=1789728513"></script>
-  <script src="js/bundle-b.js?v=1789728513"></script>
-  <script src="js/modal-expand.js?v=1789728513"></script>
-  <script src="js/register-onboarding.js?v=1789728513"></script>
+  <script src="js/vendor/three.min.js?v=1789733311"></script>
+  <script src="js/vendor/marked.js?v=1789733311"></script>
+  <script src="js/markdown-email.js?v=1789733311"></script>
+  <script src="js/bundle-b.js?v=1789733311"></script>
+  <script src="js/modal-expand.js?v=1789733311"></script>
+  <script src="js/register-onboarding.js?v=1789733311"></script>
 
 </body>
 

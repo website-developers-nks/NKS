@@ -4,6 +4,9 @@ import { Otp, OtpType } from '../db/models/otp.model';
 import { IUser } from '../db/models/user.model';
 import { getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OtpEmail } from '../email/emails/otp.email';
+import { expireOnboarding } from './onboarding-expiry.service';
+import { Types } from 'mongoose';
+import { notifyOnboardingOpened } from './slack-notify.service';
 
 const OTP_TTL_SECONDS = Number(process.env.OTP_TTL ?? 600);
 const RESEND_COOLDOWN_SECONDS = Number(process.env.OTP_RESEND_COOLDOWN ?? 60);
@@ -52,7 +55,7 @@ export async function verifyOnboardingAuth(
   if (!record) return { auth: false, reason: 'not_found' };
   if (record.expired) return { auth: false, reason: 'expired', expiredReason: record.expiredReason };
   if (record.expirationDate && record.expirationDate.getTime() < Date.now()) {
-    await OnboardingAuth.updateOne({ _id: record._id }, { expired: true, expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed });
+    await expireOnboarding(record._id as Types.ObjectId, OnboardingExpiryReason.LinkExpirationDatePassed);
     return { auth: false, reason: 'expired', expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed };
   }
   if (!record.lastVerified) return { auth: false, reason: 'unverified' };
@@ -112,10 +115,14 @@ export async function verifyOnboardingOtp(
 
   const authKey = randomBytes(32).toString('hex');
 
+  const firstOpen = !auth.lastVerified;
+
   await Promise.all([
     Otp.deleteMany({ onboardingKey }),
     OnboardingAuth.updateOne({ _id: auth._id }, { authKey, lastVerified: new Date(), otpSendCount: 0 }),
   ]);
+
+  if (firstOpen) await notifyOnboardingOpened(auth._id as Types.ObjectId);
 
   return { verified: true, authKey };
 }

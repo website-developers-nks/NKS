@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { OnboardingAuth } from '../db/models/onboarding-auth.model';
 import { appendOnboardingToSheet } from './onboarding-sheet.service';
 import { pushOnboardingToDrive } from './onboarding-drive.service';
-
+import { notifySyncFailed } from './slack-notify.service';
 
 const MAX_ATTEMPTS = 5;
 
@@ -22,7 +22,6 @@ export interface SyncRunResult {
   filesUploaded: number;
   timedOut: boolean;
 }
-
 
 export async function runPendingOnboardingSyncs(budgetMs = 20_000): Promise<SyncRunResult> {
   const startedAt = Date.now();
@@ -51,7 +50,12 @@ export async function runPendingOnboardingSyncs(budgetMs = 20_000): Promise<Sync
 
     result.considered += 1;
     const id = auth._id as Types.ObjectId;
-    await OnboardingAuth.updateOne({ _id: id }, { $inc: { syncAttempts: 1 } });
+    const attempt = await OnboardingAuth.findOneAndUpdate(
+      { _id: id },
+      { $inc: { syncAttempts: 1 } },
+      { returnDocument: 'after', projection: { syncAttempts: 1 } },
+    );
+    const isLastAttempt = (attempt?.syncAttempts ?? MAX_ATTEMPTS) >= MAX_ATTEMPTS;
 
     let sheetDone = !auth.sheetConfig || !!auth.sheetSyncedAt;
     let driveDone = !auth.driveConfig || !!auth.driveSyncedAt;
@@ -67,10 +71,9 @@ export async function runPendingOnboardingSyncs(budgetMs = 20_000): Promise<Sync
         result.sheetsAppended += 1;
         sheetDone = true;
       } else if (sheet.reason === 'failed') {
-        // Leave it queued - a Sheets outage should not lose the row.
         await OnboardingAuth.updateOne({ _id: id }, { $set: { sheetError: sheet.error } });
+        if (isLastAttempt) await notifySyncFailed(id, 'Google Sheets', sheet.error ?? 'unknown error');
       } else {
-        // No sheet configured, or nothing to write. Retrying changes nothing.
         sheetDone = true;
       }
     }
@@ -80,8 +83,13 @@ export async function runPendingOnboardingSyncs(budgetMs = 20_000): Promise<Sync
       if (drive.synced) {
         result.filesUploaded += drive.uploaded;
         driveDone = drive.failed === 0;
+        if (drive.failed && isLastAttempt) {
+          await notifySyncFailed(id, 'Google Drive', `${drive.failed} document(s) did not upload`);
+        }
       } else if (drive.reason === 'not_configured' || drive.reason === 'nothing_mapped') {
         driveDone = true;
+      } else if (isLastAttempt) {
+        await notifySyncFailed(id, 'Google Drive', drive.error ?? 'unknown error');
       }
     }
 

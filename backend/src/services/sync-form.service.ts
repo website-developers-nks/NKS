@@ -5,6 +5,7 @@ import { Doc } from '../db/models/doc.model';
 import { Limits } from '../lib/limits';
 import { extraFieldName, validateExtraValue } from '../lib/extra-fields';
 import { ORG_ID_PATTERN } from '../lib/org-docs';
+import { expireOnboarding } from './onboarding-expiry.service';
 
 export type FieldResult =
   | { field_name: string; saved: true }
@@ -125,9 +126,6 @@ function orgsValidator(): Validator {
       if (org.role !== undefined && typeof org.role !== 'string') return { ok: false, error: `Item ${i}: role must be a string` };
       if (org.info !== undefined && typeof org.info !== 'string') return { ok: false, error: `Item ${i}: info must be a string` };
 
-      // The form mints orgId and addresses that org's relieving letter with it.
-      // Both are optional so an older client, or an org saved before letters
-      // were per-org, still syncs.
       if (org.orgId !== undefined && (typeof org.orgId !== 'string' || !ORG_ID_PATTERN.test(org.orgId))) {
         return { ok: false, error: `Item ${i}: invalid organization id` };
       }
@@ -257,9 +255,6 @@ export type SyncResult = {
   limitExceeded?: 'sync_requests' | 'field_updates';
 };
 
-// A relieving letter reference is only honoured when the document behind it
-// belongs to this onboarding - otherwise the id is dropped and the org is
-// stored without a letter, which submit-data then reports as missing.
 async function keepOwnOrgDocs(orgs: IOrg[], onboardingKey?: string): Promise<IOrg[]> {
   const ids = orgs
     .map((org) => org.relievingLetterDoc)
@@ -291,10 +286,7 @@ export async function syncFormFields(
   );
 
   if (authUpdate && authUpdate.syncRequestCount >= Limits.MAX_SYNC_REQUESTS) {
-    await OnboardingAuth.updateOne(
-      { _id: onboardingAuthId },
-      { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManySyncRequests } },
-    );
+    await expireOnboarding(onboardingAuthId, OnboardingExpiryReason.TooManySyncRequests);
     return { results: [], limitExceeded: 'sync_requests' };
   }
 
@@ -371,10 +363,7 @@ export async function syncFormFields(
         const field = fieldName.replace('fieldUpdateCounts.', '');
         const count = updated.fieldUpdateCounts.get(field) ?? 0;
         if (count >= Limits.MAX_FIELD_UPDATES) {
-          await OnboardingAuth.updateOne(
-            { _id: onboardingAuthId },
-            { $set: { expired: true, expiredReason: OnboardingExpiryReason.TooManyFieldEdits } },
-          );
+          await expireOnboarding(onboardingAuthId, OnboardingExpiryReason.TooManyFieldEdits);
           return { results, limitExceeded: 'field_updates' };
         }
       }

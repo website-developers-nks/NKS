@@ -118,7 +118,6 @@ export function normalizeExtraFields(input: unknown): ExtraFieldDef[] {
 
 export type ExtraValidation = { ok: true; value: unknown } | { ok: false; error: string };
 
-
 export function validateExtraValue(def: ExtraFieldDef, value: unknown): ExtraValidation {
   const empty = value === undefined || value === null || value === '';
 

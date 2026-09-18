@@ -1,42 +1,8 @@
 (function () {
   'use strict';
-
-  // Register Onboarding page (register-onboarding.html), reached from the
-  // "Register Onboarding" card on administrator.html. Everything here used to
-  // live in a modal on that page; the page owns it now so the form has room and
-  // can be linked to directly. Backed by backend/src/routes/admin.router.ts:
-  //   GET  /api/admin/auth              -> same session check administrator.html does;
-  //                                        anything other than { auth: true } sends the
-  //                                        admin back there to log in. Without
-  //                                        manage_onboardings the form is never shown
-  //   GET  /api/admin/get-user-list     -> manage_onboardings, fills the User picker
-  //   GET  /api/admin/sheets            -> manage_onboardings OR manage_sheets
-  //                                        200 { configured, sheets: [...] } - the sheet
-  //                                        a completed onboarding is appended to
-  //   GET  /api/admin/message-templates -> manage_onboardings OR manage_users
-  //                                        saved markdown for the extra message
-  //   POST /api/admin/message-templates -> manage_onboardings, body { name, content }
-  //   POST /api/admin/attachments       -> manage_onboardings, multipart single "file"
-  //                                        201 { id } - uploaded up front, only the id
-  //                                        travels with the register call
-  //   DELETE /api/admin/attachments/:id -> manage_onboardings
-  //   GET  /api/admin/onboardings/:id/register-data -> manage_onboardings
-  //                                        200 { company, location, ttl, cc, bcc,
-  //                                        extraContent } - prefills this form when
-  //                                        View Onboardings sends someone here with
-  //                                        ?from=<onboardingId> ("Send Again")
-  //   POST /api/admin/register-onboarding -> manage_onboardings
-  //                                        body { userId, location, company, ttl,
-  //                                        expirationDate, title?, sheetId?, cc?, bcc?,
-  //                                        extraContent?, extraContentMarkdown?,
-  //                                        attachmentIds?, extraFields? }
-  //                                        201 { onboardingKey } -> the invite link
   var API_BASE = '/api/admin';
   var ADMIN_PAGE = 'administrator.html';
 
-  // Handoff to onboarding-form.html?preview=1, which this page frames in a
-  // popup. The framed page reads this on load and renders itself with the
-  // location and extra fields chosen here instead of calling the API.
   var PREVIEW_STORAGE_KEY = 'nk-onboarding-form-preview';
 
   function parseJson(res) {
@@ -64,8 +30,6 @@
       window.location.replace(ADMIN_PAGE);
     }
 
-    // The extra-message preview and the extra-info form are the only modals
-    // here, and neither sits on top of another - each just hides itself.
     var markdownPreviewModal = document.getElementById('markdown-preview-modal');
 
     function closeMarkdownPreview() {
@@ -81,8 +45,6 @@
     var formPreviewModal = document.getElementById('form-preview-modal');
     var formPreviewFrame = document.getElementById('form-preview-frame');
 
-    // Dropping the src stops the framed page rather than leaving it running
-    // behind a hidden modal.
     function closeFormPreview() {
       if (formPreviewModal) formPreviewModal.hidden = true;
       if (formPreviewFrame) formPreviewFrame.removeAttribute('src');
@@ -123,8 +85,6 @@
       });
     });
 
-    // ---- Toast notifications (top-right) ----
-
     var toastContainer = document.getElementById('toast-container');
     var TOAST_VISIBLE_MS = 5000;
 
@@ -152,10 +112,6 @@
       setTimeout(dismiss, TOAST_VISIBLE_MS);
     }
 
-    // A 401, or a 403 that means the session isn't an admin session at all,
-    // sends the admin back to the login form. A 403 carrying
-    // 'missing_permission'/'no_permission_group' is a live session that simply
-    // isn't allowed to do this, so it stays on the page and just says so.
     function handleApiFailure(result) {
       if (result.status === 401) {
         goToLogin();
@@ -196,8 +152,6 @@
       return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
     }
 
-    // register-onboarding's cc/bcc accept a single address string or an array -
-    // let the admin type a comma/semicolon-separated list either way.
     function parseEmailListInput(value) {
       if (!value) return undefined;
       var list = value.split(/[,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
@@ -205,14 +159,9 @@
       return list.length === 1 ? list[0] : list;
     }
 
-    // Markdown -> inline-styled email HTML. Lives in js/markdown-email.js so
-    // this page and manage-users.html render admin-authored markdown the same way.
     function markdownToHtml(markdown) {
       return window.NKSMarkdown ? window.NKSMarkdown.toEmailHtml(markdown) : '';
     }
-
-    // ---- The User picker ----
-
 
     var userIdSelect = document.getElementById('ro-user-id');
 
@@ -277,8 +226,6 @@
         });
     }
 
-    // ---- Default invite subject, shown as the Title field's placeholder ----
-
     var titleInput = document.getElementById('ro-title');
     var titleHint = document.getElementById('ro-title-hint');
     var COMPANY_EMAIL_NAMES = {
@@ -314,8 +261,6 @@
     });
 
     if (titleInput) titleInput.addEventListener('input', syncInviteSubjectPlaceholder);
-
-    // ---- Extra info fields ----
 
     var extraFieldsDraft = [];
     var extraFieldsList = document.getElementById('ro-extra-fields-list');
@@ -479,8 +424,6 @@
       });
     }
 
-    // The sheet picker only - adding and removing sheets stays on the
-    // dashboard's Manage Google Sheet card.
     var sheetSelect = document.getElementById('ro-sheet');
     var sheetsCache = [];
 
@@ -561,15 +504,8 @@
         });
     }
 
-    // ---- Markdown toolbar + preview popup for the extra-message field ----
-
     var extraContentInput = document.getElementById('ro-extra-content');
     var markdownPreviewBody = document.getElementById('markdown-preview-body');
-
-    // The popup hosts the full-size editor and the preview on two tabs. Its
-    // textarea is a working copy of the form's own field, mirrored back on
-    // every keystroke, so the form stays the single source of truth for submit
-    // and for saving templates.
 
     var mdEditor = document.getElementById('md-editor');
     var mdTabs = Array.prototype.slice.call(document.querySelectorAll('[data-md-tab]'));
@@ -673,8 +609,6 @@
         var template = templatesCache.filter(function (t) { return t.id === templateSelect.value; })[0];
         if (!template) return;
 
-        // Loading a template overwrites whatever is in the editor, so only ask
-        // when there is actually something to lose.
         var current = extraContentInput.value.trim();
         if (current && current !== template.content.trim() &&
             !window.confirm('Replace the current message with the "' + template.name + '" template?')) {
@@ -686,8 +620,6 @@
         extraContentInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
     }
-
-    // Save-as-template, from the preview popup's header
 
     var saveTemplateBtn = document.getElementById('md-save-template-btn');
     var saveTemplateRow = document.getElementById('md-save-template-row');
@@ -743,7 +675,6 @@
           if (result.status === 201 && result.data && result.data.id) {
             hideTemplateSaveRow();
             showToast('Template saved.', 'success');
-            // Reload so the picker offers it straight away, already selected.
             loadTemplates(result.data.id);
             return;
           }
@@ -763,7 +694,6 @@
     if (saveTemplateConfirmBtn) saveTemplateConfirmBtn.addEventListener('click', saveTemplate);
 
     if (templateNameInput) {
-      // The row lives inside no <form>, so Enter needs wiring by hand.
       templateNameInput.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
           event.preventDefault();
@@ -772,18 +702,12 @@
       });
     }
 
-    // Formatting buttons for both toolbars on this page (inline + expanded),
-    // each targeting its own textarea via data-md-target.
     if (window.NKSMarkdown) window.NKSMarkdown.initToolbars();
-
-    // ---- The register form itself ----
 
     var registerOnboardingForm = document.getElementById('admin-register-onboarding-form');
     var registerOnboardingSubmitBtn = document.getElementById('admin-register-onboarding-submit');
     var registerOnboardingStatus = document.getElementById('admin-register-onboarding-status');
 
-    // Expiration must be at least tomorrow - set min so the date picker itself
-    // blocks today/past dates instead of only catching it on submit.
     var expirationDateInput = document.getElementById('ro-expiration-date');
     if (expirationDateInput) {
       var tomorrow = new Date();
@@ -794,8 +718,6 @@
       expirationDateInput.min = minYear + '-' + minMonth + '-' + minDay;
     }
 
-    // <input type="time"/date"> only open their picker when the calendar/clock
-    // icon itself is clicked - showPicker() lets a click anywhere in the field do it.
     ['ro-ttl', 'ro-expiration-date'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el && typeof el.showPicker === 'function') {
@@ -805,14 +727,9 @@
       }
     });
 
-    // ---- Attachments (upload-first, same idea as the onboarding-form doc
-    // uploads: picking a file uploads it immediately via POST /attachments,
-    // and only the returned id travels with the rest of the register-onboarding
-    // submission - the file bytes themselves are never sent alongside the form data) ----
-
     var attachmentsInput = document.getElementById('ro-attachments');
     var attachmentsList = document.getElementById('ro-attachments-list');
-    var roAttachments = []; // [{ originalName, sizeBytes, id?, uploading?, error? }]
+    var roAttachments = [];
     var roAttachmentsUploading = 0;
 
     function formatAttachmentSize(bytes) {
@@ -864,7 +781,7 @@
       roAttachments = roAttachments.filter(function (a) { return a !== att; });
       renderAttachmentsList();
 
-      if (!att.id) return; // upload never finished (or failed) - nothing to delete server-side
+      if (!att.id) return;
 
       fetch(API_BASE + '/attachments/' + encodeURIComponent(att.id), {
         method: 'DELETE',
@@ -899,8 +816,6 @@
           att.uploading = false;
           roAttachmentsUploading -= 1;
 
-          // Unlike a dead session, a permission failure leaves the admin on the
-          // page - so the row has to stop saying "Uploading…" either way.
           if (handleApiFailure(result)) {
             att.error = 'Upload failed.';
             renderAttachmentsList();
@@ -926,7 +841,7 @@
     if (attachmentsInput) {
       attachmentsInput.addEventListener('change', function () {
         var files = Array.prototype.slice.call(attachmentsInput.files);
-        attachmentsInput.value = ''; // let the same file be re-picked later if removed
+        attachmentsInput.value = '';
         files.forEach(uploadAttachment);
       });
     }
@@ -1027,13 +942,6 @@
           });
       });
     }
-    // ---- Preview the onboarding form ----
-    //
-    // Frames the real onboarding form in preview mode, dressed with whatever is
-    // selected here: the location decides which fields and which document
-    // labels (Aadhar vs Passport) show, and the extra info fields are rendered
-    // into "More Info" exactly as the invited person would see them. Nothing is
-    // registered and nothing is saved - the preview never talks to the API.
 
     var previewFormBtn = document.getElementById('ro-preview-form-btn');
 
@@ -1046,14 +954,10 @@
           return;
         }
 
-        // The form reads the draft straight off the page, so the preview shows
-        // extra fields that have not been registered yet.
         var config = {
           location: location,
           company: document.getElementById('ro-company').value.trim(),
           extraFields: extraFieldsDraft.map(function (field, index) {
-            // Registered fields get their key from the server; a draft needs a
-            // stand-in so the preview can name its inputs.
             return {
               key: 'preview_' + index,
               label: field.label,
@@ -1078,16 +982,12 @@
 
         if (!formPreviewModal || !formPreviewFrame) return;
 
-        // A fresh query each time so reopening reloads the frame and picks up
-        // the config as it stands now.
         formPreviewFrame.src = 'onboarding-form.html?preview=1&t=' + Date.now();
         formPreviewModal.hidden = false;
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
       });
     }
-
-    // ---- "Send Again" from View Onboardings lands here with ?from=<id> ----
 
     function prefillFromOnboarding(onboardingId) {
       fetch(API_BASE + '/onboardings/' + encodeURIComponent(onboardingId) + '/register-data', {
@@ -1125,8 +1025,6 @@
         });
     }
 
-    // ---- Session check ----
-
     var noPermissionPanel = document.getElementById('ro-no-permission-panel');
 
     function checkAuth() {
@@ -1150,8 +1048,6 @@
 
           showLogout(true);
 
-          // Registering is all this page does, so without the permission there
-          // is nothing to show - every call below would 403 anyway.
           if (permissions.indexOf('manage_onboardings') === -1) {
             showPanel('ro-no-permission-panel');
             return;

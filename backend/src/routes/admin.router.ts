@@ -41,6 +41,9 @@ import {
   MAX_ADMIN_ATTACHMENT_BYTES,
   MAX_ADMIN_ATTACHMENTS_PER_EMAIL,
 } from '../services/admin-attachment.service';
+import { notifyOnboardingRegistered, sendSlackTest } from '../services/slack-notify.service';
+import { SlackConfig, ISlackConfig, SlackEvent, SLACK_EVENT_LABELS } from '../db/models/slack-config.model';
+import { isWebhookUrl } from '../lib/slack';
 
 const router = Router();
 
@@ -422,6 +425,8 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       ),
     );
 
+    await notifyOnboardingRegistered(auth._id as Types.ObjectId);
+
     if (invite?.messageId) {
       await OnboardingAuth.updateOne(
         { _id: auth._id },
@@ -699,8 +704,6 @@ router.post(
   },
 );
 
-// Checks one folder before it is saved into a mapping, so a bad share is
-// caught here rather than when a candidate finishes.
 router.post(
   '/drive/check-folder',
   requireAdminAuth,
@@ -843,6 +846,185 @@ router.post(
       failed: result.error ?? 'The upload to Drive failed.',
     };
     res.status(400).json({ id, synced: false, reason: result.reason, error: messages[result.reason] });
+  },
+);
+
+function slackConfigJson(config: ISlackConfig) {
+  return {
+    id: (config._id as object).toString(),
+    name: config.name,
+    channelLabel: config.channelLabel ?? null,
+    events: config.events ?? [],
+    enabled: config.enabled !== false,
+    notifyCount: config.notifyCount ?? 0,
+    lastNotifiedAt: config.lastNotifiedAt ?? null,
+    lastError: config.lastError ?? null,
+    createdAt: config.createdAt,
+  };
+}
+
+router.get(
+  '/slack',
+  requireAdminAuth,
+  requirePermission(Permission.ManageSlack),
+  async (_req: Request, res: Response) => {
+    try {
+      const configs = await SlackConfig.find().sort({ name: 1 });
+      res.json({
+        events: Object.values(SlackEvent).map((key) => ({ key, ...SLACK_EVENT_LABELS[key] })),
+        configs: configs.map(slackConfigJson),
+      });
+    } catch (err) {
+      console.error('[admin/slack]', err);
+      res.status(500).json({ error: 'Failed to fetch Slack configurations.' });
+    }
+  },
+);
+
+router.post(
+  '/slack',
+  requireAdminAuth,
+  requirePermission(Permission.ManageSlack),
+  async (req: Request, res: Response) => {
+    const { name, webhookUrl, channelLabel, events } = req.body as {
+      name?: string; webhookUrl?: string; channelLabel?: string; events?: string[];
+    };
+
+    if (!name?.trim()) {
+      res.status(400).json({ error: 'A name is required.' });
+      return;
+    }
+    if (!isWebhookUrl(webhookUrl ?? '')) {
+      res.status(400).json({ error: 'That is not a Slack Incoming Webhook URL (https://hooks.slack.com/services/...).' });
+      return;
+    }
+
+    try {
+      await sendSlackTest(webhookUrl!.trim());
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+      return;
+    }
+
+    const known = new Set(Object.values(SlackEvent) as string[]);
+    const chosen = (events ?? []).filter((e) => known.has(e)) as SlackEvent[];
+
+    try {
+      const config = await SlackConfig.create({
+        name: name.trim(),
+        webhookUrl: webhookUrl!.trim(),
+        channelLabel: channelLabel?.trim() || undefined,
+        events: chosen,
+        createdBy: req.admin!._id as Types.ObjectId,
+      });
+      res.status(201).json(slackConfigJson(config));
+    } catch (err) {
+      console.error('[admin/slack] create', err);
+      res.status(500).json({ error: 'Failed to save the Slack configuration.' });
+    }
+  },
+);
+
+router.patch(
+  '/slack/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageSlack),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid configuration id.' });
+      return;
+    }
+
+    const { name, channelLabel, events, enabled, webhookUrl } = req.body as {
+      name?: string; channelLabel?: string; events?: string[]; enabled?: boolean; webhookUrl?: string;
+    };
+
+    const update: Record<string, unknown> = {};
+    if (name?.trim()) update.name = name.trim();
+    if (channelLabel !== undefined) update.channelLabel = channelLabel?.trim() || undefined;
+    if (typeof enabled === 'boolean') update.enabled = enabled;
+
+    if (webhookUrl?.trim()) {
+      if (!isWebhookUrl(webhookUrl)) {
+        res.status(400).json({ error: 'That is not a Slack Incoming Webhook URL.' });
+        return;
+      }
+      update.webhookUrl = webhookUrl.trim();
+    }
+
+    if (events) {
+      const known = new Set(Object.values(SlackEvent) as string[]);
+      update.events = events.filter((e) => known.has(e));
+    }
+
+    if (!Object.keys(update).length) {
+      res.status(400).json({ error: 'Nothing to update.' });
+      return;
+    }
+
+    try {
+      const config = await SlackConfig.findByIdAndUpdate(id, update, { returnDocument: 'after' });
+      if (!config) {
+        res.status(404).json({ error: 'Configuration not found.' });
+        return;
+      }
+      res.json(slackConfigJson(config));
+    } catch (err) {
+      console.error('[admin/slack/:id] update', err);
+      res.status(500).json({ error: 'Failed to update the Slack configuration.' });
+    }
+  },
+);
+
+router.post(
+  '/slack/:id/test',
+  requireAdminAuth,
+  requirePermission(Permission.ManageSlack),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid configuration id.' });
+      return;
+    }
+
+    try {
+      const config = await SlackConfig.findById(id);
+      if (!config) {
+        res.status(404).json({ error: 'Configuration not found.' });
+        return;
+      }
+      await sendSlackTest(config.webhookUrl);
+      await SlackConfig.updateOne({ _id: config._id }, { $unset: { lastError: 1 } });
+      res.json({ id, sent: true });
+    } catch (err) {
+      res.status(502).json({ error: (err as Error).message });
+    }
+  },
+);
+
+router.delete(
+  '/slack/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageSlack),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid configuration id.' });
+      return;
+    }
+
+    try {
+      const config = await SlackConfig.findByIdAndDelete(id);
+      if (!config) {
+        res.status(404).json({ error: 'Configuration not found.' });
+        return;
+      }
+      res.json({ id, deleted: true });
+    } catch (err) {
+      console.error('[admin/slack/:id] delete', err);
+      res.status(500).json({ error: 'Failed to remove the Slack configuration.' });
+    }
   },
 );
 
@@ -1410,7 +1592,6 @@ router.patch(
   },
 );
 
-
 const VALID_PERMISSIONS = Object.values(Permission);
 
 function parsePermissions(value: unknown): Permission[] | null {
@@ -1689,7 +1870,6 @@ router.post('/verify-login-otp', loginLimiter, async (req: Request, res: Respons
     res.status(500).json({ error: 'OTP verification failed.' });
   }
 });
-
 
 router.post('/change-password', requireAdminAuth, async (req: Request, res: Response) => {
   const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };

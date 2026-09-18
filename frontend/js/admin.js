@@ -131,7 +131,7 @@
       'admin-manage-users-card': ['manage_users', 'manage_permissions'],
       'admin-register-onboarding-card': ['manage_onboardings'],
       'admin-view-onboardings-card': ['view_onboarding_list', 'view_onboarding_results', 'manage_onboardings'],
-      'admin-integrations-card': ['manage_sheets', 'manage_drive']
+      'admin-integrations-card': ['manage_sheets', 'manage_drive', 'manage_slack']
     };
 
     function showDashboard(user) {
@@ -156,8 +156,6 @@
         openChangePassword(true);
       }
     }
-
-    // ---- Modals (View Onboardings, Manage Google Sheet, change password) ----
 
     var openModal = null;
 
@@ -218,7 +216,6 @@
       toast.addEventListener('click', dismiss);
       setTimeout(dismiss, TOAST_VISIBLE_MS);
     }
-
 
     // ---- View Onboardings (search/filter list + submitted-data viewer) ----
 
@@ -646,7 +643,6 @@
         });
     }
 
-
     var driveList = document.getElementById('drive-list');
     var driveConfigs = [];
     var driveDocuments = [];
@@ -781,10 +777,7 @@
         });
     }
 
-    // ---- Integrations chooser ----
     //
-    // One tile on the dashboard; each integration is a row here. Adding another
-    // later means one more entry in this list, not another dashboard tile.
 
     var SHEETS_ICON =
       '<svg viewBox="0 0 48 66" role="img" aria-hidden="true">' +
@@ -804,6 +797,14 @@
         '<path fill="#ffba00" d="M73.4 26.5 60.7 4.5a9 9 0 0 0-3.3-3.3L43.65 25 59.8 53h27.45a9.06 9.06 0 0 0-1.2-4.5z"/>' +
       '</svg>';
 
+    var SLACK_ICON =
+      '<svg viewBox="0 0 122.8 122.8" role="img" aria-hidden="true">' +
+        '<path fill="#E01E5A" d="M25.8 77.6a12.9 12.9 0 1 1-12.9-12.9h12.9zm6.5 0a12.9 12.9 0 0 1 25.8 0v32.3a12.9 12.9 0 0 1-25.8 0z"/>' +
+        '<path fill="#36C5F0" d="M45.2 25.8a12.9 12.9 0 1 1 12.9-12.9v12.9zm0 6.5a12.9 12.9 0 0 1 0 25.8H12.9a12.9 12.9 0 0 1 0-25.8z"/>' +
+        '<path fill="#2EB67D" d="M97 45.2a12.9 12.9 0 1 1 12.9 12.9H97zm-6.5 0a12.9 12.9 0 0 1-25.8 0V12.9a12.9 12.9 0 0 1 25.8 0z"/>' +
+        '<path fill="#ECB22E" d="M77.6 97a12.9 12.9 0 1 1-12.9 12.9V97zm0-6.5a12.9 12.9 0 0 1 0-25.8h32.3a12.9 12.9 0 0 1 0 25.8z"/>' +
+      '</svg>';
+
     var INTEGRATIONS = [
       {
         id: 'sheets',
@@ -820,6 +821,14 @@
         permission: 'manage_drive',
         icon: DRIVE_ICON,
         open: function () { openDriveModal(); }
+      },
+      {
+        id: 'slack',
+        name: 'Slack',
+        description: 'Post to a channel when an onboarding is sent, opened, completed or expires.',
+        permission: 'manage_slack',
+        icon: SLACK_ICON,
+        open: function () { openSlackModal(); }
       }
     ];
 
@@ -863,13 +872,310 @@
       });
     }
 
-    // The drill-down modals replace the chooser, so each offers a way back.
     Array.prototype.forEach.call(document.querySelectorAll('[data-integrations-back]'), function (btn) {
       btn.addEventListener('click', function () {
         showModal('admin-integrations-modal');
         renderIntegrations();
       });
     });
+
+    var slackList = document.getElementById('slack-list');
+    var slackEventsBox = document.getElementById('slack-events');
+    var slackConfigs = [];
+    var slackEvents = [];
+
+    function renderSlackEventChecklist(selected) {
+      if (!slackEventsBox) return;
+      slackEventsBox.innerHTML = '';
+
+      slackEvents.forEach(function (event) {
+        var id = 'slack-event-' + event.key;
+        var row = document.createElement('label');
+        row.className = 'permission-option';
+        row.setAttribute('for', id);
+
+        var box = document.createElement('input');
+        box.type = 'checkbox';
+        box.id = id;
+        box.value = event.key;
+        box.checked = (selected || []).indexOf(event.key) !== -1;
+
+        var text = document.createElement('span');
+        text.className = 'permission-option-text';
+
+        var name = document.createElement('span');
+        name.className = 'permission-option-name';
+        name.textContent = event.label;
+
+        var hint = document.createElement('span');
+        hint.className = 'permission-option-hint';
+        hint.textContent = event.hint;
+
+        text.appendChild(name);
+        text.appendChild(hint);
+
+        row.appendChild(box);
+        row.appendChild(text);
+        slackEventsBox.appendChild(row);
+      });
+    }
+
+    function chosenSlackEvents() {
+      if (!slackEventsBox) return [];
+      return Array.prototype.slice.call(slackEventsBox.querySelectorAll('input:checked'))
+        .map(function (box) { return box.value; });
+    }
+
+    function renderSlackRow(config) {
+      var row = document.createElement('div');
+      row.className = 'onboarding-row';
+
+      var info = document.createElement('div');
+      info.className = 'onboarding-row-info';
+
+      var name = document.createElement('div');
+      name.className = 'onboarding-row-name';
+      name.textContent = config.name + (config.channelLabel ? ' · ' + config.channelLabel : '');
+      info.appendChild(name);
+
+      var labels = config.events.map(function (key) {
+        var match = slackEvents.filter(function (e) { return e.key === key; })[0];
+        return match ? match.label : key;
+      });
+
+      var meta = document.createElement('div');
+      meta.className = 'onboarding-row-meta';
+      meta.textContent = [
+        config.enabled ? labels.length + ' event' + (labels.length === 1 ? '' : 's') : 'Paused',
+        config.notifyCount + ' sent',
+        config.lastNotifiedAt ? 'Last ' + new Date(config.lastNotifiedAt).toLocaleString() : null
+      ].filter(Boolean).join(' · ');
+      info.appendChild(meta);
+
+      if (labels.length) {
+        var which = document.createElement('div');
+        which.className = 'onboarding-row-key';
+        which.textContent = labels.join(', ');
+        info.appendChild(which);
+      } else {
+        var none = document.createElement('div');
+        none.className = 'onboarding-row-key';
+        none.textContent = 'No events chosen, so nothing is posted.';
+        info.appendChild(none);
+      }
+
+      if (config.lastError) {
+        var error = document.createElement('div');
+        error.className = 'onboarding-row-key';
+        error.style.color = '#c62828';
+        error.textContent = config.lastError;
+        info.appendChild(error);
+      }
+
+      row.appendChild(info);
+
+      var actions = document.createElement('div');
+      actions.className = 'onboarding-row-actions';
+      actions.appendChild(window.NKSRowMenu.build([
+        { label: 'Send a test message', keepOpen: true, onSelect: function (entry) { testSlack(config, entry); } },
+        {
+          label: config.enabled ? 'Pause' : 'Resume',
+          keepOpen: true,
+          onSelect: function (entry) { toggleSlack(config, entry); }
+        },
+        { label: 'Remove', danger: true, keepOpen: true, onSelect: function (entry) { removeSlack(config, entry); } }
+      ]));
+      row.appendChild(actions);
+      return row;
+    }
+
+    function loadSlackConfigs() {
+      if (slackList) setListMessage(slackList, 'Loading…');
+
+      return fetch(API_BASE + '/slack', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !result.data) {
+            handleApiFailure(result);
+            if (slackList) setListMessage(slackList, 'Could not load Slack channels.');
+            return;
+          }
+
+          slackConfigs = result.data.configs || [];
+          slackEvents = result.data.events || [];
+          renderSlackEventChecklist(['onboarding_completed', 'onboarding_expired']);
+
+          if (!slackList) return;
+          slackList.innerHTML = '';
+          if (!slackConfigs.length) {
+            setListMessage(slackList, 'No Slack channel connected yet. Add one below.');
+            return;
+          }
+          slackConfigs.forEach(function (config) { slackList.appendChild(renderSlackRow(config)); });
+        })
+        .catch(function (err) {
+          console.error('[admin] slack fetch failed:', err);
+          if (slackList) setListMessage(slackList, 'Could not load Slack channels.');
+        });
+    }
+
+    function slackAction(config, btn, label, run) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = label;
+
+      run()
+        .then(parseJson)
+        .then(function (result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (handleApiFailure(result)) return;
+
+          if (result.status === 200 || result.status === 201) {
+            loadSlackConfigs();
+            return { ok: true };
+          }
+          showToast((result.data && result.data.error) || 'That did not work.', 'error');
+        })
+        .catch(function (err) {
+          console.error('[admin] slack action failed:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showToast('That did not work.', 'error');
+        });
+    }
+
+    function testSlack(config, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+
+      fetch(API_BASE + '/slack/' + encodeURIComponent(config.id) + '/test', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (handleApiFailure(result)) return;
+
+          if (result.status === 200) {
+            showToast('Test message sent - check the channel.', 'success');
+            loadSlackConfigs();
+            return;
+          }
+          showToast((result.data && result.data.error) || 'Slack did not accept the message.', 'error');
+        })
+        .catch(function (err) {
+          console.error('[admin] slack test failed:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showToast('Could not reach Slack.', 'error');
+        });
+    }
+
+    function toggleSlack(config, btn) {
+      slackAction(config, btn, config.enabled ? 'Pausing…' : 'Resuming…', function () {
+        return fetch(API_BASE + '/slack/' + encodeURIComponent(config.id), {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: !config.enabled })
+        });
+      });
+    }
+
+    function removeSlack(config, btn) {
+      if (!window.confirm('Remove "' + config.name + '"? Nothing will be posted to it any more.')) return;
+      slackAction(config, btn, 'Removing…', function () {
+        return fetch(API_BASE + '/slack/' + encodeURIComponent(config.id), {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+      });
+    }
+
+    var slackWebhookInfoBtn = document.getElementById('slack-webhook-info-btn');
+    var slackWebhookInfo = document.getElementById('slack-webhook-info');
+
+    if (slackWebhookInfoBtn && slackWebhookInfo) {
+      slackWebhookInfoBtn.addEventListener('click', function () {
+        var open = slackWebhookInfo.hidden;
+        slackWebhookInfo.hidden = !open;
+        slackWebhookInfoBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+
+    var addSlackForm = document.getElementById('admin-add-slack-form');
+    var addSlackSubmitBtn = document.getElementById('admin-add-slack-submit');
+    var addSlackStatus = document.getElementById('admin-add-slack-status');
+
+    function openSlackModal() {
+      showModal('admin-slack-modal');
+      if (addSlackForm) addSlackForm.reset();
+      if (addSlackStatus) clearFormStatus(addSlackStatus);
+      loadSlackConfigs();
+    }
+
+    if (addSlackForm) {
+      addSlackForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearFormStatus(addSlackStatus);
+
+        var payload = {
+          name: document.getElementById('slack-name').value.trim(),
+          channelLabel: document.getElementById('slack-channel').value.trim(),
+          webhookUrl: document.getElementById('slack-webhook').value.trim(),
+          events: chosenSlackEvents()
+        };
+
+        if (!payload.name || !payload.webhookUrl) {
+          setFormStatus(addSlackStatus, 'A name and the webhook URL are both required.', 'error');
+          return;
+        }
+        if (!payload.events.length) {
+          setFormStatus(addSlackStatus, 'Choose at least one event, or nothing would ever be posted.', 'error');
+          return;
+        }
+
+        var originalText = addSlackSubmitBtn.textContent;
+        addSlackSubmitBtn.disabled = true;
+        addSlackSubmitBtn.textContent = 'Sending a test…';
+
+        fetch(API_BASE + '/slack', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(parseJson)
+          .then(function (result) {
+            if (handleApiFailure(result)) return;
+            if (result.status === 201 && result.data && result.data.id) {
+              addSlackForm.reset();
+              showToast('Connected - a test message is in the channel.', 'success');
+              loadSlackConfigs();
+              return;
+            }
+            setFormStatus(addSlackStatus, (result.data && result.data.error) || 'Could not connect the channel.', 'error');
+          })
+          .catch(function (err) {
+            console.error('[admin] slack create failed:', err);
+            setFormStatus(addSlackStatus, 'Could not connect the channel.', 'error');
+          })
+          .finally(function () {
+            addSlackSubmitBtn.disabled = false;
+            addSlackSubmitBtn.textContent = originalText;
+          });
+      });
+    }
 
     function openDriveModal() {
       showModal('admin-drive-modal');
@@ -931,8 +1237,6 @@
       });
     }
 
-    // ---- Folder mapping editor ----
-
     var driveMappingModal = document.getElementById('admin-drive-mapping-modal');
     var driveMappingList = document.getElementById('drive-mapping-list');
     var driveMappingIntro = document.getElementById('drive-mapping-intro');
@@ -951,9 +1255,6 @@
       });
     }
 
-    // Each row checks its own folder against Drive: the link is resolved to a
-    // real folder and its name shown, which is also where a missing share or a
-    // My Drive folder (no service-account storage) gets caught.
     function verifyDriveFolder(key, value, statusEl, nameEl, refreshBtn) {
       statusEl.textContent = 'Checking…';
       statusEl.classList.remove('is-error');
@@ -1040,8 +1341,6 @@
         var status = document.createElement('span');
         status.className = 'drive-folder-status';
 
-        // Re-runs the check without having to retype the link - the usual case
-        // is sharing the folder with the service account after a failed check.
         var refresh = document.createElement('button');
         refresh.type = 'button';
         refresh.className = 'drive-folder-refresh';
@@ -1320,8 +1619,6 @@
         });
     }
 
-    // "Send Again" hands off to the Register Onboarding page, which prefills
-    // itself from this onboarding's own register-data.
     function openResendOnboarding(item) {
       window.location.href = 'register-onboarding.html?from=' + encodeURIComponent(item.id);
     }
@@ -2102,7 +2399,6 @@
           });
       });
     }
-
 
     checkAuth();
   });

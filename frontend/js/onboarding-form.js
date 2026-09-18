@@ -8,7 +8,6 @@
   var DOC_UPLOAD_ENDPOINT = API_BASE+'/api/docs/upload';
   var DOC_REMOVE_ENDPOINT = API_BASE+'/api/docs/remove_doc';
   var DOC_PRESIGN_ENDPOINT = API_BASE+'/api/docs/presign';
-  // Preview mode is for admins only, and this is what proves it.
   var ADMIN_AUTH_ENDPOINT = API_BASE+'/api/admin/auth';
   var MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
   var DOC_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
@@ -497,8 +496,6 @@
     return field.type === 'checkbox' ? field.closest('.consent-row') : field;
   }
 
-  // full_name is a hidden input fed by the First/Last name boxes, so its
-  // unsaved/error outline has to be drawn on those two instead.
   function getFieldHighlightTargets(field) {
     if (!(field instanceof RadioNodeList) && field.type === 'hidden' && field.name === 'full_name') {
       return [document.getElementById('first_name'), document.getElementById('last_name')]
@@ -774,8 +771,7 @@
   var PASSPORT_RE = /^[A-Za-z0-9]{6,12}$/;
   var BANK_NAME_RE = /^[A-Za-z][A-Za-z0-9 .,'&-]*$/;
 
-  var validationErrors = {}; // { fieldName: message }
-
+  var validationErrors = {};
 
   function parseDateValue(value) {
     var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
@@ -1602,7 +1598,6 @@
       }
 
       input.name = name;
-      // buildReview counts these when listing what is still missing.
       if (def.required) input.dataset.required = 'true';
 
       if (value !== undefined && value !== null) {
@@ -1634,12 +1629,7 @@
     updateProgress();
   }
 
-  // ---- Name split ----
   //
-  // The form asks for first and last name, but the stored field is still a
-  // single full_name: the two inputs are joined into a hidden input, which is
-  // what syncs and submits. Keeping one stored field means existing responses,
-  // the sheet, the export and the admin views all keep working unchanged.
 
   var firstNameInput = document.getElementById('first_name');
   var lastNameInput = document.getElementById('last_name');
@@ -1652,12 +1642,9 @@
     if (fullNameInput.value === joined) return;
 
     fullNameInput.value = joined;
-    // The sync listeners are delegated on the form, but a programmatic value
-    // change fires no event - so this one is raised by hand.
     fullNameInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  /** Splits a stored full name back across the two inputs on reload. */
   function splitFullName(value) {
     if (!firstNameInput || !lastNameInput) return;
 
@@ -1665,8 +1652,6 @@
     if (!parts.length) return;
 
     firstNameInput.value = parts[0];
-    // Everything after the first word is the last name, so middle names and
-    // multi-word surnames survive the round trip.
     lastNameInput.value = parts.slice(1).join(' ');
   }
 
@@ -1740,8 +1725,6 @@
       fields.orgs.forEach(function (org) {
         if (!org || !org.name || !org.duration) return;
         addOrg({
-          // Orgs saved before letters were per-org have no id - mint one now so
-          // a letter can be attached to them.
           orgId: org.orgId || newOrgId(),
           name: org.name,
           duration: org.duration,
@@ -2451,11 +2434,10 @@
   var orgModalLetterStatus = document.querySelector('#orgModalLetterStatus');
   var orgModalLetterRemove = document.querySelector('#orgModalLetterRemove');
 
-  // { orgId, name, duration, role, info, current, letter: { docId, name } | null }
   var orgsData = [];
 
   var ORG_LETTER_DOC_PREFIX = 'org_relieving_letter_';
-  var orgModalDraft = null; // { orgId, letter: { docId, name } | null }
+  var orgModalDraft = null;
 
   function newOrgId() {
     var id = '';
@@ -2535,7 +2517,6 @@
       });
   }
 
-  /** Deletes an org's letter server-side. Used by both Remove and Cancel. */
   function deleteOrgLetter(orgId) {
     if (previewMode || !orgId) return Promise.resolve();
 
@@ -2646,7 +2627,6 @@
   function removeOrg(index) {
     var org = orgsData[index];
     orgsData.splice(index, 1);
-    // The letter belongs to the org, so it goes with it.
     if (org && org.letter) deleteOrgLetter(org.orgId);
     renderOrgsChips();
     syncOrgsToBackend();
@@ -2839,7 +2819,6 @@
       var field = form.elements[key];
       if (field && field.type !== 'file') field.value = saved[key];
     });
-    // full_name is hidden, so the local draft has to be split back out too.
     splitFullName(saved.full_name);
     var savedStep = parseInt(localStorage.getItem(STEP_STORAGE_KEY), 10);
     showStep(isNaN(savedStep) ? 0 : savedStep);
@@ -2871,9 +2850,6 @@
   }
   } // end initWizard
 
-  // The preview renders the whole form with no onboarding behind it, so it is
-  // gated on a live admin session rather than on the query parameter alone -
-  // ?preview=1 on its own gets the "Admins only" card.
   function runPreview() {
     showStatePanel(verifyLoadingPanel);
 

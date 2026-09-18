@@ -13,6 +13,7 @@ export enum Permission {
   ExportOnboardingData = 'export_onboarding_data',
   ManageSheets = 'manage_sheets',
   ManageDrive = 'manage_drive',
+  ManageSlack = 'manage_slack',
 }
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -28,6 +29,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [Permission.ExportOnboardingData]: 'Export Onboarding Data',
   [Permission.ManageSheets]: 'Manage Google Sheets',
   [Permission.ManageDrive]: 'Manage Google Drive',
+  [Permission.ManageSlack]: 'Manage Slack Notifications',
 };
 
 export interface IPermissionGroup extends Document {

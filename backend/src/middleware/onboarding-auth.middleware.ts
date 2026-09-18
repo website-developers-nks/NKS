@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { OnboardingAuth, IOnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { IUser } from '../db/models/user.model';
+import { expireOnboarding } from '../services/onboarding-expiry.service';
+import { Types } from 'mongoose';
 
 export interface OnboardingAuthPayload {
   auth: IOnboardingAuth;
@@ -56,10 +58,7 @@ export async function requireOnboardingAuth(
   }
 
   if (record.expirationDate && record.expirationDate.getTime() < Date.now()) {
-    await OnboardingAuth.updateOne(
-      { _id: record._id },
-      { $set: { expired: true, expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed } },
-    );
+    await expireOnboarding(record._id as Types.ObjectId, OnboardingExpiryReason.LinkExpirationDatePassed);
     res.status(401).json({ error: 'Unauthorized.', reason: 'expired', expiredReason: OnboardingExpiryReason.LinkExpirationDatePassed });
     return;
   }
