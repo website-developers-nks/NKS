@@ -8,6 +8,8 @@
   var DOC_UPLOAD_ENDPOINT = API_BASE+'/api/docs/upload';
   var DOC_REMOVE_ENDPOINT = API_BASE+'/api/docs/remove_doc';
   var DOC_PRESIGN_ENDPOINT = API_BASE+'/api/docs/presign';
+  // Preview mode is for admins only, and this is what proves it.
+  var ADMIN_AUTH_ENDPOINT = API_BASE+'/api/admin/auth';
   var MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
   var DOC_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 
@@ -62,7 +64,9 @@
   var verifyErrorPanel = document.querySelector('#verify-error-panel');
   var onboardingShell = document.querySelector('#onboarding-shell');
 
-  var statePanels = [invalidLinkPanel, verifyLoadingPanel, verifyFailedPanel, verifyCompletedPanel, verifyExpiredPanel, verifyErrorPanel, onboardingShell].filter(Boolean);
+  var previewDeniedPanel = document.querySelector('#preview-denied-panel');
+
+  var statePanels = [invalidLinkPanel, previewDeniedPanel, verifyLoadingPanel, verifyFailedPanel, verifyCompletedPanel, verifyExpiredPanel, verifyErrorPanel, onboardingShell].filter(Boolean);
 
   function showStatePanel(target) {
     statePanels.forEach(function (panel) { panel.hidden = panel !== target; });
@@ -201,6 +205,7 @@
     email: 'Personal email',
     mobile: 'Mobile number',
     dob: 'Date of birth',
+    gender: 'Gender',
     preferred_dob: 'Preferred date of birth',
     nationality: 'Nationality',
     marital_status: 'Marital status',
@@ -2343,10 +2348,39 @@
   }
   } // end initWizard
 
+  // The preview renders the whole form with no onboarding behind it, so it is
+  // gated on a live admin session rather than on the query parameter alone -
+  // ?preview=1 on its own gets the "Admins only" card.
+  function runPreview() {
+    showStatePanel(verifyLoadingPanel);
+
+    fetch(ADMIN_AUTH_ENDPOINT, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(function (res) { return res.json().catch(function () { return {}; }); })
+      .then(function (data) {
+        var permissions = (data && data.user && data.user.permissions) || [];
+        var allowed = !!(data && data.auth) && permissions.indexOf('manage_onboardings') !== -1;
+
+        if (!allowed) {
+          showStatePanel(previewDeniedPanel);
+          return;
+        }
+
+        showStatePanel(onboardingShell);
+        initWizard();
+      })
+      .catch(function (err) {
+        console.error('[onboarding-form] preview auth check failed:', err);
+        showStatePanel(verifyErrorPanel);
+      });
+  }
+
   if (previewMode) {
-    showStatePanel(onboardingShell);
-    initWizard();
+    runPreview();
   } else {
-  runVerification();
+    runVerification();
   }
 })();

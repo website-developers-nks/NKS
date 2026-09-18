@@ -1445,6 +1445,18 @@
   <section class="section" style="border-bottom: none; padding-top: 120px;">
     <div class="container">
 
+      <div class="verify-card" id="preview-denied-panel" hidden>
+        <div class="verify-icon is-warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="10.5" width="16" height="10" rx="1.5"/>
+            <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Admins Only</h2>
+        <p class="body-text">This is the onboarding form preview. You need to be signed in to the admin dashboard with permission to manage onboardings to open it.</p>
+        <a href="administrator.html" class="btn-primary" style="margin-top: 16px;">Go to the dashboard</a>
+      </div>
+
       <div class="verify-card" id="invalid-link-panel" hidden>
         <div class="verify-icon is-warning">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -1598,6 +1610,15 @@
                   <label><span><span data-doc-basis-label="dob">Date of birth (As per Aadhar)</span> <span class="required-mark">*</span></span><input data-required="true" name="dob" type="date"></label>
                   <label><span>Preferred date of birth</span><input name="preferred_dob" type="date"><span class="field-help">Only if your actual date of birth differs from the one on your <span data-doc-basis-label="id_proof_type">Aadhar</span>.</span></label>
                   <label><span>Nationality <span class="required-mark">*</span></span><input data-required="true" name="nationality" type="text" placeholder="e.g. Indian"></label>
+                  <label><span>Gender <span class="required-mark">*</span></span>
+                    <select data-required="true" name="gender">
+                      <option value="">Select</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                  </label>
                   <label><span>Marital status <span class="required-mark">*</span></span>
                     <select data-required="true" name="marital_status">
                       <option value="">Select</option>

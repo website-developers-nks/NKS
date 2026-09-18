@@ -346,7 +346,7 @@
     var PROGRESS_FIELD_LABELS = {
       welcomeAck: 'Welcome acknowledged', fullName: 'Full name', preferredName: 'Preferred name',
       personalEmail: 'Personal email', mobile: 'Mobile', dob: 'Date of birth', nationality: 'Nationality',
-      maritalStatus: 'Marital status', preferredDob: 'Preferred date of birth', bloodGroup: 'Blood group', emergencyContactName: 'Emergency contact name and relationship',
+      gender: 'Gender', maritalStatus: 'Marital status', preferredDob: 'Preferred date of birth', bloodGroup: 'Blood group', emergencyContactName: 'Emergency contact name and relationship',
       emergencyContactNumber: 'Emergency contact number', passportNumber: 'Passport / Aadhar number', ssn: 'SSN',
       address: 'Permanent address', presentAddress: 'Present address', fathersName: "Father's name",
       fathersDob: "Father's DOB", mothersName: "Mother's name", mothersDob: "Mother's DOB",
@@ -886,6 +886,7 @@
       dob: 'Date of Birth',
       preferred_dob: 'Preferred Date of Birth',
       nationality: 'Nationality',
+      gender: 'Gender',
       marital_status: 'Marital Status',
       blood_group: 'Blood Group',
       emergency_contact_name: 'Emergency Contact Name and Relationship',

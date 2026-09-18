@@ -1598,6 +1598,7 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
         dob:                    formatDate(data.dob),
         preferred_dob:          formatDate(data.preferredDob),
         nationality:            data.nationality ?? null,
+        gender:                 data.gender ?? null,
         marital_status:         data.maritalStatus ?? null,
         blood_group:            data.bloodGroup ?? null,
         emergency_contact_name:   data.emergencyContactName ?? null,

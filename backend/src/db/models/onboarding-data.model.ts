@@ -16,6 +16,13 @@ export enum MealPreference {
   Other = 'other',
 }
 
+export enum Gender {
+  Male = 'male',
+  Female = 'female',
+  Other = 'other',
+  PreferNotToSay = 'prefer_not_to_say',
+}
+
 export enum MaritalStatus {
   Unmarried = 'unmarried',
   Married = 'married',
@@ -77,6 +84,7 @@ export interface IOnboardingData extends Document {
   // Given when the real date of birth differs from the one on the ID proof.
   preferredDob?: Date;
   nationality?: string;
+  gender?: Gender;
   maritalStatus?: MaritalStatus;
   bloodGroup?: BloodGroup;
   emergencyContactName: string;
@@ -176,6 +184,7 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
     dob: { type: Date },
     preferredDob: { type: Date },
     nationality: { type: String, trim: true },
+    gender: { type: String, enum: Object.values(Gender) },
     maritalStatus: { type: String, enum: Object.values(MaritalStatus) },
     bloodGroup: { type: String, enum: Object.values(BloodGroup) },
     emergencyContactName: { type: String, trim: true },

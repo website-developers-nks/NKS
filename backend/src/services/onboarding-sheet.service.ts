@@ -48,6 +48,7 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'Date of Birth', value: ({ data }) => date(data.dob) },
   { header: 'Preferred Date of Birth', value: ({ data }) => date(data.preferredDob) },
   { header: 'Nationality', value: ({ data }) => data.nationality ?? '' },
+  { header: 'Gender', value: ({ data }) => data.gender ?? '' },
   { header: 'Marital Status', value: ({ data }) => data.maritalStatus ?? '' },
   { header: 'Blood Group', value: ({ data }) => data.bloodGroup ?? '' },
   { header: 'Emergency Contact Name and Relationship', value: ({ data }) => data.emergencyContactName ?? '' },

@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { OnboardingData, BirthdayPref, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
+import { OnboardingData, BirthdayPref, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, Gender, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
 import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { Doc } from '../db/models/doc.model';
 import { Limits } from '../lib/limits';
@@ -199,6 +199,7 @@ const FIELD_DEFS: Record<string, FieldDef> = {
   dob:                      { modelField: 'dob',                   validate: dobValidator() },
   preferred_dob:            { modelField: 'preferredDob',          validate: pastDateValidator('Date of birth', false) },
   nationality:              { modelField: 'nationality',           validate: stringValidator(100) },
+  gender:                   { modelField: 'gender',                validate: enumValidator(Object.values(Gender), 'gender') },
   marital_status:           { modelField: 'maritalStatus',         validate: enumValidator(Object.values(MaritalStatus), 'marital status') },
   blood_group:              { modelField: 'bloodGroup',            validate: enumValidator(Object.values(BloodGroup), 'blood group') },
   emergency_contact_name:   { modelField: 'emergencyContactName',  validate: stringValidator(200) },

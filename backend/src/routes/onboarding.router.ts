@@ -257,6 +257,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.mobile,                 'mobile');
     requireDoc(data.dob,                    'dob');
     requireStr(data.nationality,            'nationality');
+    requireStr(data.gender,                'gender');
     requireStr(data.maritalStatus,            'marital_status');
     requireStr(data.emergencyContactName,   'emergency_contact_name');
     requireStr(data.emergencyContactNumber, 'emergency_contact_number');
@@ -444,6 +445,7 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         dob:                    formatDate(data.dob),
         preferred_dob:          formatDate(data.preferredDob),
         nationality:            data.nationality ?? null,
+        gender:                 data.gender ?? null,
         marital_status:         data.maritalStatus ?? null,
         blood_group:            data.bloodGroup ?? null,
         emergency_contact_name:   data.emergencyContactName ?? null,

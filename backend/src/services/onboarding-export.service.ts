@@ -45,6 +45,7 @@ const FIELD_LABELS: Record<string, string> = {
   dob: 'Date of Birth',
   preferredDob: 'Preferred Date of Birth',
   nationality: 'Nationality',
+  gender: 'Gender',
   maritalStatus: 'Marital Status',
   bloodGroup: 'Blood Group',
   emergencyContactName: 'Emergency Contact Name and Relationship',
