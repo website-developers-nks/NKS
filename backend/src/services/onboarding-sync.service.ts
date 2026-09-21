@@ -3,6 +3,7 @@ import { OnboardingAuth } from '../db/models/onboarding-auth.model';
 import { appendOnboardingToSheet } from './onboarding-sheet.service';
 import { pushOnboardingToDrive } from './onboarding-drive.service';
 import { notifySyncFailed } from './slack-notify.service';
+import { recordNotification } from './notification.service';
 
 const MAX_ATTEMPTS = 5;
 
@@ -72,7 +73,16 @@ export async function runPendingOnboardingSyncs(budgetMs = 20_000): Promise<Sync
         sheetDone = true;
       } else if (sheet.reason === 'failed') {
         await OnboardingAuth.updateOne({ _id: id }, { $set: { sheetError: sheet.error } });
-        if (isLastAttempt) await notifySyncFailed(id, 'Google Sheets', sheet.error ?? 'unknown error');
+        if (isLastAttempt) {
+          await notifySyncFailed(id, 'Google Sheets', sheet.error ?? 'unknown error');
+          await recordNotification({
+            type: 'sheet_sync_failed',
+            severity: 'error',
+            title: 'Google Sheets sync failed',
+            message: `An onboarding could not be written to its sheet after ${MAX_ATTEMPTS} attempts. ${sheet.error ?? ''}`.trim(),
+            onboardingAuth: id,
+          });
+        }
       } else {
         sheetDone = true;
       }
@@ -85,11 +95,25 @@ export async function runPendingOnboardingSyncs(budgetMs = 20_000): Promise<Sync
         driveDone = drive.failed === 0;
         if (drive.failed && isLastAttempt) {
           await notifySyncFailed(id, 'Google Drive', `${drive.failed} document(s) did not upload`);
+          await recordNotification({
+            type: 'drive_sync_failed',
+            severity: 'error',
+            title: 'Google Drive sync failed',
+            message: `${drive.failed} document(s) for an onboarding could not be filed to Drive after ${MAX_ATTEMPTS} attempts.`,
+            onboardingAuth: id,
+          });
         }
       } else if (drive.reason === 'not_configured' || drive.reason === 'nothing_mapped') {
         driveDone = true;
       } else if (isLastAttempt) {
         await notifySyncFailed(id, 'Google Drive', drive.error ?? 'unknown error');
+        await recordNotification({
+          type: 'drive_sync_failed',
+          severity: 'error',
+          title: 'Google Drive sync failed',
+          message: `An onboarding could not be filed to Drive after ${MAX_ATTEMPTS} attempts. ${drive.error ?? ''}`.trim(),
+          onboardingAuth: id,
+        });
       }
     }
 

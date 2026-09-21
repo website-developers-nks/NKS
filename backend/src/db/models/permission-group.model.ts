@@ -14,6 +14,7 @@ export enum Permission {
   ManageSheets = 'manage_sheets',
   ManageDrive = 'manage_drive',
   ManageSlack = 'manage_slack',
+  ViewNotifications = 'view_notifications',
 }
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -30,6 +31,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [Permission.ManageSheets]: 'Manage Google Sheets',
   [Permission.ManageDrive]: 'Manage Google Drive',
   [Permission.ManageSlack]: 'Manage Slack Notifications',
+  [Permission.ViewNotifications]: 'View Notifications',
 };
 
 export interface IPermissionGroup extends Document {

@@ -8,6 +8,7 @@ import './models/onboarding-auth.model';
 import './models/otp.model';
 import './models/doc.model';
 import './models/onboarding-data.model';
+import './models/notification.model';
 
 let connected = false;
 
@@ -16,8 +17,6 @@ export async function connectDB(): Promise<void> {
 
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is not set in environment.');
-
-  mongoose.set('sanitizeFilter', true);
 
   await mongoose.connect(uri);
   connected = true;

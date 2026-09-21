@@ -152,6 +152,10 @@
       showLogout(true);
       showPanel('admin-dashboard-panel');
 
+      var notifBell = document.getElementById('admin-notif-bell');
+      if (notifBell) notifBell.hidden = !can('view_notifications');
+      if (can('view_notifications')) loadNotificationCount();
+
       if (user && user.mustChangePassword) {
         openChangePassword(true);
       }
@@ -184,6 +188,43 @@
     Array.prototype.forEach.call(document.querySelectorAll('.admin-modal:not([data-stacked]) [data-modal-close]'), function (el) {
       el.addEventListener('click', closeModal);
     });
+
+    var confirmModal = document.getElementById('admin-confirm-modal');
+    var confirmTitle = document.getElementById('admin-confirm-title');
+    var confirmMessage = document.getElementById('admin-confirm-message');
+    var confirmOkBtn = document.getElementById('admin-confirm-ok');
+    var confirmResolver = null;
+
+    function resolveConfirm(value) {
+      if (!confirmModal) return;
+      confirmModal.hidden = true;
+      var r = confirmResolver;
+      confirmResolver = null;
+      if (r) r(value);
+    }
+
+    function showConfirm(opts) {
+      return new Promise(function (resolve) {
+        if (!confirmModal) { resolve(window.confirm(opts.message || 'Are you sure?')); return; }
+        confirmResolver = resolve;
+        confirmTitle.textContent = opts.title || 'Are you sure?';
+        confirmMessage.textContent = opts.message || '';
+        confirmOkBtn.textContent = opts.confirmLabel || 'Confirm';
+        confirmOkBtn.classList.toggle('is-danger', !!opts.danger);
+        confirmModal.hidden = false;
+        confirmOkBtn.focus();
+      });
+    }
+
+    if (confirmModal) {
+      Array.prototype.forEach.call(confirmModal.querySelectorAll('[data-confirm-cancel]'), function (el) {
+        el.addEventListener('click', function () { resolveConfirm(false); });
+      });
+      confirmOkBtn.addEventListener('click', function () { resolveConfirm(true); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !confirmModal.hidden) resolveConfirm(false);
+      });
+    }
 
     // The markdown preview stacks on top of an already-open modal (e.g.
     // Register Onboarding) rather than replacing it, so it gets its own
@@ -306,8 +347,15 @@
         menuItems.push({
           label: 'Mark Expired',
           danger: true,
-          keepOpen: true,
-          onSelect: function (entry) { expireOnboarding(item, entry); }
+          onSelect: function () {
+            showConfirm({
+              title: 'Expire this onboarding?',
+              message: 'The link for ' + (item.fullName || item.email || 'this candidate') +
+                ' stops working immediately, and anything they have filled in but not submitted is lost. This cannot be undone.',
+              confirmLabel: 'Expire onboarding',
+              danger: true
+            }).then(function (ok) { if (ok) expireOnboarding(item); });
+          }
         });
       }
 
@@ -318,6 +366,14 @@
       if (item.status === 'completed') {
         if (can('view_onboarding_results')) {
           menuItems.push({ label: 'View Submitted Data', onSelect: function () { openOnboardingData(item); } });
+        }
+
+        if (item.sheetConfigured && can('manage_sheets')) {
+          menuItems.push({
+            label: item.sheetSyncedAt ? 'Re-sync to Sheet' : 'Sync to Sheet',
+            keepOpen: true,
+            onSelect: function (entry) { syncOnboardingToSheet(item, entry); }
+          });
         }
 
         if (item.driveConfigured && can('manage_drive')) {
@@ -871,6 +927,124 @@
         renderIntegrations();
       });
     }
+
+    // ---- Notifications ----
+
+    var notifBadge = document.getElementById('notif-badge');
+    var notifList = document.getElementById('notif-list');
+
+    var NOTIF_SEVERITY = { error: 'sev-error', warning: 'sev-warning', info: 'sev-info' };
+
+    function setNotifBadge(unread) {
+      if (!notifBadge) return;
+      if (unread > 0) {
+        notifBadge.textContent = unread > 99 ? '99+' : String(unread);
+        notifBadge.hidden = false;
+      } else {
+        notifBadge.hidden = true;
+      }
+    }
+
+    function loadNotificationCount() {
+      fetch(API_BASE + '/notifications?limit=1', {
+        method: 'GET', credentials: 'include', headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !result.data) return;
+          setNotifBadge(result.data.unread || 0);
+        })
+        .catch(function (err) { console.error('[admin] notification count failed:', err); });
+    }
+
+    function renderNotifications(items) {
+      if (!notifList) return;
+      notifList.innerHTML = '';
+      if (!items.length) {
+        setListMessage(notifList, 'No notifications yet.');
+        return;
+      }
+
+      items.forEach(function (n) {
+        var row = document.createElement('div');
+        row.className = 'notif-item ' + (NOTIF_SEVERITY[n.severity] || 'sev-info') + (n.read ? '' : ' is-unread');
+
+        var dot = document.createElement('span');
+        dot.className = 'notif-item-dot';
+
+        var body = document.createElement('div');
+        body.className = 'notif-item-body';
+
+        var title = document.createElement('div');
+        title.className = 'notif-item-title';
+        title.textContent = n.title;
+        body.appendChild(title);
+
+        var message = document.createElement('div');
+        message.className = 'notif-item-message';
+        message.textContent = n.message;
+        body.appendChild(message);
+
+        var meta = document.createElement('div');
+        meta.className = 'notif-item-meta';
+        var parts = [new Date(n.createdAt).toLocaleString()];
+        if (n.person && n.person.name) parts.push(n.person.name);
+        meta.textContent = parts.join(' · ');
+        body.appendChild(meta);
+
+        row.appendChild(dot);
+        row.appendChild(body);
+        notifList.appendChild(row);
+      });
+    }
+
+    function loadNotifications() {
+      if (notifList) setListMessage(notifList, 'Loading…');
+      fetch(API_BASE + '/notifications', {
+        method: 'GET', credentials: 'include', headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) return;
+          if (result.status !== 200 || !result.data) {
+            if (notifList) setListMessage(notifList, 'Could not load notifications.');
+            return;
+          }
+          renderNotifications(result.data.notifications || []);
+          setNotifBadge(result.data.unread || 0);
+        })
+        .catch(function (err) {
+          console.error('[admin] notifications fetch failed:', err);
+          if (notifList) setListMessage(notifList, 'Could not load notifications.');
+        });
+    }
+
+    function markNotificationsRead() {
+      fetch(API_BASE + '/notifications/mark-read', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) return;
+          if (result.status === 200) {
+            setNotifBadge(0);
+            loadNotifications();
+          }
+        })
+        .catch(function (err) { console.error('[admin] mark notifications read failed:', err); });
+    }
+
+    var notificationsBell = document.getElementById('admin-notif-bell');
+    if (notificationsBell) {
+      notificationsBell.addEventListener('click', function () {
+        showModal('admin-notifications-modal');
+        loadNotifications();
+      });
+    }
+
+    var notifMarkReadBtn = document.getElementById('notif-mark-read-btn');
+    if (notifMarkReadBtn) notifMarkReadBtn.addEventListener('click', markNotificationsRead);
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-integrations-back]'), function (btn) {
       btn.addEventListener('click', function () {
@@ -1644,11 +1818,7 @@
         });
     }
 
-    function expireOnboarding(item, btn) {
-      var originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Expiring…';
-
+    function expireOnboarding(item) {
       fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/expire', {
         method: 'PATCH',
         credentials: 'include',
@@ -1659,8 +1829,6 @@
           if (handleApiFailure(result)) return;
           if (result.status !== 200) {
             showToast((result.data && result.data.error) || 'Could not expire onboarding.', 'error');
-            btn.disabled = false;
-            btn.textContent = originalText;
             return;
           }
           item.status = 'expired';
@@ -1670,8 +1838,6 @@
         .catch(function (err) {
           console.error('[admin] expire onboarding failed:', err);
           showToast('Could not expire onboarding.', 'error');
-          btn.disabled = false;
-          btn.textContent = originalText;
         });
     }
 
@@ -2000,6 +2166,36 @@
 
       docsSection.appendChild(docsGrid);
       container.appendChild(docsSection);
+    }
+
+    function syncOnboardingToSheet(item, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Syncing…';
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/sheet-sync', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (handleApiFailure(result)) return;
+          if (result.status === 200 && result.data && result.data.synced) {
+            item.sheetSyncedAt = new Date().toISOString();
+            showToast('Synced to the sheet.', 'success');
+            return;
+          }
+          showToast((result.data && result.data.error) || 'Could not sync to the sheet.', 'error');
+        })
+        .catch(function (err) {
+          console.error('[admin] sheet sync failed:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showToast('Could not sync to the sheet.', 'error');
+        });
     }
 
     function syncOnboardingToDrive(item, btn) {
@@ -2332,6 +2528,10 @@
 
     function showLogout(visible) {
       logoutButtons.forEach(function (btn) { btn.classList.toggle('is-visible', !!visible); });
+      if (!visible) {
+        var bell = document.getElementById('admin-notif-bell');
+        if (bell) bell.hidden = true;
+      }
     }
 
     function logout() {

@@ -26,6 +26,8 @@ import { generatePassword, hashPassword, verifyPassword, MIN_PASSWORD_LENGTH } f
 import { getCompanyName } from '../email/base.email';
 import { r2, R2_BUCKET } from '../lib/r2';
 import { buildOnboardingExportHtml } from '../services/onboarding-export.service';
+import { appendOnboardingToSheet } from '../services/onboarding-sheet.service';
+import { AdminAttachment } from '../db/models/admin-attachment.model';
 import { createScheduledEmail, deliverScheduledEmail } from '../services/scheduled-email.service';
 import { sendReminderFor } from '../services/onboarding-reminder.service';
 import { isGoogleSheetsConfigured, parseSpreadsheetId, getSpreadsheetInfo } from '../lib/google-sheets';
@@ -43,6 +45,8 @@ import {
 } from '../services/admin-attachment.service';
 import { notifyOnboardingRegistered, sendSlackTest } from '../services/slack-notify.service';
 import { SlackConfig, ISlackConfig, SlackEvent, SLACK_EVENT_LABELS } from '../db/models/slack-config.model';
+import { recordNotification } from '../services/notification.service';
+import { Notification } from '../db/models/notification.model';
 import { isBotToken, hasDefaultBot, defaultBotToken, describeBot } from '../lib/slack';
 import { targetOf } from '../services/slack-notify.service';
 
@@ -392,6 +396,8 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       sheetConfig: sheetId || undefined,
       driveConfig: driveId || undefined,
       extraFields: normalizedExtraFields.length ? normalizedExtraFields : undefined,
+      title: title?.trim() || undefined,
+      attachmentIds: attachmentIds?.length ? attachmentIds : undefined,
     });
 
     const baseUrl = company == Company.NKSRT ? (process.env.ONBOARDING_BASE_URL_DUBAI??"https://nksresearchtech.com")  : (process.env.ONBOARDING_BASE_URL ?? 'https://nksecurities.com');
@@ -408,23 +414,38 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       ? `${invitee} | ${customTitle}`
       : `${invitee} | Complete your onboarding - ${getCompanyName(auth.company)}`;
 
-    const invite = await getEmailEngineByCompany(auth.company).send(
-      new OnboardingInviteEmail(
-        { name: `${user.firstName} ${user.lastName}`, address: user.email },
-        {
-          firstName: user.firstName,
-          onboardingUrl,
-          extraContent: extraContent ? sanitizeHtml(extraContent, EXTRA_CONTENT_SANITIZE_OPTIONS) : undefined,
-        },
-        {
-          from: sender,
-          cc: buildCc([cc, defaultOnboardingCc()], user.email),
-          bcc: normalizeAddr(bcc),
-          subject: inviteSubject,
-          attachments,
-        },
-      ),
-    );
+    let invite;
+    try {
+      invite = await getEmailEngineByCompany(auth.company).send(
+        new OnboardingInviteEmail(
+          { name: `${user.firstName} ${user.lastName}`, address: user.email },
+          {
+            firstName: user.firstName,
+            onboardingUrl,
+            extraContent: extraContent ? sanitizeHtml(extraContent, EXTRA_CONTENT_SANITIZE_OPTIONS) : undefined,
+          },
+          {
+            from: sender,
+            cc: buildCc([cc, defaultOnboardingCc()], user.email),
+            bcc: normalizeAddr(bcc),
+            subject: inviteSubject,
+            attachments,
+          },
+        ),
+      );
+    } catch (sendErr) {
+      await OnboardingAuth.deleteOne({ _id: auth._id }).catch(() => undefined);
+      await recordNotification({
+        type: 'invite_failed',
+        severity: 'error',
+        title: 'Onboarding invite could not be sent',
+        message: `The invite to ${invitee} (${user.email}) failed to send, so no onboarding was created. ${(sendErr as Error).message}`,
+        user: user._id as Types.ObjectId,
+      });
+      console.error('[admin/register-onboarding] invite send failed, rolled back', sendErr);
+      res.status(502).json({ error: 'The invite email could not be sent, so the onboarding was not created. Please try again.' });
+      return;
+    }
 
     await notifyOnboardingRegistered(auth._id as Types.ObjectId);
 
@@ -847,6 +868,99 @@ router.post(
       failed: result.error ?? 'The upload to Drive failed.',
     };
     res.status(400).json({ id, synced: false, reason: result.reason, error: messages[result.reason] });
+  },
+);
+
+router.post(
+  '/onboardings/:id/sheet-sync',
+  requireAdminAuth,
+  requirePermission(Permission.ManageSheets, Permission.ManageOnboardings),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid onboarding id.' });
+      return;
+    }
+
+    const result = await appendOnboardingToSheet(id);
+    if (result.appended) {
+      await OnboardingAuth.updateOne(
+        { _id: id },
+        { $set: { sheetSyncedAt: new Date() }, $unset: { sheetError: 1, syncQueuedAt: 1, syncAttempts: 1 } },
+      );
+      res.json({ id, synced: true });
+      return;
+    }
+
+    const messages: Record<string, string> = {
+      not_configured: 'This onboarding is not linked to a Google Sheet.',
+      no_data: 'This onboarding has no submitted data yet.',
+      failed: result.error ?? 'The append to the sheet failed.',
+    };
+    res.status(400).json({ id, synced: false, reason: result.reason, error: messages[result.reason] });
+  },
+);
+
+router.get(
+  '/notifications',
+  requireAdminAuth,
+  requirePermission(Permission.ViewNotifications),
+  async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(Math.max(parseInt(String((req.query as { limit?: string }).limit ?? ''), 10) || 50, 1), 200);
+      const [items, unread] = await Promise.all([
+        Notification.find()
+          .populate<{ user: IUser }>('user', 'firstName lastName email')
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean(),
+        Notification.countDocuments({ read: false }),
+      ]);
+
+      res.json({
+        unread,
+        notifications: items.map((n) => {
+          const user = n.user as unknown as IUser | undefined;
+          return {
+            id: (n._id as object).toString(),
+            type: n.type,
+            severity: n.severity,
+            title: n.title,
+            message: n.message,
+            read: n.read,
+            createdAt: n.createdAt,
+            person: user ? { name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(), email: user.email } : null,
+            onboardingId: n.onboardingAuth ? (n.onboardingAuth as object).toString() : null,
+          };
+        }),
+      });
+    } catch (err) {
+      console.error('[admin/notifications]', err);
+      res.status(500).json({ error: 'Failed to fetch notifications.' });
+    }
+  },
+);
+
+router.post(
+  '/notifications/mark-read',
+  requireAdminAuth,
+  requirePermission(Permission.ViewNotifications),
+  async (req: Request, res: Response) => {
+    const { ids } = req.body as { ids?: string[] };
+
+    try {
+      if (Array.isArray(ids) && ids.length) {
+        const valid = ids.filter((id) => Types.ObjectId.isValid(id));
+        await Notification.updateMany({ _id: { $in: valid } }, { read: true });
+      } else {
+        await Notification.updateMany({ read: false }, { read: true });
+      }
+      const unread = await Notification.countDocuments({ read: false });
+      res.json({ unread });
+    } catch (err) {
+      console.error('[admin/notifications/mark-read]', err);
+      res.status(500).json({ error: 'Failed to update notifications.' });
+    }
   },
 );
 
@@ -1834,7 +1948,6 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
 
     await AdminLoginOtp.deleteMany({ userId: user._id });
     await AdminLoginOtp.create({ userId: user._id, otp, expiresAt });
-    console.log(otp)
     await emailEngine.send(
       new OtpEmail(
         { address: user.email },
@@ -1988,6 +2101,9 @@ router.get('/onboardings', requireAdminAuth, requirePermission(Permission.ViewOn
           expirationDate: auth.expirationDate,
           lastReminderAt: auth.lastReminderAt ?? null,
           reminderCount: auth.reminderCount ?? 0,
+          sheetConfigured: !!auth.sheetConfig,
+          sheetSyncedAt: auth.sheetSyncedAt ?? null,
+          sheetError: auth.sheetError ?? null,
           driveConfigured: !!auth.driveConfig,
           driveSyncedAt: auth.driveSyncedAt ?? null,
           driveError: auth.driveError ?? null,
@@ -2347,6 +2463,12 @@ router.get('/onboardings/:id/register-data', requireAdminAuth, requirePermission
 
     const user = auth.user as IUser | undefined;
 
+    const attachmentIds = auth.attachmentIds ?? [];
+    const attachments = attachmentIds.length
+      ? (await AdminAttachment.find({ _id: { $in: attachmentIds } }, { originalName: 1, sizeBytes: 1 }).lean())
+          .map((a) => ({ id: (a._id as object).toString(), originalName: a.originalName, sizeBytes: a.sizeBytes }))
+      : [];
+
     res.json({
       id: (auth._id as object).toString(),
       userId: user ? (user._id as object).toString() : null,
@@ -2356,6 +2478,11 @@ router.get('/onboardings/:id/register-data', requireAdminAuth, requirePermission
       cc: auth.cc ?? null,
       bcc: auth.bcc ?? null,
       extraContent: auth.extraContent ?? null,
+      title: auth.title ?? null,
+      sheetId: auth.sheetConfig ? (auth.sheetConfig as object).toString() : null,
+      driveId: auth.driveConfig ? (auth.driveConfig as object).toString() : null,
+      extraFields: auth.extraFields ?? [],
+      attachments,
     });
   } catch (err) {
     console.error('[admin/onboardings/:id/register-data]', err);

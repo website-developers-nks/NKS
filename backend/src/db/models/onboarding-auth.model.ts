@@ -50,6 +50,8 @@ export interface IOnboardingAuth extends Document {
   reminderCount: number;
   inviteMessageId?: string;
   inviteSubject?: string;
+  title?: string;
+  attachmentIds?: string[];
   sheetConfig?: Types.ObjectId;
   syncQueuedAt?: Date;
   syncAttempts: number;
@@ -89,6 +91,8 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     reminderCount: { type: Number, default: 0 },
     inviteMessageId: { type: String },
     inviteSubject: { type: String },
+    title: { type: String },
+    attachmentIds: { type: [String], default: undefined },
     sheetConfig: { type: Schema.Types.ObjectId, ref: 'SheetConfig' },
     syncQueuedAt: { type: Date },
     syncAttempts: { type: Number, default: 0 },

@@ -491,6 +491,9 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         // Declaration & Consent
         declaration:            data.declaration ?? null,
         consent:                data.consent ?? null,
+        // Feedback (Closing Bell)
+        experience_rating:      data.experienceRating ?? null,
+        experience_feedback:    data.experienceFeedback ?? null,
       },
       docs: {
         pan_doc:               docEntry(data.panDoc),

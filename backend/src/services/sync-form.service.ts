@@ -185,6 +185,8 @@ function childsInfoValidator(): Validator {
 // required=false below matches fields GET /submit-data does NOT list in its
 // `missing` checks (or, for campus_name, only requires conditionally by
 // location) - those must accept an empty value here rather than reject the sync.
+const NO_EDIT_LIMIT_FIELDS = new Set(['intro_line', 'fun_fact', 'experience_feedback']);
+
 const FIELD_DEFS: Record<string, FieldDef> = {
   // Core
   welcome_ack:              { modelField: 'welcomeAck',            validate: boolValidator() },
@@ -339,7 +341,9 @@ export async function syncFormFields(
     } else {
       $set[def.modelField] = validation.coerced;
     }
-    fieldIncrements[`fieldUpdateCounts.${fieldName}`] = 1;
+    if (!NO_EDIT_LIMIT_FIELDS.has(fieldName)) {
+      fieldIncrements[`fieldUpdateCounts.${fieldName}`] = 1;
+    }
     results.push({ field_name: fieldName, saved: true });
   }
 
@@ -348,7 +352,8 @@ export async function syncFormFields(
   }
 
   if (Object.keys($set).length > 0 || Object.keys($unset).length > 0) {
-    const update: Record<string, unknown> = { $inc: fieldIncrements };
+    const update: Record<string, unknown> = {};
+    if (Object.keys(fieldIncrements).length > 0) update.$inc = fieldIncrements;
     if (Object.keys($set).length > 0) update.$set = $set;
     if (Object.keys($unset).length > 0) update.$unset = $unset;
 

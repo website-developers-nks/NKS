@@ -74,7 +74,8 @@
     export_onboarding_data: { label: 'Export Onboarding Data', hint: 'Download a full response, documents included' },
     manage_sheets: { label: 'Manage Google Sheets', hint: 'Add and remove the sheets onboarding data is written to' },
     manage_drive: { label: 'Manage Google Drive', hint: 'Choose the Drive folders uploaded documents are filed into' },
-    manage_slack: { label: 'Manage Slack Notifications', hint: 'Connect channels and choose which events are posted' }
+    manage_slack: { label: 'Manage Slack Notifications', hint: 'Connect channels and choose which events are posted' },
+    view_notifications: { label: 'View Notifications', hint: 'See the in-app alerts feed (integration failures and other events)' }
   };
 
   function permissionLabel(key) {
@@ -948,7 +949,7 @@
 
       if (email.status === 'failed' && email.lastError) {
         var error = document.createElement('div');
-        error.className = 'onboarding-row-key';
+        error.className = 'onboarding-row-error';
         error.textContent = email.lastError + ' (' + email.attempts + ' attempt' + (email.attempts === 1 ? '' : 's') + ')';
         info.appendChild(error);
       }

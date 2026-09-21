@@ -323,10 +323,15 @@
     }
   }
 
-  function showStep(index) {
+  function showStep(index, moveFocus) {
     currentStep = Math.max(0, Math.min(index, panels.length - 1));
     localStorage.setItem(STEP_STORAGE_KEY, String(currentStep));
-    tabs.forEach(function (tab, i) { tab.classList.toggle('active', i === currentStep); });
+    tabs.forEach(function (tab, i) {
+      var active = i === currentStep;
+      tab.classList.toggle('active', active);
+      if (active) tab.setAttribute('aria-current', 'step');
+      else tab.removeAttribute('aria-current');
+    });
     panels.forEach(function (panel, i) { panel.classList.toggle('active', i === currentStep); });
     prevBtn.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
     var isLastStep = currentStep === panels.length - 1;
@@ -334,6 +339,17 @@
     submitBtn.style.display = isLastStep ? 'inline-flex' : 'none';
     updateProgress();
     if (currentStep === panels.length - 1) buildReview();
+
+    if (moveFocus) {
+      var heading = panels[currentStep] && panels[currentStep].querySelector('h3');
+      if (heading) {
+        heading.setAttribute('tabindex', '-1');
+        heading.focus();
+        if (typeof heading.scrollIntoView === 'function') {
+          heading.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      }
+    }
   }
 
   function fieldComplete(field) {
@@ -412,11 +428,11 @@
   var toastContainer = document.querySelector('#toast-container');
   var TOAST_VISIBLE_MS = 6000;
 
-  function showErrorToast(message) {
+  function showToast(message, isSuccess) {
     if (!toastContainer) return;
 
     var toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = 'toast' + (isSuccess ? ' is-success' : '');
     toast.textContent = message;
     toastContainer.appendChild(toast);
 
@@ -435,6 +451,9 @@
     toast.addEventListener('click', dismiss);
     setTimeout(dismiss, TOAST_VISIBLE_MS);
   }
+
+  function showErrorToast(message) { showToast(message, false); }
+  function showSuccessToast(message) { showToast(message, true); }
 
   // ---- Background form sync (non-document fields only) ----
   //
@@ -645,11 +664,12 @@
     runSync();
   }
 
-  function runSync() {
+  function runSync(isManual) {
     if (sessionExpired) return;
     if (!hasChangedFields()) return;
     if (syncInProgress) return;
 
+    var syncHadError = false;
     syncInProgress = true;
     lastSyncStartedAt = Date.now();
     saveBtn.disabled = true;
@@ -715,6 +735,7 @@
               setFieldUnsaved(field, false);
             }
             rejected.push({ name: fieldName, error: result.error });
+            syncHadError = true;
             return;
           }
 
@@ -734,13 +755,20 @@
         }
       })
       .catch(function (err) {
+        syncHadError = true;
         console.error('[onboarding-form] form sync failed:', err);
         showErrorToast('Failed to save your changes. Please check your connection and try again.');
       })
       .finally(function () {
         syncInProgress = false;
         saveBtn.disabled = false;
-        saveBtn.textContent = saveBtnDefaultText;
+        if (isManual && !syncHadError) {
+          saveBtn.textContent = 'Saved ✓';
+          setTimeout(function () { saveBtn.textContent = saveBtnDefaultText; }, 1400);
+          showSuccessToast('Progress saved.');
+        } else {
+          saveBtn.textContent = saveBtnDefaultText;
+        }
         updateSubmitButtonState();
 
         if (sessionExpired) {
@@ -1237,7 +1265,7 @@
 
     if (first) {
       var panel = first.closest('.step-panel');
-      if (panel) showStep(parseInt(panel.dataset.panel, 10));
+      if (panel) showStep(parseInt(panel.dataset.panel, 10), true);
     }
     showSubmitMessage('Please fix the ' + names.length + ' highlighted field(s) before submitting.', 'error');
   }
@@ -1313,7 +1341,7 @@
           });
           if (firstField) {
             var panel = firstField.closest('.step-panel');
-            if (panel) showStep(parseInt(panel.dataset.panel, 10));
+            if (panel) showStep(parseInt(panel.dataset.panel, 10), true);
           }
           showSubmitMessage('Almost there - ' + missing.length + ' required item(s) still need attention.', 'error');
           return;
@@ -2013,9 +2041,9 @@
     if (e.key === 'Escape' && docModal && !docModal.hidden) closePreviewModal();
   });
 
-  tabs.forEach(function (tab, index) { tab.addEventListener('click', function () { showStep(index); }); });
-  prevBtn.addEventListener('click', function () { showStep(currentStep - 1); });
-  nextBtn.addEventListener('click', function () { showStep(currentStep + 1); });
+  tabs.forEach(function (tab, index) { tab.addEventListener('click', function () { showStep(index, true); }); });
+  prevBtn.addEventListener('click', function () { showStep(currentStep - 1, true); });
+  nextBtn.addEventListener('click', function () { showStep(currentStep + 1, true); });
   form.addEventListener('input', updateProgress);
   form.addEventListener('change', updateProgress);
 
@@ -2796,13 +2824,13 @@
     localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(data));
 
     if (hasChangedFields()) {
-      runSync();
+      runSync(true);
       return;
     }
 
-    var originalText = saveBtn.textContent;
     saveBtn.textContent = 'Saved ✓';
-    setTimeout(function () { saveBtn.textContent = originalText; }, 1400);
+    setTimeout(function () { saveBtn.textContent = saveBtnDefaultText; }, 1400);
+    showSuccessToast('Progress saved.');
   });
 
   form.addEventListener('submit', function (event) {

@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+
   var API_BASE = '/api/admin';
   var ADMIN_PAGE = 'administrator.html';
 
@@ -448,7 +449,7 @@
 
     var driveSelect = document.getElementById('ro-drive');
 
-    function loadDriveConfigs() {
+    function loadDriveConfigs(selectedId) {
       if (!driveSelect) return Promise.resolve();
 
       return fetch(API_BASE + '/drive', {
@@ -477,7 +478,7 @@
             driveSelect.appendChild(opt);
           });
 
-          driveSelect.value = '';
+          driveSelect.value = selectedId || '';
         })
         .catch(function (err) {
           console.error('[register-onboarding] drive fetch failed:', err);
@@ -1015,8 +1016,26 @@
           document.getElementById('ro-cc').value = (Array.isArray(data.cc) ? data.cc.join(', ') : data.cc) || '';
           document.getElementById('ro-bcc').value = (Array.isArray(data.bcc) ? data.bcc.join(', ') : data.bcc) || '';
           document.getElementById('ro-extra-content').value = data.extraContent || '';
+          if (titleInput) titleInput.value = data.title || '';
+
+          loadSheets(data.sheetId || undefined);
+          loadDriveConfigs(data.driveId || undefined);
+
+          extraFieldsDraft = Array.isArray(data.extraFields)
+            ? data.extraFields.map(function (f) {
+                return { label: f.label, type: f.type, required: !!f.required, help: f.help,
+                  maxLength: f.maxLength, min: f.min, max: f.max, options: f.options };
+              })
+            : [];
+          renderExtraFields();
+
+          roAttachments = Array.isArray(data.attachments)
+            ? data.attachments.map(function (a) { return { id: a.id, originalName: a.originalName, sizeBytes: a.sizeBytes }; })
+            : [];
+          renderAttachmentsList();
+
           syncInviteSubjectPlaceholder();
-          showToast('Loaded the details of the previous onboarding.', 'success');
+          showToast('Loaded the previous onboarding, including its questions, attachments and destinations. Review, then set a new expiration date.', 'success');
         })
         .catch(function (err) {
           console.error('[register-onboarding] register-data fetch failed:', err);
@@ -1056,14 +1075,14 @@
           showPanel('ro-content-panel');
 
           var from = getParam('from');
+          loadTemplates();
           if (from) {
             prefillFromOnboarding(from);
           } else {
             loadUserList();
+            loadSheets();
+            loadDriveConfigs();
           }
-          loadTemplates();
-          loadSheets();
-          loadDriveConfigs();
           resetAttachments();
           resetExtraFieldsDraft();
         })

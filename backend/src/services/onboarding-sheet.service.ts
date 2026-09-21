@@ -4,13 +4,13 @@ import { OnboardingData, IOnboardingData } from '../db/models/onboarding-data.mo
 import { IUser } from '../db/models/user.model';
 import { Doc, IDoc } from '../db/models/doc.model';
 import { SheetConfig } from '../db/models/sheet-config.model';
-import { appendRecord, isGoogleSheetsConfigured } from '../lib/google-sheets';
+import { appendRecord, isGoogleSheetsConfigured, SheetFormula, SheetCell } from '../lib/google-sheets';
 import { buildDocLink } from '../lib/doc-links';
 import { ExtraFieldType, ExtraFieldDef } from '../lib/extra-fields';
 
 interface Column {
   header: string;
-  value: (ctx: { auth: IOnboardingAuth; data: IOnboardingData; user?: IUser }) => string | number | null;
+  value: (ctx: { auth: IOnboardingAuth; data: IOnboardingData; user?: IUser }) => SheetCell;
 }
 
 const date = (d?: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : '');
@@ -19,7 +19,7 @@ const yesNo = (v?: boolean | null) => (v === true ? 'Yes' : v === false ? 'No' :
 const address = (a?: { address?: string; city?: string; country?: string; pincode?: string }) =>
   a ? [a.address, a.city, a.country, a.pincode].filter(Boolean).join(', ') : '';
 
-const docName = (ref: unknown): string => {
+const docName = (ref: unknown): SheetCell => {
   if (!ref) return '';
 
   if (typeof ref === 'object' && 'originalName' in (ref as object)) {
@@ -28,11 +28,11 @@ const docName = (ref: unknown): string => {
     if (!link) return doc.originalName;
 
     const label = doc.originalName.replace(/"/g, '""');
-    return `=HYPERLINK("${link}","${label}")`;
+    return new SheetFormula(`=HYPERLINK("${link}","${label}")`);
   }
 
   const link = buildDocLink(String(ref));
-  return link ? `=HYPERLINK("${link}","Open document")` : 'Uploaded';
+  return link ? new SheetFormula(`=HYPERLINK("${link}","Open document")`) : 'Uploaded';
 };
 
 export const SHEET_COLUMNS: Column[] = [
@@ -122,7 +122,7 @@ export const SHEET_HEADERS = SHEET_COLUMNS.map((c) => c.header);
 function extraColumns(
   auth: IOnboardingAuth,
   data: IOnboardingData,
-): Array<{ header: string; value: string | number | null }> {
+): Array<{ header: string; value: SheetCell }> {
   const defs = (auth.extraFields ?? []) as ExtraFieldDef[];
   if (!defs.length) return [];
 
@@ -146,7 +146,7 @@ function extraColumns(
 
 function orgLetterColumns(
   data: IOnboardingData,
-): Array<{ header: string; value: string | number | null }> {
+): Array<{ header: string; value: SheetCell }> {
   return (data.orgs ?? [])
     .map((org, index) => ({ org, index }))
     .filter(({ org }) => !!org.relievingLetterDoc)
@@ -160,9 +160,9 @@ export function buildSheetRecord(
   auth: IOnboardingAuth,
   data: IOnboardingData,
   user?: IUser,
-): Array<{ header: string; value: string | number | null }> {
+): Array<{ header: string; value: SheetCell }> {
   const fixed = SHEET_COLUMNS.map((column) => {
-    let value: string | number | null = '';
+    let value: SheetCell = '';
     try {
       value = column.value({ auth, data, user });
     } catch {
@@ -242,7 +242,7 @@ export async function appendOnboardingToSheet(onboardingAuthId: Types.ObjectId |
     const record = buildSheetRecord(auth, data, auth.user as IUser | undefined);
 
     try {
-      await appendRecord(config.spreadsheetId, config.tabName, record);
+      await appendRecord(config.spreadsheetId, config.tabName, record, 'Onboarding Key');
       await SheetConfig.updateOne(
         { _id: config._id },
         { lastAppendAt: new Date(), $inc: { appendCount: 1 }, $unset: { lastError: 1 } },

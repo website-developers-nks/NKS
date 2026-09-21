@@ -1,5 +1,17 @@
 import { getAccessToken, isGoogleConfigured, SHEETS_SCOPE, GoogleNotConfiguredError } from './google-auth';
 
+export class SheetFormula {
+  constructor(public readonly text: string) {}
+}
+
+export type SheetCell = string | number | null | SheetFormula;
+
+function sanitizeCell(value: SheetCell): string | number | null {
+  if (value instanceof SheetFormula) return value.text;
+  if (typeof value !== 'string') return value;
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 export class GoogleSheetsNotConfiguredError extends GoogleNotConfiguredError {
@@ -72,10 +84,39 @@ async function getFirstRow(spreadsheetId: string, tab: string): Promise<string[]
   return (body?.values?.[0] ?? []) as string[];
 }
 
+function columnLetter(indexZeroBased: number): string {
+  let n = indexZeroBased + 1;
+  let out = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out;
+}
+
+async function findRowByKey(
+  spreadsheetId: string,
+  tab: string,
+  keyColumnLetter: string,
+  key: string,
+): Promise<number | null> {
+  const range = `${tab}!${keyColumnLetter}2:${keyColumnLetter}`;
+  const body = await sheetsFetch(
+    `/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`,
+  );
+  const values = (body?.values ?? []) as string[][];
+  for (let i = 0; i < values.length; i += 1) {
+    if ((values[i]?.[0] ?? '') === key) return i + 2;
+  }
+  return null;
+}
+
 export async function appendRecord(
   spreadsheetId: string,
   tab: string,
-  record: Array<{ header: string; value: string | number | null }>,
+  record: Array<{ header: string; value: SheetCell }>,
+  keyHeader?: string,
 ): Promise<void> {
   const existingHeader = await getFirstRow(spreadsheetId, tab);
   const wanted = record.map((c) => c.header);
@@ -94,8 +135,25 @@ export async function appendRecord(
     );
   }
 
-  const byHeader = new Map(record.map((c) => [c.header, c.value]));
-  const row = header.map((h) => (byHeader.has(h) ? byHeader.get(h) ?? '' : ''));
+  const byHeader = new Map<string, SheetCell>(record.map((c) => [c.header, c.value]));
+  const row = header.map((h) => (byHeader.has(h) ? sanitizeCell(byHeader.get(h) ?? '') : ''));
+
+  let existingRow: number | null = null;
+  if (keyHeader) {
+    const keyIndex = header.indexOf(keyHeader);
+    const keyValue = byHeader.get(keyHeader);
+    if (keyIndex !== -1 && typeof keyValue === 'string' && keyValue) {
+      existingRow = await findRowByKey(spreadsheetId, tab, columnLetter(keyIndex), keyValue);
+    }
+  }
+
+  if (existingRow) {
+    await sheetsFetch(
+      `/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(`${tab}!A${existingRow}`)}?valueInputOption=USER_ENTERED`,
+      { method: 'PUT', body: JSON.stringify({ values: [row] }) },
+    );
+    return;
+  }
 
   await sheetsFetch(
     `/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(`${tab}!A1`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
