@@ -19,7 +19,7 @@ export async function requireAdminAuth(
 ): Promise<void> {
   const cookieKey = req.cookies?.[ADMIN_COOKIE];
 
-  if (!cookieKey) {
+  if (!cookieKey || typeof cookieKey !== 'string') {
     res.status(401).json({ error: 'Unauthorized.', reason: 'no_cookie' });
     return;
   }

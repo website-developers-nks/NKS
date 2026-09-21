@@ -31,7 +31,7 @@ export async function requireOnboardingAuth(
     res.status(401).json({ error: 'Unauthorized.', reason: 'no_onboarding_key' });
     return;
   }
-  if (!cookieKey) {
+  if (!cookieKey || typeof cookieKey !== 'string') {
     res.status(401).json({ error: 'Unauthorized.', reason: 'no_cookie' });
     return;
   }

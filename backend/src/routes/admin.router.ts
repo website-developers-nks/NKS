@@ -2448,7 +2448,7 @@ router.post('/logout', async (req: Request, res: Response) => {
   const cookieKey = req.cookies?.[ADMIN_COOKIE];
 
   try {
-    if (cookieKey) {
+    if (typeof cookieKey === 'string') {
       const user = await User.findOne({ authKey: cookieKey });
       if (user) {
         await endAdminSession(res, user);
@@ -2468,7 +2468,7 @@ router.post('/logout', async (req: Request, res: Response) => {
 router.get('/auth', async (req: Request, res: Response) => {
   const cookieKey = req.cookies?.[ADMIN_COOKIE];
 
-  if (!cookieKey) {
+  if (!cookieKey || typeof cookieKey !== 'string') {
     res.json({ auth: false, reason: 'no_cookie' });
     return;
   }
