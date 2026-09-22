@@ -7,7 +7,7 @@ import multer from 'multer';
 import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { User, IUser } from '../db/models/user.model';
-import { OnboardingAuth, IOnboardingAuth, OfficeLocation, Company, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, IOnboardingAuth, OfficeLocation, Company, Department, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { Doc } from '../db/models/doc.model';
 import { AdminLoginOtp } from '../db/models/admin-login-otp.model';
@@ -277,10 +277,11 @@ router.post('/create-user', requireAdminAuth, requirePermission(Permission.Manag
 });
 
 router.post('/register-onboarding', requireAdminAuth, requirePermission(Permission.ManageOnboardings), async (req: Request, res: Response) => {
-  const { userId, ttl, location, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds, sheetId, driveId, extraFields, title } = req.body as {
+  const { userId, ttl, location, department, company, cc, bcc, extraContent, extraContentMarkdown, expirationDate, attachmentIds, sheetId, driveId, extraFields, title } = req.body as {
     userId?: string;
     ttl?: number;
     location?: string;
+    department?: string;
     company?: string;
     cc?: string | string[];
     bcc?: string | string[];
@@ -314,6 +315,12 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
 
   if (!location || !validLocations.includes(location as OfficeLocation)) {
     res.status(400).json({ error: 'location is required.', validLocations });
+    return;
+  }
+
+  const validDepartments = Object.values(Department);
+  if (!department || !validDepartments.includes(department as Department)) {
+    res.status(400).json({ error: 'department is required.', validDepartments });
     return;
   }
 
@@ -388,6 +395,7 @@ router.post('/register-onboarding', requireAdminAuth, requirePermission(Permissi
       user: user._id,
       ttl,
       location: location as OfficeLocation,
+      department: department as Department,
       company: company as Company,
       expirationDate: parsedExpirationDate,
       cc: toArray(cc),
@@ -2218,10 +2226,7 @@ router.get('/onboardings/:id/data', requireAdminAuth, requirePermission(Permissi
         account_number:         data.accountNumber ?? null,
         ifsc:                   data.ifsc ?? null,
         intro_line:             data.introLine ?? null,
-        birthday_pref:          data.birthdayPref ?? null,
         meal_preference:        data.mealPreference ?? null,
-        hobbies:                data.hobbies ?? null,
-        fun_fact:               data.funFact ?? null,
         declaration:            data.declaration ?? null,
         consent:                data.consent ?? null,
         experience_rating:      data.experienceRating ?? null,
@@ -2474,6 +2479,7 @@ router.get('/onboardings/:id/register-data', requireAdminAuth, requirePermission
       userId: user ? (user._id as object).toString() : null,
       company: auth.company,
       location: auth.location,
+      department: auth.department ?? null,
       ttl: auth.ttl,
       cc: auth.cc ?? null,
       bcc: auth.bcc ?? null,

@@ -3,8 +3,8 @@ import rateLimit from 'express-rate-limit';
 import { Types } from 'mongoose';
 import { verifyOnboardingAuth, sendOnboardingOtp, verifyOnboardingOtp, checkOtpStatus } from '../services/onboarding.service';
 import { syncFormFields } from '../services/sync-form.service';
-import { OnboardingAuth, IOnboardingAuth, OfficeLocation, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
-import { OnboardingData } from '../db/models/onboarding-data.model';
+import { OnboardingAuth, IOnboardingAuth, OfficeLocation, Department, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { OnboardingData, Accommodation } from '../db/models/onboarding-data.model';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
 import { EmailAddress, getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingSubmittedEmail } from '../email/emails/onboarding-submitted.email';
@@ -264,6 +264,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.panNumber,             'pan_number');
     requireStr(data.uanNumber,             'uan_number');
     requireStr(data.mealPreference,        'meal_preference');
+    requireDoc(data.experienceRating,      'experience_rating');
     requireAddress(data.address,           'address');
     requireAddress(data.presentAddress,    'present_address');
     requireDoc(data.idDoc,                 'id_doc');
@@ -303,6 +304,18 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       requireDoc(data.bonusLetterDoc,      'bonus_letter_doc');
       requireDoc(data.experienceLetterDoc, 'experience_letter_doc');
       requireStr(data.campusName,          'campus_name');
+    }
+
+    const department = auth.auth.department;
+    if (department === Department.Tech) {
+      requireStr(data.accommodation, 'accommodation');
+      if (data.accommodation === Accommodation.Yes && location === OfficeLocation.Gurugram) {
+        requireStr(data.stayDates, 'stay_dates');
+      }
+    }
+    if (location === OfficeLocation.Gurugram) {
+      requireStr(data.gymMembership, 'gym_membership');
+      requireStr(data.tshirtSize, 'tshirt_size');
     }
 
     for (const def of req.onboarding!.auth.extraFields ?? []) {
@@ -415,7 +428,7 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
       res.json({
         fields: {},
         docs: {},
-        info: { location, extraFields: req.onboarding!.auth.extraFields ?? [] },
+        info: { location, department: req.onboarding!.auth.department ?? null, extraFields: req.onboarding!.auth.extraFields ?? [] },
         submittedAt: null,
       });
       return;
@@ -484,10 +497,11 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         ifsc:                   data.ifsc ?? null,
         // About
         intro_line:             data.introLine ?? null,
-        birthday_pref:          data.birthdayPref ?? null,
         meal_preference:        data.mealPreference ?? null,
-        hobbies:                data.hobbies ?? null,
-        fun_fact:               data.funFact ?? null,
+        accommodation:          data.accommodation ?? null,
+        stay_dates:             data.stayDates ?? null,
+        gym_membership:         data.gymMembership ?? null,
+        tshirt_size:            data.tshirtSize ?? null,
         // Declaration & Consent
         declaration:            data.declaration ?? null,
         consent:                data.consent ?? null,
@@ -514,6 +528,7 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
       },
       info:{
         location,
+        department: req.onboarding!.auth.department ?? null,
         extraFields: req.onboarding!.auth.extraFields ?? [],
       },
       extraFieldValues: extraValuesFor(req.onboarding!.auth, data.extraFields),

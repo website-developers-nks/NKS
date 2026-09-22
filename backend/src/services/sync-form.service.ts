@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { OnboardingData, BirthdayPref, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, Gender, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
+import { OnboardingData, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, Gender, Accommodation, GymMembership, TshirtSize, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
 import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
 import { Doc } from '../db/models/doc.model';
 import { Limits } from '../lib/limits';
@@ -86,6 +86,27 @@ function ifscValidator(required = true): Validator {
     const upper = v.trim().toUpperCase();
     if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(upper)) return { ok: false, error: 'Invalid IFSC format' };
     return { ok: true, coerced: upper };
+  };
+}
+
+function stayDatesValidator(maxDays: number, required = true): Validator {
+  return (v) => {
+    if (v === undefined || v === null || v === '') {
+      return required ? { ok: false, error: 'Cannot be empty' } : { ok: true, coerced: undefined };
+    }
+    if (typeof v !== 'string') return { ok: false, error: 'Must be text' };
+    const parts = v.split('..');
+    if (parts.length !== 2) return { ok: false, error: 'Choose a start and end date' };
+    const start = parts[0].trim();
+    const end = parts[1].trim();
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (!iso.test(start) || Number.isNaN(Date.parse(start))) return { ok: false, error: 'Start date is invalid' };
+    if (!iso.test(end) || Number.isNaN(Date.parse(end))) return { ok: false, error: 'End date is invalid' };
+    const s = Date.parse(start);
+    const e = Date.parse(end);
+    if (e < s) return { ok: false, error: 'End date is before start date' };
+    if (Math.round((e - s) / 86400000) + 1 > maxDays) return { ok: false, error: `Choose at most ${maxDays} days` };
+    return { ok: true, coerced: `${start}..${end}` };
   };
 }
 
@@ -185,7 +206,7 @@ function childsInfoValidator(): Validator {
 // required=false below matches fields GET /submit-data does NOT list in its
 // `missing` checks (or, for campus_name, only requires conditionally by
 // location) - those must accept an empty value here rather than reject the sync.
-const NO_EDIT_LIMIT_FIELDS = new Set(['intro_line', 'fun_fact', 'experience_feedback']);
+const NO_EDIT_LIMIT_FIELDS = new Set(['intro_line', 'experience_feedback']);
 
 const FIELD_DEFS: Record<string, FieldDef> = {
   // Core
@@ -238,17 +259,18 @@ const FIELD_DEFS: Record<string, FieldDef> = {
 
   // About
   intro_line:               { modelField: 'introLine',             validate: stringValidator(1000) },
-  birthday_pref:            { modelField: 'birthdayPref',          validate: enumValidator(Object.values(BirthdayPref), 'birthday preference', false) },
   meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference') },
-  hobbies:                  { modelField: 'hobbies',               validate: stringValidator(500, false) },
-  fun_fact:                 { modelField: 'funFact',               validate: stringValidator(1000, false) },
+  accommodation:            { modelField: 'accommodation',         validate: enumValidator(Object.values(Accommodation), 'accommodation', false) },
+  stay_dates:               { modelField: 'stayDates',             validate: stayDatesValidator(14, false) },
+  gym_membership:           { modelField: 'gymMembership',         validate: enumValidator(Object.values(GymMembership), 'gym membership', false) },
+  tshirt_size:              { modelField: 'tshirtSize',            validate: enumValidator(Object.values(TshirtSize), 'T-shirt size', false) },
 
   // Declaration & Consent
   declaration:              { modelField: 'declaration',           validate: boolValidator() },
   consent:                  { modelField: 'consent',               validate: boolValidator() },
 
   // Feedback (Closing Bell) - both optional
-  experience_rating:        { modelField: 'experienceRating',      validate: intRangeValidator(1, 5, false) },
+  experience_rating:        { modelField: 'experienceRating',      validate: intRangeValidator(1, 5) },
   experience_feedback:      { modelField: 'experienceFeedback',    validate: stringValidator(1000, false) },
 };
 

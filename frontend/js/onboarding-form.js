@@ -247,10 +247,7 @@
     ifsc: 'IFSC code',
     bank_doc: 'Bank proof file',
     intro_line: 'Short intro',
-    birthday_pref: 'Birthday celebration preference',
     meal_preference: 'Meal preference',
-    hobbies: 'Hobbies',
-    fun_fact: 'Fun fact',
     declaration: 'Declaration',
     consent: 'Consent',
     experience_rating: 'Experience rating',
@@ -258,6 +255,7 @@
   };
 
   var currentLocation = 'gurugram';
+  var currentDepartment = null;
 
   function updateLocationVisibility(location) {
     currentLocation = location;
@@ -272,6 +270,8 @@
     });
     updateDocBasisLabels(location);
     updatePayrollLedgerRequirement(location);
+    if (typeof applyDefaultPhoneCountry === 'function') applyDefaultPhoneCountry();
+    if (typeof applyBenefitVisibility === 'function') applyBenefitVisibility();
   }
 
   // Payroll Ledger (bank details) is only mandatory for India locations -
@@ -362,6 +362,8 @@
     // Check if field or its parent has data-location and is not visible
     var el = field.closest('[data-location]');
     if (el && !el.classList.contains('location-visible')) return false;
+    var lab = field.closest && field.closest('label');
+    if (lab && lab.hidden) return false;
     return true;
   }
 
@@ -515,10 +517,11 @@
     return field.type === 'checkbox' ? field.closest('.consent-row') : field;
   }
 
+  var FIELD_HIGHLIGHT_TARGETS = { full_name: ['first_name', 'last_name'], mobile: ['mobile_local'], emergency_contact_number: ['emergency_local'] };
+
   function getFieldHighlightTargets(field) {
-    if (!(field instanceof RadioNodeList) && field.type === 'hidden' && field.name === 'full_name') {
-      return [document.getElementById('first_name'), document.getElementById('last_name')]
-        .filter(Boolean);
+    if (!(field instanceof RadioNodeList) && field.type === 'hidden' && FIELD_HIGHLIGHT_TARGETS[field.name]) {
+      return FIELD_HIGHLIGHT_TARGETS[field.name].map(function (id) { return document.getElementById(id); }).filter(Boolean);
     }
     var target = getFieldHighlightTarget(field);
     return target ? [target] : [];
@@ -1686,6 +1689,197 @@
   if (firstNameInput) firstNameInput.addEventListener('input', composeFullName);
   if (lastNameInput) lastNameInput.addEventListener('input', composeFullName);
 
+  var PHONE_FIELDS = [
+    { local: 'mobile_local', country: 'mobile_country', hidden: 'mobile' },
+    { local: 'emergency_local', country: 'emergency_country', hidden: 'emergency_contact_number' }
+  ];
+
+  function phoneEls(cfg) {
+    return {
+      local: document.getElementById(cfg.local),
+      country: document.getElementById(cfg.country),
+      hidden: form.elements[cfg.hidden]
+    };
+  }
+
+  function dialOf(select) {
+    var codes = window.NKSCountryCodes;
+    if (!select || !codes) return '';
+    var country = codes.byIso(select.value);
+    return country ? country.dial : '';
+  }
+
+  function populatePhoneCountry(select) {
+    var codes = window.NKSCountryCodes;
+    if (!select || !codes || select.options.length) return;
+    codes.list.forEach(function (c) {
+      var opt = document.createElement('option');
+      opt.value = c.iso;
+      opt.setAttribute('data-full', c.flag + ' +' + c.dial + '  ' + c.name);
+      opt.setAttribute('data-short', c.flag + ' +' + c.dial);
+      opt.textContent = opt.getAttribute('data-short');
+      select.appendChild(opt);
+    });
+    if (codes.byIso('IN')) select.value = 'IN';
+  }
+
+  function setPhoneOptionLabels(select, expanded) {
+    Array.prototype.forEach.call(select.options, function (opt) {
+      var label = opt.getAttribute(expanded ? 'data-full' : 'data-short');
+      if (label !== null && opt.textContent !== label) opt.textContent = label;
+    });
+  }
+
+  function composePhone(cfg, eventType) {
+    var e = phoneEls(cfg);
+    if (!e.local || !e.country || !e.hidden) return;
+    var dial = dialOf(e.country);
+    var localDigits = e.local.value.replace(/[^\d]/g, '');
+    var composed = localDigits ? (dial ? '+' + dial + ' ' + localDigits : localDigits) : '';
+    var changed = e.hidden.value !== composed;
+    if (changed) e.hidden.value = composed;
+    if (changed || eventType === 'change') {
+      e.hidden.dispatchEvent(new Event(eventType || 'input', { bubbles: true }));
+    }
+  }
+
+  function parsePhoneInto(cfg, value) {
+    var e = phoneEls(cfg);
+    var codes = window.NKSCountryCodes;
+    if (!e.local || !e.country || !codes) return;
+    var raw = String(value || '').trim();
+    if (!raw) return;
+    var digits = raw.replace(/[^\d]/g, '');
+    if (raw.charAt(0) === '+') {
+      var match = codes.matchDial(raw);
+      if (match) {
+        e.country.value = match.iso;
+        e.country.setAttribute('data-user-picked', '1');
+        e.local.value = digits.slice(match.dial.length);
+        return;
+      }
+    }
+    e.local.value = digits;
+  }
+
+  function applyDefaultPhoneCountry() {
+    var codes = window.NKSCountryCodes;
+    if (!codes) return;
+    var iso = currentLocation === 'dubai' ? 'AE' : 'IN';
+    if (!codes.byIso(iso)) return;
+    PHONE_FIELDS.forEach(function (cfg) {
+      var e = phoneEls(cfg);
+      if (!e.country || e.country.getAttribute('data-user-picked')) return;
+      if (e.local && e.local.value.trim()) return;
+      e.country.value = iso;
+    });
+  }
+
+  function initPhoneFields() {
+    PHONE_FIELDS.forEach(function (cfg) {
+      var e = phoneEls(cfg);
+      if (!e.local || !e.country) return;
+      populatePhoneCountry(e.country);
+      e.local.addEventListener('input', function () { composePhone(cfg, 'input'); });
+      e.local.addEventListener('change', function () { composePhone(cfg, 'change'); });
+      e.country.addEventListener('focus', function () { setPhoneOptionLabels(e.country, true); });
+      e.country.addEventListener('mousedown', function () { setPhoneOptionLabels(e.country, true); });
+      e.country.addEventListener('blur', function () { setPhoneOptionLabels(e.country, false); });
+      e.country.addEventListener('change', function () {
+        e.country.setAttribute('data-user-picked', '1');
+        setPhoneOptionLabels(e.country, false);
+        composePhone(cfg, 'change');
+      });
+    });
+  }
+
+  initPhoneFields();
+
+  var STAY_MAX_DAYS = 14;
+  var stayStart = document.getElementById('stay_start');
+  var stayEnd = document.getElementById('stay_end');
+  var stayHidden = form.elements['stay_dates'];
+
+  function applyStayConstraints() {
+    if (!stayStart || !stayEnd) return;
+    if (stayStart.value) {
+      stayEnd.min = stayStart.value;
+      var d = new Date(stayStart.value);
+      d.setDate(d.getDate() + (STAY_MAX_DAYS - 1));
+      stayEnd.max = d.toISOString().slice(0, 10);
+    } else {
+      stayEnd.removeAttribute('min');
+      stayEnd.removeAttribute('max');
+    }
+    if (stayEnd.value) stayStart.max = stayEnd.value;
+    else stayStart.removeAttribute('max');
+  }
+
+  function composeStayDates(evt) {
+    if (!stayStart || !stayEnd || !stayHidden) return;
+    var composed = (stayStart.value && stayEnd.value) ? (stayStart.value + '..' + stayEnd.value) : '';
+    var changed = stayHidden.value !== composed;
+    if (changed) stayHidden.value = composed;
+    if (changed || evt === 'change') stayHidden.dispatchEvent(new Event(evt || 'input', { bubbles: true }));
+  }
+
+  function parseStayDates(value) {
+    if (!stayStart || !stayEnd) return;
+    var parts = String(value || '').split('..');
+    if (parts.length === 2) { stayStart.value = parts[0]; stayEnd.value = parts[1]; }
+    else { stayStart.value = ''; stayEnd.value = ''; }
+    applyStayConstraints();
+  }
+
+  function clearStayDates() {
+    if (!stayHidden) return;
+    if (!stayHidden.value && (!stayStart || !stayStart.value) && (!stayEnd || !stayEnd.value)) return;
+    if (stayStart) stayStart.value = '';
+    if (stayEnd) stayEnd.value = '';
+    stayHidden.value = '';
+    stayHidden.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  if (stayStart) {
+    stayStart.addEventListener('input', function () { applyStayConstraints(); composeStayDates('input'); });
+    stayStart.addEventListener('change', function () { applyStayConstraints(); composeStayDates('change'); });
+  }
+  if (stayEnd) {
+    stayEnd.addEventListener('input', function () { applyStayConstraints(); composeStayDates('input'); });
+    stayEnd.addEventListener('change', function () { applyStayConstraints(); composeStayDates('change'); });
+  }
+
+  function setBenefitLabelVisible(id, visible) {
+    var el = document.getElementById(id);
+    if (el) el.hidden = !visible;
+  }
+
+  function applyBenefitVisibility() {
+    var isTech = currentDepartment === 'tech';
+    var isGurugram = currentLocation === 'gurugram';
+    var accomSel = form.elements['accommodation'];
+    var accomVal = accomSel ? accomSel.value : '';
+
+    setBenefitLabelVisible('field-accommodation', isTech);
+
+    var stayVisible = isTech && accomVal === 'yes';
+    setBenefitLabelVisible('field-stay-dates', stayVisible);
+    if (stayHidden) {
+      if (stayVisible && isGurugram) stayHidden.dataset.required = 'true';
+      else stayHidden.removeAttribute('data-required');
+    }
+    if (!stayVisible) clearStayDates();
+
+    setBenefitLabelVisible('field-gym', isGurugram);
+    setBenefitLabelVisible('field-tshirt', isGurugram);
+
+    updateProgress();
+  }
+
+  if (form.elements['accommodation']) {
+    form.elements['accommodation'].addEventListener('change', applyBenefitVisibility);
+  }
+
   function applyProgressData(data) {
     var fields = (data && data.fields) || {};
     Object.keys(fields).forEach(function (name) {
@@ -1712,9 +1906,13 @@
     });
 
     splitFullName(fields.full_name);
+    parsePhoneInto(PHONE_FIELDS[0], fields.mobile);
+    parsePhoneInto(PHONE_FIELDS[1], fields.emergency_contact_number);
+    parseStayDates(fields.stay_dates);
 
     // Display the location chip from info and update location-based visibility
     var info = (data && data.info) || {};
+    currentDepartment = (info && info.department) || null;
 
     renderMoreInfoFields(info.extraFields, (data && data.extraFieldValues) || {}, (data && data.extraDocs) || {});
     if (info.location && locationChip) {
@@ -2848,6 +3046,9 @@
       if (field && field.type !== 'file') field.value = saved[key];
     });
     splitFullName(saved.full_name);
+    parsePhoneInto(PHONE_FIELDS[0], saved.mobile);
+    parsePhoneInto(PHONE_FIELDS[1], saved.emergency_contact_number);
+    parseStayDates(saved.stay_dates);
     var savedStep = parseInt(localStorage.getItem(STEP_STORAGE_KEY), 10);
     showStep(isNaN(savedStep) ? 0 : savedStep);
     loadProgressData();

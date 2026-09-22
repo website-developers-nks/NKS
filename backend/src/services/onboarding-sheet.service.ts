@@ -87,10 +87,12 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'IFSC', value: ({ data }) => data.ifsc ?? '' },
 
   { header: 'Short Intro', value: ({ data }) => data.introLine ?? '' },
-  { header: 'Birthday Preference', value: ({ data }) => data.birthdayPref ?? '' },
   { header: 'Meal Preference', value: ({ data }) => data.mealPreference ?? '' },
-  { header: 'Hobbies', value: ({ data }) => data.hobbies ?? '' },
-  { header: 'Fun Fact', value: ({ data }) => data.funFact ?? '' },
+  { header: 'Department', value: ({ auth }) => auth.department ?? '' },
+  { header: 'Accommodation', value: ({ data }) => data.accommodation ?? '' },
+  { header: 'Stay Dates', value: ({ data }) => (data.stayDates ? data.stayDates.replace('..', ' to ') : '') },
+  { header: 'Gym Membership', value: ({ data }) => data.gymMembership ?? '' },
+  { header: 'T-shirt Size', value: ({ data }) => data.tshirtSize ?? '' },
 
   { header: 'Welcome Acknowledged', value: ({ data }) => yesNo(data.welcomeAck) },
   { header: 'Declaration', value: ({ data }) => yesNo(data.declaration) },

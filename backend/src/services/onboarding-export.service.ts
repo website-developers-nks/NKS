@@ -68,10 +68,7 @@ const FIELD_LABELS: Record<string, string> = {
   accountNumber: 'Account Number',
   ifsc: 'IFSC',
   introLine: 'Short Intro',
-  birthdayPref: 'Birthday Preference',
   mealPreference: 'Meal Preference',
-  hobbies: 'Hobbies',
-  funFact: 'Fun Fact',
   experienceRating: 'Experience Rating (out of 5)',
   experienceFeedback: 'Feedback',
 };

@@ -413,8 +413,8 @@
       fathersDob: "Father's DOB", mothersName: "Mother's name", mothersDob: "Mother's DOB",
       spouseName: 'Spouse name', spouseDob: 'Spouse DOB', childsInfo: 'Children', insuranceCoverage: 'Insurance coverage',
       campusName: 'Campus name', orgs: 'Employment history', bankName: 'Bank name', accountHolder: 'Account holder',
-      accountNumber: 'Account number', ifsc: 'IFSC', introLine: 'Short intro', birthdayPref: 'Birthday preference',
-      mealPreference: 'Meal preference', hobbies: 'Hobbies', funFact: 'Fun fact', declaration: 'Declaration',
+      accountNumber: 'Account number', ifsc: 'IFSC', introLine: 'Short intro',
+      mealPreference: 'Meal preference', declaration: 'Declaration',
       consent: 'Consent', experienceRating: 'Experience rating', experienceFeedback: 'Feedback',
       panNumber: 'PAN card number', passportNo: 'Passport number', uanNumber: 'UAN number',
       panDoc: 'PAN card', passportDoc: 'Passport', idDoc: 'ID proof', addressDoc: 'Address proof', photoDoc: 'Personal photo',
@@ -1936,10 +1936,7 @@
       account_number: 'Account Number',
       ifsc: 'IFSC',
       intro_line: 'Short Intro',
-      birthday_pref: 'Birthday Preference',
       meal_preference: 'Meal Preference',
-      hobbies: 'Hobbies',
-      fun_fact: 'Fun Fact',
       experience_rating: 'Experience Rating',
       experience_feedback: 'Feedback'
     };

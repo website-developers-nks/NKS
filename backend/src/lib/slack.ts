@@ -147,7 +147,7 @@ function botError(code?: string): string | null {
   const known: Record<string, string> = {
     invalid_auth: 'Slack rejected the bot token.',
     account_inactive: 'That bot token belongs to a deactivated app.',
-    channel_not_found: 'That channel does not exist, or the bot cannot see it.',
+    channel_not_found: 'That channel does not exist, or the bot cannot see it. Check if bot is in channel',
     not_in_channel: 'The bot is not in that channel - invite it, or add the chat:write.public scope.',
     missing_scope: 'The bot token is missing the chat:write scope.',
     is_archived: 'That channel is archived.',

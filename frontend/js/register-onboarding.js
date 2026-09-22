@@ -855,10 +855,11 @@
         var company = document.getElementById('ro-company').value.trim();
         var userId = document.getElementById('ro-user-id').value.trim();
         var location = document.getElementById('ro-location').value.trim();
+        var department = document.getElementById('ro-department').value.trim();
         var ttl = sessionLengthToSeconds(document.getElementById('ro-ttl').value);
         var expirationDate = document.getElementById('ro-expiration-date').value;
-        if (!company || !userId || !location || !ttl || ttl <= 0 || !expirationDate) {
-          setFormStatus(registerOnboardingStatus, 'Please select a company, a user, a location, enter a valid session length (HH:MM), and choose an expiration date.', 'error');
+        if (!company || !userId || !location || !department || !ttl || ttl <= 0 || !expirationDate) {
+          setFormStatus(registerOnboardingStatus, 'Please select a company, a user, a location, a department, enter a valid session length (HH:MM), and choose an expiration date.', 'error');
           return;
         }
 
@@ -885,7 +886,7 @@
         var sheetId = sheetSelect ? sheetSelect.value : '';
         var driveId = driveSelect ? driveSelect.value : '';
 
-        var payload = { userId: userId, location: location, company: company, ttl: ttl, expirationDate: expirationDate };
+        var payload = { userId: userId, location: location, department: department, company: company, ttl: ttl, expirationDate: expirationDate };
         if (sheetId) payload.sheetId = sheetId;
         if (driveId) payload.driveId = driveId;
         if (extraFieldsDraft.length) payload.extraFields = extraFieldsDraft;
@@ -1012,6 +1013,7 @@
           loadUserList(data.userId || undefined);
           if (data.company) document.getElementById('ro-company').value = data.company;
           if (data.location) document.getElementById('ro-location').value = data.location;
+          if (data.department) document.getElementById('ro-department').value = data.department;
           if (data.ttl) document.getElementById('ro-ttl').value = secondsToSessionLength(data.ttl);
           document.getElementById('ro-cc').value = (Array.isArray(data.cc) ? data.cc.join(', ') : data.cc) || '';
           document.getElementById('ro-bcc').value = (Array.isArray(data.bcc) ? data.bcc.join(', ') : data.bcc) || '';

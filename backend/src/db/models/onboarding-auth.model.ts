@@ -13,6 +13,11 @@ export enum Company {
   NKSRT = 'nk securities research & tech',
 }
 
+export enum Department {
+  Tech = 'tech',
+  Business = 'business',
+}
+
 export enum OnboardingExpiryReason {
   TooManyDocUploads = 'too_many_doc_uploads',
   TooManyPresignRequests = 'too_many_presign_requests',
@@ -35,6 +40,7 @@ export interface IOnboardingAuth extends Document {
   onboardingDataId?: Types.ObjectId;
   completed: boolean;
   location: OfficeLocation;
+  department?: Department;
   docCount: number;
   expired: boolean;
   expiredReason?: OnboardingExpiryReason;
@@ -79,6 +85,7 @@ const OnboardingAuthSchema = new Schema<IOnboardingAuth>(
     onboardingDataId: { type: Schema.Types.ObjectId, ref: 'OnboardingData' },
     completed: { type: Boolean, default: false },
     location: { type: String, enum: Object.values(OfficeLocation), required: true },
+    department: { type: String, enum: Object.values(Department) },
     docCount: { type: Number, default: 0 },
     expired: { type: Boolean, default: false },
     expiredReason: { type: String, enum: Object.values(OnboardingExpiryReason) },

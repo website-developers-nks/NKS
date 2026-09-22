@@ -3,17 +3,29 @@ import { IUser } from './user.model';
 import { IOnboardingAuth } from './onboarding-auth.model';
 import { IDoc } from './doc.model';
 
-export enum BirthdayPref {
-  TeamWishes = 'team_wishes',
-  Private = 'private',
-  SmallCelebration = 'small_celebration',
-}
-
 export enum MealPreference {
   Vegetarian = 'vegetarian',
   Vegan = 'vegan',
   NonVegetarian = 'non_vegetarian',
   Other = 'other',
+}
+
+export enum Accommodation {
+  Yes = 'yes',
+  No = 'no',
+}
+
+export enum GymMembership {
+  CultPlay = 'cult_play',
+  CultElite = 'cult_elite',
+  Reimbursement = 'reimbursement',
+  None = 'none',
+}
+
+export enum TshirtSize {
+  Medium = 'm',
+  Large = 'l',
+  ExtraLarge = 'xl',
 }
 
 export enum Gender {
@@ -139,10 +151,11 @@ export interface IOnboardingData extends Document {
 
   // About
   introLine?: string;
-  birthdayPref?: BirthdayPref;
   mealPreference?: MealPreference;
-  hobbies?: string;
-  funFact?: string;
+  accommodation?: Accommodation;
+  stayDates?: string;
+  gymMembership?: GymMembership;
+  tshirtSize?: TshirtSize;
 
   // Declaration & Consent
   declaration: boolean;
@@ -239,10 +252,11 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
 
     // About
     introLine: { type: String, trim: true },
-    birthdayPref: { type: String, enum: Object.values(BirthdayPref) },
     mealPreference: { type: String, enum: Object.values(MealPreference) },
-    hobbies: { type: String, trim: true },
-    funFact: { type: String, trim: true },
+    accommodation: { type: String, enum: Object.values(Accommodation) },
+    stayDates: { type: String, trim: true },
+    gymMembership: { type: String, enum: Object.values(GymMembership) },
+    tshirtSize: { type: String, enum: Object.values(TshirtSize) },
 
     // Declaration & Consent
     declaration: { type: Boolean, default: false },

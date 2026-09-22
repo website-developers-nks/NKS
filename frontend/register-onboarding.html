@@ -146,6 +146,16 @@
                   </div>
                 </div>
                 <div class="form-group">
+                  <label for="ro-department">Department</label>
+                  <div class="select-wrapper">
+                    <select id="ro-department" name="department" required>
+                      <option value="" disabled selected>Select a department…</option>
+                      <option value="tech">Tech</option>
+                      <option value="business">Business</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
                   <label for="ro-ttl">Session length (HH:MM)</label>
                   <input type="time" id="ro-ttl" name="sessionLength" lang="en-GB" min="00:01" max="23:59" step="60"
                     value="10:00" required>
