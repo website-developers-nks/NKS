@@ -136,13 +136,6 @@
       margin-left: 24px;
     }
 
-    .gh-job-date {
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-family: 'Inter', sans-serif;
-      white-space: nowrap;
-    }
-
     .gh-job-arrow {
       color: var(--text-secondary);
       font-size: 18px;
@@ -154,10 +147,6 @@
     .gh-job-item:hover .gh-job-arrow {
       transform: translateX(4px);
       color: var(--accent);
-    }
-
-    .gh-job-item:hover .gh-job-date {
-      color: var(--text-primary);
     }
 
     .gh-jobs-count {
@@ -410,9 +399,6 @@
               }
 
               board.innerHTML = '<div class="gh-jobs-list">' + filtered.map(function(job) {
-                var date = job.updated_at
-                  ? new Date(job.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : '';
                 return '<a href="' + job.absolute_url + '" target="_blank" rel="noopener" class="gh-job-item">' +
                   '<div class="gh-job-info">' +
                     '<div style="display:flex;align-items:center;gap:10px;">' +
@@ -422,7 +408,6 @@
                     '<span class="gh-job-location">' + job.location.name + '</span>' +
                   '</div>' +
                   '<div class="gh-job-meta">' +
-                    (date ? '<span class="gh-job-date">' + date + '</span>' : '') +
                     '<span class="gh-job-arrow">&#8594;</span>' +
                   '</div>' +
                 '</a>';
