@@ -956,8 +956,16 @@
           return;
         }
 
+        var department = document.getElementById('ro-department').value.trim();
+        if (!department) {
+          showToast('Choose a department first - it decides which fields the form shows.', 'error');
+          document.getElementById('ro-department').focus();
+          return;
+        }
+
         var config = {
           location: location,
+          department: department,
           company: document.getElementById('ro-company').value.trim(),
           extraFields: extraFieldsDraft.map(function (field, index) {
             return {

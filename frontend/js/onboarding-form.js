@@ -1800,15 +1800,23 @@
   var stayEnd = document.getElementById('stay_end');
   var stayHidden = form.elements['stay_dates'];
 
+  function stayTodayISO() {
+    var d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  }
+
   function applyStayConstraints() {
     if (!stayStart || !stayEnd) return;
+    var today = stayTodayISO();
+    stayStart.min = today;
     if (stayStart.value) {
-      stayEnd.min = stayStart.value;
+      stayEnd.min = stayStart.value < today ? today : stayStart.value;
       var d = new Date(stayStart.value);
       d.setDate(d.getDate() + (STAY_MAX_DAYS - 1));
       stayEnd.max = d.toISOString().slice(0, 10);
     } else {
-      stayEnd.removeAttribute('min');
+      stayEnd.min = today;
       stayEnd.removeAttribute('max');
     }
     if (stayEnd.value) stayStart.max = stayEnd.value;
@@ -1849,6 +1857,8 @@
     stayEnd.addEventListener('change', function () { applyStayConstraints(); composeStayDates('change'); });
   }
 
+  applyStayConstraints();
+
   function setBenefitLabelVisible(id, visible) {
     var el = document.getElementById(id);
     if (el) el.hidden = !visible;
@@ -1856,7 +1866,6 @@
 
   function applyBenefitVisibility() {
     var isTech = currentDepartment === 'tech';
-    var isGurugram = currentLocation === 'gurugram';
     var accomSel = form.elements['accommodation'];
     var accomVal = accomSel ? accomSel.value : '';
 
@@ -1865,13 +1874,10 @@
     var stayVisible = isTech && accomVal === 'yes';
     setBenefitLabelVisible('field-stay-dates', stayVisible);
     if (stayHidden) {
-      if (stayVisible && isGurugram) stayHidden.dataset.required = 'true';
+      if (stayVisible) stayHidden.dataset.required = 'true';
       else stayHidden.removeAttribute('data-required');
     }
     if (!stayVisible) clearStayDates();
-
-    setBenefitLabelVisible('field-gym', isGurugram);
-    setBenefitLabelVisible('field-tshirt', isGurugram);
 
     updateProgress();
   }
@@ -3063,6 +3069,7 @@
     }
 
     var location = config.location || 'gurugram';
+    currentDepartment = config.department || null;
 
     renderMoreInfoFields(config.extraFields, {}, {});
     if (locationChip) {

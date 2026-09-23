@@ -263,7 +263,6 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.bloodGroup,            'blood_group');
     requireStr(data.panNumber,             'pan_number');
     requireStr(data.uanNumber,             'uan_number');
-    requireStr(data.mealPreference,        'meal_preference');
     requireDoc(data.experienceRating,      'experience_rating');
     requireAddress(data.address,           'address');
     requireAddress(data.presentAddress,    'present_address');
@@ -309,11 +308,12 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     const department = auth.auth.department;
     if (department === Department.Tech) {
       requireStr(data.accommodation, 'accommodation');
-      if (data.accommodation === Accommodation.Yes && location === OfficeLocation.Gurugram) {
+      if (data.accommodation === Accommodation.Yes) {
         requireStr(data.stayDates, 'stay_dates');
       }
     }
     if (location === OfficeLocation.Gurugram) {
+      requireStr(data.mealPreference, 'meal_preference');
       requireStr(data.gymMembership, 'gym_membership');
       requireStr(data.tshirtSize, 'tshirt_size');
     }

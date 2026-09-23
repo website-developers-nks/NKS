@@ -259,7 +259,7 @@ const FIELD_DEFS: Record<string, FieldDef> = {
 
   // About
   intro_line:               { modelField: 'introLine',             validate: stringValidator(1000) },
-  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference') },
+  meal_preference:          { modelField: 'mealPreference',        validate: enumValidator(Object.values(MealPreference), 'meal preference', false) },
   accommodation:            { modelField: 'accommodation',         validate: enumValidator(Object.values(Accommodation), 'accommodation', false) },
   stay_dates:               { modelField: 'stayDates',             validate: stayDatesValidator(14, false) },
   gym_membership:           { modelField: 'gymMembership',         validate: enumValidator(Object.values(GymMembership), 'gym membership', false) },

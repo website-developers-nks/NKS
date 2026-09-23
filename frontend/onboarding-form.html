@@ -1841,13 +1841,11 @@
                 <h3>Culture Intro</h3>
                 <div class="field-grid">
                   <label class="wide"><span>Short intro <span class="required-mark">*</span></span><textarea data-required="true" name="intro_line" rows="3" maxlength="1000" placeholder="Example: I moved into markets from a physics background, I play badminton most weekends, and I roast my own coffee."></textarea><span class="field-help">Shared on our company-wide Slack channel - your background, interests, or a fun fact you would like colleagues to know.</span></label>
-                  <label><span>Meal preference <span class="required-mark">*</span></span>
+                  <label data-location="gurugram"><span>Meal preference <span class="required-mark">*</span></span>
                     <select data-required="true" name="meal_preference">
                       <option value="">Select</option>
                       <option value="vegetarian">Vegetarian</option>
-                      <option value="vegan">Vegan</option>
                       <option value="non_vegetarian">Non-vegetarian</option>
-                      <option value="other">Other</option>
                     </select>
                   </label>
                   <label id="field-accommodation" hidden><span>Accommodation required? <span class="required-mark">*</span></span>
@@ -1866,7 +1864,7 @@
                     <input type="hidden" name="stay_dates">
                     <span class="field-help">Stay is for a maximum of 14 days.</span>
                   </label>
-                  <label id="field-gym" class="wide" hidden><span>Gym membership <span class="required-mark">*</span></span>
+                  <label data-location="gurugram"><span>Gym membership <span class="required-mark">*</span></span>
                     <select data-required="true" name="gym_membership">
                       <option value="">Select</option>
                       <option value="cult_play">Cult Play - sports only (badminton, TT, swimming, etc.)</option>
@@ -1875,7 +1873,7 @@
                       <option value="none">No membership</option>
                     </select>
                   </label>
-                  <label id="field-tshirt" hidden><span>Preferred t-shirt size <span class="required-mark">*</span></span>
+                  <label data-location="gurugram"><span>Preferred t-shirt size <span class="required-mark">*</span></span>
                     <select data-required="true" name="tshirt_size">
                       <option value="">Select</option>
                       <option value="m">Medium - M</option>
