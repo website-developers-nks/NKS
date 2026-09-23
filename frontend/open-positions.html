@@ -206,17 +206,6 @@
       color: var(--text-primary, #fff);
     }
 
-    .gh-job-id-badge {
-      font-size: 10px;
-      font-family: 'Inter', sans-serif;
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 2px 6px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
     .gh-no-results {
       padding: 40px 0;
       font-size: 14px;
@@ -401,10 +390,7 @@
               board.innerHTML = '<div class="gh-jobs-list">' + filtered.map(function(job) {
                 return '<a href="' + job.absolute_url + '" target="_blank" rel="noopener" class="gh-job-item">' +
                   '<div class="gh-job-info">' +
-                    '<div style="display:flex;align-items:center;gap:10px;">' +
-                      '<span class="gh-job-title">' + job.title.trim() + '</span>' +
-                      (job.internal_job_id ? '<span class="gh-job-id-badge">#' + job.internal_job_id + '</span>' : '') +
-                    '</div>' +
+                    '<span class="gh-job-title">' + job.title.trim() + '</span>' +
                     '<span class="gh-job-location">' + job.location.name + '</span>' +
                   '</div>' +
                   '<div class="gh-job-meta">' +
