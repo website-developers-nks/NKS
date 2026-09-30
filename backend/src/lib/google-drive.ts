@@ -1,4 +1,4 @@
-import { getAccessToken, DRIVE_SCOPE, serviceAccountEmail } from './google-auth';
+import { getDriveAccessToken } from './google-auth';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
@@ -25,8 +25,25 @@ export function parseFolderId(input: string): string | null {
   return null;
 }
 
+let cachedAccountEmail: string | null = null;
+
+export async function driveAccountEmail(): Promise<string | null> {
+  if (cachedAccountEmail) return cachedAccountEmail;
+  try {
+    const token = await getDriveAccessToken();
+    const res = await fetch(`${DRIVE_API}/about?fields=user(emailAddress)`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = await res.json().catch(() => ({})) as any;
+    cachedAccountEmail = body?.user?.emailAddress ?? null;
+  } catch {
+    cachedAccountEmail = null;
+  }
+  return cachedAccountEmail;
+}
+
 async function driveFetch(path: string, init?: RequestInit): Promise<any> {
-  const token = await getAccessToken(DRIVE_SCOPE);
+  const token = await getDriveAccessToken();
   const res = await fetch(`${DRIVE_API}${path}`, {
     ...init,
     headers: { ...(init?.headers ?? {}), Authorization: `Bearer ${token}` },
@@ -36,7 +53,7 @@ async function driveFetch(path: string, init?: RequestInit): Promise<any> {
   if (!res.ok) {
     const message = body?.error?.message || `Google Drive API error ${res.status}`;
     if (res.status === 403 || res.status === 404) {
-      throw new Error(`${message} - check the folder is shared with ${serviceAccountEmail()} as a Content manager or Editor.`);
+      throw new Error(`${message} - check the folder is shared with ${await driveAccountEmail()} as a Content manager or Editor.`);
     }
     throw new Error(message);
   }
@@ -84,7 +101,7 @@ export async function uploadFile(
   mimeType: string,
   contents: Buffer,
 ): Promise<UploadedFile> {
-  const token = await getAccessToken(DRIVE_SCOPE);
+  const token = await getDriveAccessToken();
   const { boundary, body } = multipartBody({ name, parents: [folderId] }, mimeType, contents);
 
   const res = await fetch(
@@ -105,7 +122,7 @@ export async function uploadFile(
     const message = payload?.error?.message || `Google Drive upload failed (${res.status})`;
     if (/storage quota/i.test(message)) {
       throw new Error(
-        'Google refused the upload: a service account has no Drive storage of its own, so the folder has to live in a Shared Drive rather than a personal My Drive.',
+        'Google refused the upload: a service account has no Drive storage of its own. Use a Shared Drive folder, or set GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET and GOOGLE_DRIVE_REFRESH_TOKEN so uploads go through a real Google account.',
       );
     }
     throw new Error(message);
@@ -120,7 +137,7 @@ export async function updateFile(
   mimeType: string,
   contents: Buffer,
 ): Promise<UploadedFile> {
-  const token = await getAccessToken(DRIVE_SCOPE);
+  const token = await getDriveAccessToken();
   const { boundary, body } = multipartBody({ name }, mimeType, contents);
 
   const res = await fetch(
@@ -139,4 +156,25 @@ export async function updateFile(
   const payload = await res.json().catch(() => ({})) as any;
   if (!res.ok) throw new Error(payload?.error?.message || `Google Drive update failed (${res.status})`);
   return { id: payload.id, name: payload.name, webViewLink: payload.webViewLink };
+}
+
+export async function deleteFile(fileId: string): Promise<void> {
+  const token = await getDriveAccessToken();
+  const res = await fetch(
+    `${DRIVE_API}/files/${encodeURIComponent(fileId)}?supportsAllDrives=true`,
+    { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok && res.status !== 404) {
+    const payload = await res.json().catch(() => ({})) as any;
+    throw new Error(payload?.error?.message || `Google Drive delete failed (${res.status})`);
+  }
+}
+
+export async function testFolderUpload(folderId: string): Promise<UploadedFile> {
+  return uploadFile(
+    folderId,
+    `nks-drive-test-${Date.now()}.txt`,
+    'text/plain',
+    Buffer.from(`NKS Drive sync test upload at ${new Date().toISOString()}. Safe to delete.\n`),
+  );
 }

@@ -578,6 +578,33 @@ a.form-submit {
   color: #c62828;
 }
 
+.drive-folder-status.is-warning {
+  color: #b45309;
+}
+
+#drive-save-mapping-btn.is-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#drive-save-mapping-btn.is-loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: adminSpin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #drive-save-mapping-btn.is-loading::before {
+    animation: none;
+  }
+}
+
 @media (max-width: 640px) {
   .field-map-row {
     grid-template-columns: 1fr;

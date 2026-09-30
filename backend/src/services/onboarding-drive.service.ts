@@ -9,7 +9,7 @@ import { Doc, IDoc } from '../db/models/doc.model';
 import { DriveConfig, IDriveConfig } from '../db/models/drive-config.model';
 import { uploadFile, updateFile } from '../lib/google-drive';
 import { ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
-import { isGoogleConfigured } from '../lib/google-auth';
+import { isDriveConfigured } from '../lib/google-auth';
 
 export interface DriveDocument {
   key: string;
@@ -138,7 +138,7 @@ export async function pushOnboardingToDrive(
       .populate<{ user: IUser }>('user', 'firstName lastName email');
 
     if (!auth?.driveConfig) return { synced: false, reason: 'not_configured' };
-    if (!isGoogleConfigured()) {
+    if (!isDriveConfigured()) {
       return { synced: false, reason: 'failed', error: 'Google credentials are not configured on the server.' };
     }
 

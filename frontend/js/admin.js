@@ -749,6 +749,7 @@
       actions.className = 'onboarding-row-actions';
       actions.appendChild(window.NKSRowMenu.build([
         { label: 'Edit folders', onSelect: function () { openDriveMapping(config); } },
+        { label: 'Test folders', keepOpen: true, onSelect: function (entry) { testDriveConfig(config, entry); } },
         { label: 'Remove', danger: true, keepOpen: true, onSelect: function (entry) { removeDriveConfig(config, entry); } }
       ]));
       row.appendChild(actions);
@@ -795,6 +796,52 @@
         .catch(function (err) {
           console.error('[admin] drive fetch failed:', err);
           if (driveList) setListMessage(driveList, 'Could not load Drive configurations.');
+        });
+    }
+
+    function testDriveConfig(config, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Testing…';
+
+      var labelFor = function (key) {
+        if (key === 'default') return 'Default folder';
+        var match = driveDocuments.filter(function (d) { return d.key === key; })[0];
+        return match ? match.label : key;
+      };
+
+      fetch(API_BASE + '/drive/' + encodeURIComponent(config.id) + '/test', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (handleApiFailure(result)) return;
+
+          if (result.status !== 200 || !result.data) {
+            showToast((result.data && result.data.error) || 'Could not test the Drive folders.', 'error');
+            return;
+          }
+
+          var failures = result.data.failures || [];
+          if (!failures.length) {
+            showToast('All ' + result.data.tested + ' folder' + (result.data.tested === 1 ? '' : 's') + ' passed a test upload.', 'success');
+            return;
+          }
+
+          var lines = failures.map(function (failure) {
+            return (failure.keys || []).map(labelFor).join(', ') + ': ' + failure.error;
+          });
+          showToast(failures.length + ' of ' + result.data.tested + ' folders failed a test upload. ' + lines.join(' | '), 'error');
+        })
+        .catch(function (err) {
+          console.error('[admin] drive test failed:', err);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          showToast('Could not test the Drive folders.', 'error');
         });
     }
 
@@ -1487,7 +1534,7 @@
 
     function verifyDriveFolder(key, value, statusEl, nameEl, refreshBtn) {
       statusEl.textContent = 'Checking…';
-      statusEl.classList.remove('is-error');
+      statusEl.classList.remove('is-error', 'is-warning');
       if (refreshBtn) {
         refreshBtn.disabled = true;
         refreshBtn.classList.add('is-spinning');
@@ -1518,8 +1565,9 @@
 
           driveMappingDraft[key] = { folderId: result.data.id, folderName: result.data.name };
           nameEl.textContent = result.data.name;
-          statusEl.textContent = result.data.warning || 'Shared Drive folder ✓';
-          statusEl.classList.toggle('is-error', !!result.data.warning);
+          statusEl.textContent = result.data.warning ? 'Warning: ' + result.data.warning : 'Shared Drive folder ✓';
+          statusEl.classList.remove('is-error');
+          statusEl.classList.toggle('is-warning', !!result.data.warning);
         })
         .catch(function (err) {
           console.error('[admin] folder check failed:', err);
@@ -1534,9 +1582,12 @@
       'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 5v6h-6"/></svg>';
 
+    var driveMappingStatusEls = {};
+
     function renderDriveMapping() {
       if (!driveMappingList) return;
       driveMappingList.innerHTML = '';
+      driveMappingStatusEls = {};
 
       driveDocuments.forEach(function (docType) {
         var current = driveMappingDraft[docType.key];
@@ -1570,6 +1621,7 @@
 
         var status = document.createElement('span');
         status.className = 'drive-folder-status';
+        driveMappingStatusEls[docType.key] = status;
 
         var refresh = document.createElement('button');
         refresh.type = 'button';
@@ -1593,7 +1645,7 @@
             delete driveMappingDraft[docType.key];
             folderName.textContent = 'no folder';
             status.textContent = '';
-            status.classList.remove('is-error');
+            status.classList.remove('is-error', 'is-warning');
             row.classList.remove('is-mapped');
             return;
           }
@@ -1630,7 +1682,7 @@
       }
       if (driveMappingNote) {
         if (driveServiceAccount) {
-          setFormStatus(driveMappingNote, 'Share each folder with ' + driveServiceAccount + ' as a Content manager first.', 'success');
+          setFormStatus(driveMappingNote, 'Share each folder with ' + driveServiceAccount + ' as a Content manager or Editor first.', 'success');
         } else {
           clearFormStatus(driveMappingNote);
         }
@@ -1648,7 +1700,15 @@
 
         var originalText = driveSaveMappingBtn.textContent;
         driveSaveMappingBtn.disabled = true;
-        driveSaveMappingBtn.textContent = 'Saving…';
+        driveSaveMappingBtn.classList.add('is-loading');
+        driveSaveMappingBtn.textContent = 'Testing folders…';
+
+        Object.keys(driveMappingDraft).forEach(function (key) {
+          var el = driveMappingStatusEls[key];
+          if (!el) return;
+          el.textContent = 'Uploading a test file…';
+          el.classList.remove('is-error', 'is-warning');
+        });
 
         fetch(API_BASE + '/drive/' + encodeURIComponent(driveMappingConfig.id), {
           method: 'PATCH',
@@ -1660,19 +1720,40 @@
           .then(function (result) {
             if (handleApiFailure(result)) return;
             if (result.status === 200) {
-              showToast('Folders saved.', 'success');
+              showToast('Test uploads passed. Folders saved.', 'success');
               closeDriveMapping();
               loadDriveConfigs();
               return;
             }
+            var failed = {};
+            ((result.data && result.data.failures) || []).forEach(function (failure) {
+              (failure.keys || []).forEach(function (key) { failed[key] = failure.error; });
+            });
+            Object.keys(driveMappingDraft).forEach(function (key) {
+              var el = driveMappingStatusEls[key];
+              if (!el) return;
+              if (failed[key]) {
+                el.textContent = 'Test upload failed: ' + failed[key];
+                el.classList.add('is-error');
+              } else if (result.data && result.data.reason === 'test_upload_failed') {
+                el.textContent = 'Test upload passed ✓';
+              } else {
+                el.textContent = '';
+              }
+            });
             setFormStatus(driveMappingStatus, (result.data && result.data.error) || 'Could not save the folders.', 'error');
           })
           .catch(function (err) {
             console.error('[admin] drive mapping save failed:', err);
+            Object.keys(driveMappingStatusEls).forEach(function (key) {
+              var el = driveMappingStatusEls[key];
+              if (el.textContent === 'Uploading a test file…') el.textContent = '';
+            });
             setFormStatus(driveMappingStatus, 'Could not save the folders.', 'error');
           })
           .finally(function () {
             driveSaveMappingBtn.disabled = false;
+            driveSaveMappingBtn.classList.remove('is-loading');
             driveSaveMappingBtn.textContent = originalText;
           });
       });

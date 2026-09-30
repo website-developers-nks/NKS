@@ -31,8 +31,8 @@ import { AdminAttachment } from '../db/models/admin-attachment.model';
 import { createScheduledEmail, deliverScheduledEmail } from '../services/scheduled-email.service';
 import { sendReminderFor } from '../services/onboarding-reminder.service';
 import { isGoogleSheetsConfigured, parseSpreadsheetId, getSpreadsheetInfo } from '../lib/google-sheets';
-import { parseFolderId, checkFolder } from '../lib/google-drive';
-import { isGoogleConfigured, serviceAccountEmail } from '../lib/google-auth';
+import { parseFolderId, checkFolder, testFolderUpload, driveAccountEmail } from '../lib/google-drive';
+import { isDriveConfigured, isDriveUserConfigured } from '../lib/google-auth';
 import { DRIVE_DOCUMENTS, pushOnboardingToDrive } from '../services/onboarding-drive.service';
 import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
 import { normalizeExtraFields, ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
@@ -663,6 +663,20 @@ function driveConfigJson(config: IDriveConfig) {
   };
 }
 
+async function testDriveFolders(keysByFolder: Map<string, string[]>) {
+  const results = await Promise.all(
+    [...keysByFolder.entries()].map(async ([folderId, keys]) => {
+      try {
+        await testFolderUpload(folderId);
+        return null;
+      } catch (err) {
+        return { folderId, keys, error: (err as Error).message };
+      }
+    }),
+  );
+  return results.filter((r) => r !== null);
+}
+
 router.get(
   '/drive',
   requireAdminAuth,
@@ -671,8 +685,8 @@ router.get(
     try {
       const configs = await DriveConfig.find().sort({ name: 1 });
       res.json({
-        configured: isGoogleConfigured(),
-        serviceAccount: serviceAccountEmail(),
+        configured: isDriveConfigured(),
+        serviceAccount: isDriveConfigured() ? await driveAccountEmail() : null,
         documents: DRIVE_DOCUMENTS,
         configs: configs.map(driveConfigJson),
       });
@@ -694,7 +708,7 @@ router.post(
       res.status(400).json({ error: 'A name is required.' });
       return;
     }
-    if (!isGoogleConfigured()) {
+    if (!isDriveConfigured()) {
       res.status(503).json({ error: 'Google credentials are not configured on the server.' });
       return;
     }
@@ -751,7 +765,7 @@ router.post(
       const info = await checkFolder(folderId);
       res.json({
         ...info,
-        warning: info.inSharedDrive
+        warning: info.inSharedDrive || isDriveUserConfigured()
           ? null
           : 'This folder is in a personal My Drive. A service account has no storage of its own, so uploads there usually fail on quota - a Shared Drive folder is recommended.',
       });
@@ -793,6 +807,28 @@ router.patch(
         if (!folderId) continue;
         clean[key] = { folderId, folderName: value?.folderName?.trim() || undefined };
       }
+
+      const keysByFolder = new Map<string, string[]>();
+      for (const [key, value] of Object.entries(clean)) {
+        keysByFolder.set(value.folderId, [...(keysByFolder.get(value.folderId) ?? []), key]);
+      }
+
+      if (keysByFolder.size && !isDriveConfigured()) {
+        res.status(503).json({ error: 'Google credentials are not configured on the server.' });
+        return;
+      }
+
+      const failures = await testDriveFolders(keysByFolder);
+
+      if (failures.length) {
+        res.status(400).json({
+          error: `${failures.length} of ${keysByFolder.size} folder${keysByFolder.size === 1 ? '' : 's'} rejected a test upload, so nothing was saved.`,
+          reason: 'test_upload_failed',
+          failures,
+        });
+        return;
+      }
+
       update.mapping = clean;
     }
 
@@ -811,6 +847,51 @@ router.patch(
     } catch (err) {
       console.error('[admin/drive/:id] update', err);
       res.status(500).json({ error: 'Failed to update the Drive configuration.' });
+    }
+  },
+);
+
+router.post(
+  '/drive/:id/test',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid configuration id.' });
+      return;
+    }
+    if (!isDriveConfigured()) {
+      res.status(503).json({ error: 'Google credentials are not configured on the server.' });
+      return;
+    }
+
+    try {
+      const config = await DriveConfig.findById(id);
+      if (!config) {
+        res.status(404).json({ error: 'Configuration not found.' });
+        return;
+      }
+
+      const keysByFolder = new Map<string, string[]>();
+      const add = (folderId: string | undefined, key: string) => {
+        if (!folderId) return;
+        keysByFolder.set(folderId, [...(keysByFolder.get(folderId) ?? []), key]);
+      };
+      add(config.defaultFolderId, 'default');
+      const mapping = driveConfigJson(config).mapping as Record<string, { folderId?: string }>;
+      for (const [key, value] of Object.entries(mapping)) add(value?.folderId, key);
+
+      if (!keysByFolder.size) {
+        res.status(400).json({ error: 'This Drive sync has no folders to test.' });
+        return;
+      }
+
+      const failures = await testDriveFolders(keysByFolder);
+      res.json({ tested: keysByFolder.size, passed: keysByFolder.size - failures.length, failures });
+    } catch (err) {
+      console.error('[admin/drive/:id/test]', err);
+      res.status(500).json({ error: 'Failed to test the Drive folders.' });
     }
   },
 );

@@ -77,3 +77,47 @@ export async function getAccessToken(scope: string): Promise<string> {
   });
   return body.access_token;
 }
+
+export function isDriveUserConfigured(): boolean {
+  return !!(
+    process.env.GOOGLE_OAUTH_CLIENT_ID &&
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
+    process.env.GOOGLE_DRIVE_REFRESH_TOKEN
+  );
+}
+
+export function isDriveConfigured(): boolean {
+  return isDriveUserConfigured() || isGoogleConfigured();
+}
+
+let driveUserToken: { value: string; expiresAt: number } | null = null;
+
+export async function getDriveAccessToken(): Promise<string> {
+  if (!isDriveUserConfigured()) return getAccessToken(DRIVE_SCOPE);
+  if (driveUserToken && driveUserToken.expiresAt > Date.now() + 60_000) return driveUserToken.value;
+
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
+      refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN!,
+    }),
+  });
+
+  const body = await res.json().catch(() => ({})) as {
+    access_token?: string; expires_in?: number; error_description?: string; error?: string;
+  };
+
+  if (!res.ok || !body.access_token) {
+    throw new Error(`Google Drive auth failed: ${body.error_description || body.error || res.status}`);
+  }
+
+  driveUserToken = {
+    value: body.access_token,
+    expiresAt: Date.now() + (body.expires_in ?? 3600) * 1000,
+  };
+  return body.access_token;
+}
