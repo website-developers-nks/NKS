@@ -45,6 +45,7 @@
 
   <link rel="stylesheet" href="css/styles.css?v=1789993235">
   <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+  <link rel="stylesheet" href="css/forms.css?v=1789993235">
 
   <style>
     html, body {
@@ -212,6 +213,147 @@
       color: var(--text-secondary);
     }
 
+    .gh-clear-filters {
+      margin-left: 8px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .gh-dept-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 32px;
+    }
+
+    .gh-dept-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .gh-dept-tab:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .gh-dept-tab[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+
+    .gh-dept-tab:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .gh-dept-tab-count {
+      min-width: 20px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--border);
+      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .gh-dept-tab[aria-pressed="true"] .gh-dept-tab-count {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .gh-dept-tab:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .gh-level-tabs {
+      margin-top: 12px;
+    }
+
+    .gh-level-tabs[hidden] {
+      display: none;
+    }
+
+    .gh-job-title-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .gh-job-level {
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .gh-job-level.is-early-career {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .gh-dept-heading {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 20px 0 10px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .gh-dept-heading span {
+      color: var(--text-secondary);
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    @media (max-width: 640px) {
+      .gh-dept-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .gh-dept-tabs::-webkit-scrollbar {
+        display: none;
+      }
+
+      .gh-dept-tab {
+        flex-shrink: 0;
+      }
+    }
+
     .hero-careers-container {
       display: flex;
       align-items: center;
@@ -332,9 +474,12 @@
       <span class="label fade-up">CURRENT OPENINGS</span>
       <h2 class="display-md fade-up">Find your role</h2>
 
+      <div class="gh-dept-tabs fade-up" id="ghDepartments" role="group" aria-label="Filter by team"></div>
+      <div class="gh-dept-tabs gh-level-tabs fade-up" id="ghLevels" role="group" aria-label="Filter by experience level" hidden></div>
+
       <div class="gh-filters fade-up">
-        <input type="text" class="gh-filter-input" id="ghSearch" placeholder="Search by role or location">
-        <select class="gh-filter-select" id="ghLocation">
+        <input type="search" class="gh-filter-input" id="ghSearch" placeholder="Search by role, team or location" aria-label="Search open positions">
+        <select class="gh-filter-select" id="ghLocation" aria-label="Filter by location">
           <option value="">All Locations</option>
         </select>
       </div>
@@ -343,72 +488,286 @@
       <div id="gh-jobs-board" class="fade-up"></div>
 
       <script>
-        fetch('https://api.greenhouse.io/v1/boards/nksecuritiesresearch/jobs')
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            var allJobs = data.jobs || [];
-            var countEl   = document.getElementById('gh-jobs-count');
-            var board     = document.getElementById('gh-jobs-board');
-            var searchEl  = document.getElementById('ghSearch');
-            var locationEl = document.getElementById('ghLocation');
+        (function() {
+          var countEl      = document.getElementById('gh-jobs-count');
+          var board        = document.getElementById('gh-jobs-board');
+          var searchEl     = document.getElementById('ghSearch');
+          var locationEl   = document.getElementById('ghLocation');
+          var departmentEl = document.getElementById('ghDepartments');
+          var levelEl      = document.getElementById('ghLevels');
+          var BOARD_API    = 'https://api.greenhouse.io/v1/boards/nksecuritiesresearch';
+          var LEVELS       = [
+            { slug: 'early-career', label: 'Early Career' },
+            { slug: 'experienced', label: 'Experienced' }
+          ];
 
-            if (allJobs.length === 0) {
-              countEl.textContent = '0 open positions';
-              board.innerHTML = '<p class="gh-jobs-error">No open positions at this time. Check back soon.</p>';
-              return;
+          function departmentLabel(name) {
+            return name.replace(/^\s*\d+\.\s*/, '').trim();
+          }
+
+          function slugify(value) {
+            return value.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          }
+
+          function escapeHtml(value) {
+            return String(value == null ? '' : value)
+              .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          }
+
+          function plural(n, word) {
+            return n + ' ' + word + (n === 1 ? '' : 's');
+          }
+
+          function getJson(url) {
+            return fetch(url).then(function(r) {
+              if (!r.ok) throw new Error('Greenhouse responded ' + r.status);
+              return r.json();
+            });
+          }
+
+          function descriptionText(escapedHtml) {
+            var parser = new DOMParser();
+            var html = parser.parseFromString(escapedHtml || '', 'text/html').documentElement.textContent;
+            return (parser.parseFromString(html, 'text/html').body.textContent || '').replace(/\s+/g, ' ');
+          }
+
+          function minExperienceYears(text) {
+            var pattern = /(\d{1,2})\s*(?:(?:-|–|—|to)\s*\d{1,2})?\s*\+?\s*(?:years?|yrs?)\b/gi;
+            var lowest = null;
+            var match;
+            while ((match = pattern.exec(text))) {
+              var context = text.slice(Math.max(0, match.index - 100), pattern.lastIndex + 60);
+              if (!/experience/i.test(context)) continue;
+              var years = Number(match[1]);
+              if (lowest === null || years < lowest) lowest = years;
             }
+            return lowest;
+          }
 
-            var locations = [];
-            allJobs.forEach(function(job) {
-              var loc = job.location.name.trim();
-              if (loc && locations.indexOf(loc) === -1) locations.push(loc);
-            });
-            locations.sort().forEach(function(loc) {
-              var opt = document.createElement('option');
-              opt.value = loc;
-              opt.textContent = loc;
-              locationEl.appendChild(opt);
-            });
+          function experienceLevel(job) {
+            if (!job || job.content == null) return '';
+            var years = minExperienceYears(descriptionText(job.content));
+            if (years === null) return '';
+            return years <= 1 ? 'early-career' : 'experienced';
+          }
 
-            function renderJobs() {
-              var query = searchEl.value.trim().toLowerCase();
-              var locFilter = locationEl.value;
-
-              var filtered = allJobs.filter(function(job) {
-                var matchesSearch = !query || job.title.toLowerCase().includes(query);
-                var matchesLoc    = !locFilter || job.location.name.trim() === locFilter;
-                return matchesSearch && matchesLoc;
+          Promise.all([
+            getJson(BOARD_API + '/departments'),
+            getJson(BOARD_API + '/jobs?content=true').catch(function(err) {
+              console.warn('[careers] could not load job descriptions, hiding the experience filter:', err);
+              return null;
+            })
+          ])
+            .then(function(results) {
+              var data = results[0];
+              var levelById = {};
+              ((results[1] && results[1].jobs) || []).forEach(function(job) {
+                levelById[job.id] = experienceLevel(job);
               });
+              var departments = (data.departments || [])
+                .filter(function(dep) { return dep.id && dep.jobs && dep.jobs.length; })
+                .sort(function(a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); })
+                .map(function(dep) {
+                  var label = departmentLabel(dep.name);
+                  return { slug: slugify(label), label: label, jobs: dep.jobs };
+                });
 
-              countEl.textContent = filtered.length + ' open position' + (filtered.length !== 1 ? 's' : '');
+              var jobsById = {};
+              var allJobs = [];
+              departments.forEach(function(dep, order) {
+                dep.jobs.forEach(function(job) {
+                  var entry = jobsById[job.id];
+                  if (!entry) {
+                    entry = jobsById[job.id] = {
+                      title: job.title.trim(),
+                      url: job.absolute_url,
+                      location: ((job.location && job.location.name) || '').trim(),
+                      level: levelById[job.id] || '',
+                      order: order,
+                      departments: []
+                    };
+                    allJobs.push(entry);
+                  }
+                  entry.departments.push(dep);
+                });
+              });
+              allJobs.sort(function(a, b) { return a.order - b.order || a.title.localeCompare(b.title); });
 
-              if (filtered.length === 0) {
-                board.innerHTML = '<p class="gh-no-results">No positions match your search.</p>';
+              if (allJobs.length === 0) {
+                countEl.textContent = '0 open positions';
+                board.innerHTML = '<p class="gh-jobs-error">No open positions at this time. Check back soon.</p>';
                 return;
               }
 
-              board.innerHTML = '<div class="gh-jobs-list">' + filtered.map(function(job) {
-                return '<a href="' + job.absolute_url + '" target="_blank" rel="noopener" class="gh-job-item">' +
+              var locations = [];
+              allJobs.forEach(function(job) {
+                if (job.location && locations.indexOf(job.location) === -1) locations.push(job.location);
+              });
+              locations.sort().forEach(function(loc) {
+                var opt = document.createElement('option');
+                opt.value = loc;
+                opt.textContent = loc;
+                locationEl.appendChild(opt);
+              });
+
+              var params = new URLSearchParams(window.location.search);
+              var activeDept = params.get('team') || '';
+              if (activeDept && !departments.some(function(dep) { return dep.slug === activeDept; })) activeDept = '';
+              if (params.get('location') && locations.indexOf(params.get('location')) !== -1) locationEl.value = params.get('location');
+              if (params.get('q')) searchEl.value = params.get('q');
+              var activeLevel = params.get('level') || '';
+              var hasLevels = allJobs.some(function(job) { return job.level; });
+              if (!hasLevels || !LEVELS.some(function(l) { return l.slug === activeLevel; })) activeLevel = '';
+
+              var levelTabs = [];
+              if (hasLevels) {
+                levelEl.hidden = false;
+                levelTabs = [{ slug: '', label: 'All Levels' }].concat(LEVELS).map(function(level) {
+                  var btn = document.createElement('button');
+                  btn.type = 'button';
+                  btn.className = 'gh-dept-tab';
+                  btn.dataset.slug = level.slug;
+                  btn.innerHTML = '<span>' + escapeHtml(level.label) + '</span><span class="gh-dept-tab-count"></span>';
+                  btn.addEventListener('click', function() {
+                    activeLevel = level.slug;
+                    render();
+                  });
+                  levelEl.appendChild(btn);
+                  return btn;
+                });
+              }
+
+              function levelLabel(slug) {
+                var match = LEVELS.filter(function(l) { return l.slug === slug; })[0];
+                return match ? match.label : '';
+              }
+
+              var tabs = [{ slug: '', label: 'All Teams' }].concat(departments).map(function(dep) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'gh-dept-tab';
+                btn.dataset.slug = dep.slug;
+                btn.innerHTML = '<span>' + escapeHtml(dep.label) + '</span><span class="gh-dept-tab-count"></span>';
+                btn.addEventListener('click', function() {
+                  activeDept = dep.slug;
+                  render();
+                });
+                departmentEl.appendChild(btn);
+                return btn;
+              });
+
+              function matchesOtherFilters(job) {
+                var query = searchEl.value.trim().toLowerCase();
+                var loc = locationEl.value;
+                if (loc && job.location !== loc) return false;
+                if (!query) return true;
+                var haystack = (job.title + ' ' + job.location + ' ' +
+                  job.departments.map(function(d) { return d.label; }).join(' ')).toLowerCase();
+                return haystack.indexOf(query) !== -1;
+              }
+
+              function inDept(job, slug) {
+                return !slug || job.departments.some(function(d) { return d.slug === slug; });
+              }
+
+              function inLevel(job, slug) {
+                return !slug || job.level === slug;
+              }
+
+              function syncUrl() {
+                var next = new URLSearchParams(window.location.search);
+                [['team', activeDept], ['level', activeLevel], ['location', locationEl.value], ['q', searchEl.value.trim()]].forEach(function(pair) {
+                  if (pair[1]) next.set(pair[0], pair[1]); else next.delete(pair[0]);
+                });
+                var qs = next.toString();
+                history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+              }
+
+              function jobRow(job) {
+                return '<a href="' + escapeHtml(job.url) + '" target="_blank" rel="noopener" class="gh-job-item">' +
                   '<div class="gh-job-info">' +
-                    '<span class="gh-job-title">' + job.title.trim() + '</span>' +
-                    '<span class="gh-job-location">' + job.location.name + '</span>' +
+                    '<span class="gh-job-title-row">' +
+                      '<span class="gh-job-title">' + escapeHtml(job.title) + '</span>' +
+                      (job.level ? '<span class="gh-job-level is-' + job.level + '">' + escapeHtml(levelLabel(job.level)) + '</span>' : '') +
+                    '</span>' +
+                    '<span class="gh-job-location">' + escapeHtml(job.location) + '</span>' +
                   '</div>' +
                   '<div class="gh-job-meta">' +
                     '<span class="gh-job-arrow">&#8594;</span>' +
                   '</div>' +
                 '</a>';
-              }).join('') + '</div>';
-            }
+              }
 
-            searchEl.addEventListener('input', renderJobs);
-            locationEl.addEventListener('change', renderJobs);
+              function revealActiveTab() {
+                var btn = departmentEl.querySelector('[aria-pressed="true"]');
+                if (!btn || departmentEl.scrollWidth <= departmentEl.clientWidth) return;
+                var tabBox = btn.getBoundingClientRect();
+                var rowBox = departmentEl.getBoundingClientRect();
+                if (tabBox.right > rowBox.right) departmentEl.scrollLeft += tabBox.right - rowBox.right;
+                else if (tabBox.left < rowBox.left) departmentEl.scrollLeft -= rowBox.left - tabBox.left;
+              }
 
-            renderJobs();
-          })
-          .catch(function() {
-            document.getElementById('gh-jobs-board').innerHTML =
-              '<p class="gh-jobs-error">Unable to load positions right now. Please try again later.</p>';
-          });
+              function render() {
+                var candidates = allJobs.filter(matchesOtherFilters);
+
+                tabs.forEach(function(btn) {
+                  var slug = btn.dataset.slug;
+                  var n = candidates.filter(function(job) { return inDept(job, slug) && inLevel(job, activeLevel); }).length;
+                  btn.querySelector('.gh-dept-tab-count').textContent = n;
+                  btn.setAttribute('aria-pressed', slug === activeDept ? 'true' : 'false');
+                  btn.disabled = !n && slug !== activeDept && slug !== '';
+                });
+                levelTabs.forEach(function(btn) {
+                  var slug = btn.dataset.slug;
+                  var n = candidates.filter(function(job) { return inDept(job, activeDept) && inLevel(job, slug); }).length;
+                  btn.querySelector('.gh-dept-tab-count').textContent = n;
+                  btn.setAttribute('aria-pressed', slug === activeLevel ? 'true' : 'false');
+                  btn.disabled = !n && slug !== activeLevel && slug !== '';
+                });
+                revealActiveTab();
+
+                var filtered = candidates.filter(function(job) { return inDept(job, activeDept) && inLevel(job, activeLevel); });
+                countEl.textContent = plural(filtered.length, 'open position');
+                syncUrl();
+
+                if (filtered.length === 0) {
+                  board.innerHTML = '<p class="gh-no-results">No positions match your filters.' +
+                    '<button type="button" class="gh-clear-filters">Clear filters</button></p>';
+                  board.querySelector('.gh-clear-filters').addEventListener('click', function() {
+                    activeDept = '';
+                    activeLevel = '';
+                    searchEl.value = '';
+                    locationEl.value = '';
+                    render();
+                  });
+                  return;
+                }
+
+                var html;
+                if (activeDept) {
+                  html = filtered.map(jobRow).join('');
+                } else {
+                  html = departments.map(function(dep) {
+                    var jobs = filtered.filter(function(job) { return job.departments[0] === dep; });
+                    if (!jobs.length) return '';
+                    return '<div class="gh-dept-heading">' + escapeHtml(dep.label) +
+                      ' <span>' + jobs.length + '</span></div>' + jobs.map(jobRow).join('');
+                  }).join('');
+                }
+                board.innerHTML = '<div class="gh-jobs-list">' + html + '</div>';
+              }
+
+              searchEl.addEventListener('input', render);
+              locationEl.addEventListener('change', render);
+
+              render();
+              if (document.fonts && document.fonts.ready) document.fonts.ready.then(revealActiveTab);
+            })
+            .catch(function(err) {
+              console.error('[careers] could not load Greenhouse jobs:', err);
+              board.innerHTML = '<p class="gh-jobs-error">Unable to load positions right now. Please try again later.</p>';
+            });
+        })();
       </script>
     </div>
   </section>
@@ -442,8 +801,56 @@
     <div class="container">
       <div class="cta-block fade-up">
         <h2 class="display-md">Don't see your role?</h2>
-        <p class="body-text mb-24">We're always looking for exceptional talent. Reach out to us directly.</p>
-        <a href="contact.html" class="link-arrow accent">Contact Us</a>
+        <p class="body-text mb-24">We're always looking for exceptional talent. Send us your CV and our Recruitment team will review it.</p>
+        <a href="#submit-cv" class="link-arrow accent">Submit Your CV</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section cv-section" id="submit-cv">
+    <div class="container">
+      <div class="contact-form-wrapper fade-up">
+        <h2 class="display-sm mb-40">Submit your CV</h2>
+        <form class="contact-form-full" id="cv-form" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <input type="text" id="cv-name" name="name" placeholder="Full name" autocomplete="name" maxlength="120" required>
+            </div>
+            <div class="form-group">
+              <input type="email" id="cv-email" name="email" placeholder="Email" autocomplete="email" maxlength="200" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <input type="tel" id="cv-phone" name="phone" placeholder="Phone" autocomplete="tel" maxlength="40">
+            </div>
+            <div class="form-group">
+              <input type="text" id="cv-role" name="role" placeholder="Role or area of interest" maxlength="120">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <input type="text" id="cv-college" name="college" placeholder="College / University" autocomplete="organization" maxlength="200" required>
+            </div>
+            <div class="form-group">
+              <input type="number" id="cv-cgpa" name="cgpa" placeholder="CGPA (out of 10)" min="0" max="10" step="0.01" inputmode="decimal" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <input type="url" id="cv-linkedin" name="linkedin" placeholder="LinkedIn profile URL (optional)" maxlength="300">
+          </div>
+          <div class="form-group">
+            <textarea id="cv-message" name="message" placeholder="Anything you'd like us to know (optional)" rows="4" maxlength="3000"></textarea>
+          </div>
+          <div class="form-group form-file">
+            <label for="cv-file">CV</label>
+            <input type="file" id="cv-file" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+            <span class="form-hint">PDF, DOC or DOCX, up to 5MB.</span>
+          </div>
+          <div class="g-recaptcha" data-sitekey="6LfmWigtAAAAAIqh-qlT41C4F4ahvXBTuPyOUaPN"></div>
+          <button type="submit" class="form-submit">Submit CV</button>
+          <div class="form-status" role="alert" aria-live="polite"></div>
+        </form>
       </div>
     </div>
   </section>
@@ -471,6 +878,8 @@
 
   <script src="js/vendor/three.min.js?v=1789993235"></script>
   <script src="js/bundle-b.js?v=1789993235"></script>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script src="js/contact-form.js?v=1789993235"></script>
 
   
 

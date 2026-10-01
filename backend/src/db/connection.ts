@@ -9,6 +9,7 @@ import './models/otp.model';
 import './models/doc.model';
 import './models/onboarding-data.model';
 import './models/notification.model';
+import './models/rate-limit-hit.model';
 
 let connected = false;
 

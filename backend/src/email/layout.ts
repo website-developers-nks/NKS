@@ -87,3 +87,12 @@ export function ctaButton(label: string, url: string): string {
 export function divider(): string {
   return `<hr style="border:none;border-top:1px solid #ebebeb;margin:32px 0;" />`;
 }
+
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

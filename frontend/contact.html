@@ -45,6 +45,7 @@
 
   <link rel="stylesheet" href="css/styles.css?v=1789993235">
   <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+  <link rel="stylesheet" href="css/forms.css?v=1789993235">
 
   <style>
     html, body {
@@ -297,94 +298,6 @@
       border: 2px solid var(--border);
       border-radius: 50%;
       opacity: 0.3;
-    }
-
-    .contact-form-wrapper {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .contact-form-full {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-
-    @media (min-width: 640px) {
-      .form-row {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    .contact-form-full .form-group input,
-    .contact-form-full .form-group textarea {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 16px;
-      font-family: 'Inter', sans-serif;
-      font-size: 16px;
-      color: var(--text-primary);
-      transition: border-color 0.3s ease;
-      outline: none;
-    }
-
-    .contact-form-full .form-group input::placeholder,
-    .contact-form-full .form-group textarea::placeholder {
-      color: var(--text-secondary);
-    }
-
-    .contact-form-full .form-group input:focus,
-    .contact-form-full .form-group textarea:focus {
-      border-color: var(--accent);
-    }
-
-    .contact-form-full .form-group textarea {
-      resize: vertical;
-      min-height: 120px;
-    }
-
-    .contact-form-full .form-submit {
-      align-self: flex-start;
-      padding: 16px 48px;
-    }
-
-    /* Loading state for the submit button while EmailJS is sending */
-    .contact-form-full .form-submit:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    /* Inline status message shown after a submission attempt */
-    .form-status {
-      display: none;
-      padding: 14px 16px;
-      border-radius: 4px;
-      font-size: 15px;
-      line-height: 1.5;
-    }
-
-    .form-status.is-visible {
-      display: block;
-    }
-
-    .form-status.is-success {
-      background: rgba(34, 139, 34, 0.12);
-      border: 1px solid rgba(34, 139, 34, 0.5);
-      color: #2e7d32;
-    }
-
-    .form-status.is-error {
-      background: rgba(200, 35, 35, 0.12);
-      border: 1px solid rgba(200, 35, 35, 0.5);
-      color: #c62828;
     }
 
     .compliance-section {
@@ -671,9 +584,8 @@
           <div class="form-group">
             <textarea id="message" name="message" placeholder="Message" rows="5" required></textarea>
           </div>
-          <div class="g-recaptcha" data-sitekey="6LcIXSgtAAAAAEnQcTGR1IBP0s7MexQCOXXNs-Pb"></div>
+          <div class="g-recaptcha" data-sitekey="6LfmWigtAAAAAIqh-qlT41C4F4ahvXBTuPyOUaPN"></div>
           <button type="submit" class="form-submit" id="contact-submit">Submit</button>
-          <!-- Success / error feedback is injected here by js/contact-form.js -->
           <div class="form-status" id="form-status" role="alert" aria-live="polite"></div>
         </form>
       </div>
@@ -808,7 +720,6 @@
   <script src="js/bundle-b.js?v=1789993235"></script>
 
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="js/contact-form.js?v=1789993235"></script>
 
 </body>

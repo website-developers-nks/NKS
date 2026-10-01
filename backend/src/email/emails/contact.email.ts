@@ -1,5 +1,5 @@
 import { BaseEmail, BaseEmailInit, EmailAddress } from '../base.email';
-import { divider, emailLayout } from '../layout';
+import { divider, emailLayout, escapeHtml } from '../layout';
 
 export interface ContactEmailData {
   senderName: string;
@@ -45,18 +45,21 @@ export class ContactEmail extends BaseEmail {
   }
 
   buildHtml(): string {
+    const name = escapeHtml(this.data.senderName);
+    const email = escapeHtml(this.data.senderEmail);
+    const source = escapeHtml(this.data.source ?? 'website');
     const content = `
       <h2 style="margin:0 0 4px;font-size:20px;color:#0a0a0a;">New Enquiry</h2>
       <p style="margin:0 0 24px;font-size:13px;color:#888;">
-        Submitted via the <strong>${this.data.source ?? 'website'}</strong> contact form.
+        Submitted via the <strong>${source}</strong> contact form.
       </p>
 
       <table role="presentation" cellpadding="0" cellspacing="0"
              style="width:100%;border-collapse:collapse;border:1px solid #ebebeb;border-radius:6px;overflow:hidden;">
-        ${row('Name', this.data.senderName)}
-        ${row('Email', `<a href="mailto:${this.data.senderEmail}">${this.data.senderEmail}</a>`)}
-        ${this.data.phone ? row('Phone', this.data.phone) : ''}
-        ${row('Subject', this.data.subject)}
+        ${row('Name', name)}
+        ${row('Email', `<a href="mailto:${email}">${email}</a>`)}
+        ${this.data.phone ? row('Phone', escapeHtml(this.data.phone)) : ''}
+        ${row('Subject', escapeHtml(this.data.subject))}
       </table>
 
       ${divider()}
@@ -66,15 +69,15 @@ export class ContactEmail extends BaseEmail {
       </p>
       <div style="background:#f9f9f9;border:1px solid #ebebeb;border-radius:6px;padding:20px;
                   white-space:pre-wrap;font-size:14px;color:#333;line-height:1.7;">
-        ${this.data.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+        ${escapeHtml(this.data.message)}
       </div>
 
       <p style="margin:24px 0 0;font-size:13px;color:#888;">
-        Hit <strong>Reply</strong> to respond directly to ${this.data.senderName}.
+        Hit <strong>Reply</strong> to respond directly to ${name}.
       </p>
     `;
     return emailLayout(content, {
-      preheader: `${this.data.senderName} sent a message via the ${this.data.source ?? 'website'}.`,
+      preheader: `${name} sent a message via the ${source}.`,
     });
   }
 }

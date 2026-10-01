@@ -1,0 +1,150 @@
+.contact-form-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.contact-form-full {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.contact-form-full .form-group input,
+.contact-form-full .form-group textarea,
+.contact-form-full .form-group select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+  outline: none;
+}
+
+.contact-form-full .form-group input::placeholder,
+.contact-form-full .form-group textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+.contact-form-full .form-group input:focus,
+.contact-form-full .form-group textarea:focus {
+  border-color: var(--accent);
+}
+
+.contact-form-full .form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.contact-form-full .form-submit {
+  align-self: flex-start;
+  padding: 16px 48px;
+}
+
+.contact-form-full .form-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-status {
+  display: none;
+  padding: 14px 16px;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.form-status.is-visible {
+  display: block;
+}
+
+.form-status.is-success {
+  background: rgba(34, 139, 34, 0.12);
+  border: 1px solid rgba(34, 139, 34, 0.5);
+  color: #2e7d32;
+}
+
+.form-status.is-error {
+  background: rgba(200, 35, 35, 0.12);
+  border: 1px solid rgba(200, 35, 35, 0.5);
+  color: #c62828;
+}
+
+.contact-form-full .form-file {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contact-form-full .form-file label {
+  margin-bottom: 0;
+}
+
+.contact-form-full .form-group input[type="file"] {
+  padding: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.contact-form-full .form-group input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.contact-form-full .form-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.contact-form-full .form-submit.is-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.contact-form-full .form-submit.is-loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: formSpin 0.8s linear infinite;
+}
+
+@keyframes formSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-form-full .form-submit.is-loading::before {
+    animation: none;
+  }
+}
+
+.cv-section {
+  scroll-margin-top: 96px;
+}
