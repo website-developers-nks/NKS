@@ -214,6 +214,8 @@ const FIELD_DEFS: Record<string, FieldDef> = {
 
   // Personal
   full_name:                { modelField: 'fullName',              validate: stringValidator(200) },
+  first_name:               { modelField: 'firstName',             validate: stringValidator(100) },
+  last_name:                { modelField: 'lastName',              validate: stringValidator(100) },
   preferred_name:           { modelField: 'preferredName',         validate: stringValidator(100, false) },
   email:                    { modelField: 'personalEmail',         validate: emailValidator() },
   mobile:                   { modelField: 'mobile',                validate: stringValidator(20) },

@@ -451,6 +451,8 @@ router.get('/progress-data', requireOnboardingAuth, async (req: Request, res: Re
         welcome_ack:            data.welcomeAck ?? null,
         // Personal
         full_name:              data.fullName ?? null,
+        first_name:             data.firstName ?? null,
+        last_name:              data.lastName ?? null,
         preferred_name:         data.preferredName ?? null,
         email:                  data.personalEmail ?? null,
         mobile:                 data.mobile ?? null,

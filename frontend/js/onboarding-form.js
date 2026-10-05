@@ -1676,14 +1676,24 @@
     fullNameInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  function splitFullName(value) {
+  function restoreNameParts(fullName, firstName, lastName, syncMissing) {
     if (!firstNameInput || !lastNameInput) return;
 
-    var parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+    if (firstName || lastName) {
+      firstNameInput.value = firstName || '';
+      lastNameInput.value = lastName || '';
+      return;
+    }
+
+    var parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
     if (!parts.length) return;
 
     firstNameInput.value = parts[0];
     lastNameInput.value = parts.slice(1).join(' ');
+    if (syncMissing) {
+      scheduleSync('first_name', 'change');
+      if (lastNameInput.value) scheduleSync('last_name', 'change');
+    }
   }
 
   if (firstNameInput) firstNameInput.addEventListener('input', composeFullName);
@@ -1911,7 +1921,7 @@
       if (input && input.type === 'file') restoreUploadedDoc(input, entry.name, entry.id);
     });
 
-    splitFullName(fields.full_name);
+    restoreNameParts(fields.full_name, fields.first_name, fields.last_name, true);
     parsePhoneInto(PHONE_FIELDS[0], fields.mobile);
     parsePhoneInto(PHONE_FIELDS[1], fields.emergency_contact_number);
     parseStayDates(fields.stay_dates);
@@ -3051,7 +3061,7 @@
       var field = form.elements[key];
       if (field && field.type !== 'file') field.value = saved[key];
     });
-    splitFullName(saved.full_name);
+    restoreNameParts(saved.full_name, saved.first_name, saved.last_name, false);
     parsePhoneInto(PHONE_FIELDS[0], saved.mobile);
     parsePhoneInto(PHONE_FIELDS[1], saved.emergency_contact_number);
     parseStayDates(saved.stay_dates);

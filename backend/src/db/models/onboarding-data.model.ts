@@ -87,6 +87,8 @@ export interface IOnboardingData extends Document {
 
   // Personal
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   preferredName?: string;
   personalEmail: string;
   mobile: string;
@@ -188,6 +190,8 @@ const OnboardingDataSchema = new Schema<IOnboardingData>(
 
     // Personal
     fullName: { type: String, trim: true },
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
     preferredName: { type: String, trim: true },
     personalEmail: { type: String, lowercase: true, trim: true },
     mobile: { type: String, trim: true },

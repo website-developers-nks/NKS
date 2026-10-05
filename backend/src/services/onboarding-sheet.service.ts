@@ -19,6 +19,11 @@ const yesNo = (v?: boolean | null) => (v === true ? 'Yes' : v === false ? 'No' :
 const address = (a?: { address?: string; city?: string; country?: string; pincode?: string }) =>
   a ? [a.address, a.city, a.country, a.pincode].filter(Boolean).join(', ') : '';
 
+function splitFullName(fullName?: string): { first: string; last: string } {
+  const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+  return { first: parts[0] ?? '', last: parts.slice(1).join(' ') };
+}
+
 const docName = (ref: unknown): SheetCell => {
   if (!ref) return '';
 
@@ -41,7 +46,8 @@ export const SHEET_COLUMNS: Column[] = [
   { header: 'Location', value: ({ auth }) => auth.location },
   { header: 'Account Email', value: ({ user }) => user?.email ?? '' },
 
-  { header: 'Full Name', value: ({ data }) => data.fullName ?? '' },
+  { header: 'First Name', value: ({ data }) => data.firstName ?? splitFullName(data.fullName).first },
+  { header: 'Last Name', value: ({ data }) => data.lastName ?? splitFullName(data.fullName).last },
   { header: 'Preferred Name', value: ({ data }) => data.preferredName ?? '' },
   { header: 'Personal Email', value: ({ data }) => data.personalEmail ?? '' },
   { header: 'Mobile', value: ({ data }) => data.mobile ?? '' },
