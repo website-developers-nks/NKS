@@ -323,6 +323,16 @@ a:hover {
   }
 }
 
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .nav-links {
+    gap: 22px;
+  }
+
+  .nav-link {
+    font-size: 13px;
+  }
+}
+
 .nav-link {
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 14px;

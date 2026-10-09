@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI &amp; Research - NK Securities Research</title>
+  <meta name="description" content="AI is expanding what our researchers and engineers can explore, build and discover. Frontier models, in-house GPU compute and production-grade AI for quantitative research at NK Securities Research.">
+  <meta name="author" content="NK Securities Research">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <link rel="canonical" href="https://www.nksecurities.com/ai-research.html">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NK Securities Research">
+  <meta property="og:title" content="AI &amp; Research - NK Securities Research">
+  <meta property="og:description" content="The Best, Amplified. AI is expanding what our researchers and engineers can explore, build and discover.">
+  <meta property="og:url" content="https://www.nksecurities.com/ai-research.html">
+  <meta property="og:image" content="https://www.nksecurities.com/images/og-image.jpg">
+  <meta property="og:image:width" content="624">
+  <meta property="og:image:height" content="416">
+  <meta property="og:image:alt" content="NK Securities Research - A leader in high frequency trading & technology">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:locale" content="en_US">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AI &amp; Research - NK Securities Research">
+  <meta name="twitter:description" content="The Best, Amplified. AI is expanding what our researchers and engineers can explore, build and discover.">
+  <meta name="twitter:image" content="https://www.nksecurities.com/images/og-image.jpg">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css?v=1789993235">
+  <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+    body {
+      transition: all 0.4s ease;
+    }
+
+    #particles-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .page-hero .page-hero-content {
+      align-items: center;
+    }
+
+    .ai-hero-intro {
+      margin-top: 32px;
+      max-width: 520px;
+    }
+
+    #ai-network-container {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%);
+      mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%);
+    }
+
+    @media (min-width: 1024px) {
+      #ai-network-container {
+        height: 500px;
+      }
+    }
+
+    #ai-network-container canvas {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .ai-lead {
+      margin-top: 20px;
+      max-width: 760px;
+    }
+
+    .ai-pillar-tag {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .ai-split {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 48px;
+      margin-top: 48px;
+    }
+
+    @media (min-width: 1024px) {
+      .ai-split {
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 80px;
+        align-items: center;
+      }
+    }
+
+    .ai-quote {
+      margin: 0;
+      padding-left: 28px;
+      border-left: 2px solid var(--accent);
+    }
+
+    .ai-quote p {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(24px, 2.6vw, 34px);
+      line-height: 1.35;
+      color: var(--text-primary);
+    }
+
+    .ai-quote em {
+      color: var(--accent);
+    }
+
+    .ai-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-top: 56px;
+    }
+
+    @media (min-width: 900px) {
+      .ai-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .ai-card {
+      display: flex;
+      flex-direction: column;
+      padding: 32px 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .ai-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .ai-card-number {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .ai-card h3 {
+      font-family: 'Inter', sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+
+    .ai-card .body-text {
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .ai-card-enables {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-primary);
+    }
+
+    .ai-card-enables span {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .ai-card .body-text + .ai-card-enables {
+      margin-top: 24px;
+    }
+
+    .ai-statement {
+      padding: 100px 0;
+      background: var(--surface);
+    }
+
+    .ai-statement .ai-statement-text {
+      max-width: 980px;
+      margin-top: 32px;
+    }
+
+    .ai-statement .ai-statement-close {
+      margin-top: 32px;
+      max-width: 980px;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(26px, 3vw, 40px);
+      line-height: 1.25;
+      color: var(--text-primary);
+    }
+
+    .ai-statement .ai-statement-close em {
+      color: var(--accent);
+    }
+
+    .ai-tagline {
+      margin-top: 16px;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(22px, 2.4vw, 30px);
+      color: var(--text-primary);
+    }
+
+    .ai-pathways {
+      display: grid;
+      grid-template-columns: 1fr;
+      margin-top: 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (min-width: 768px) {
+      .ai-pathways {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .ai-pathway {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 36px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+
+    @media (min-width: 768px) {
+      .ai-pathway {
+        padding: 40px 36px;
+      }
+
+      .ai-pathway:nth-child(odd) {
+        padding-left: 0;
+        border-right: 1px solid var(--border);
+      }
+    }
+
+    .ai-pathway h3 {
+      font-family: 'Inter', sans-serif;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: color 0.3s ease;
+    }
+
+    .ai-pathway .body-text {
+      font-size: 15px;
+      max-width: 520px;
+    }
+
+    .ai-pathway .link-arrow {
+      margin-top: 8px;
+      color: var(--accent);
+    }
+
+    .ai-pathway:hover h3 {
+      color: var(--accent);
+    }
+
+    .ai-pathway:hover .link-arrow::after {
+      transform: translateX(4px);
+    }
+
+    .ai-pathway:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    .ai-cta .cta-block {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .ai-cta .cta-block .link-arrow {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 639px) {
+      .ai-cta .cta-block .link-arrow {
+        display: inline;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      .ai-cta .cta-block .link-arrow::after {
+        display: inline-block;
+        margin-left: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="ai-research.html" class="nav-link active">AI &amp; RESEARCH</a>
+          <a href="contact.html" class="nav-link">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta">Open Positions</a>
+      </div>
+
+      <div class="nav-hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="ai-research.html" class="active">AI &amp; RESEARCH</a>
+    <a href="contact.html">CONTACT</a>
+    <a href="open-positions.html">OPEN POSITIONS</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="page-hero-content">
+        <div>
+          <span class="label">AI &amp; RESEARCH AT NK</span>
+          <h1 class="display-xl">
+            <span class="line">The Best,</span>
+            <span class="line italic">Amplified.</span>
+          </h1>
+          <p class="body-text ai-hero-intro">
+            We bring together exceptional researchers, engineers and technology to solve complex problems in financial markets. AI is expanding what they can explore, build and discover.
+          </p>
+        </div>
+
+        <div class="parallax" data-speed="0.3">
+          <div id="ai-network-container" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <span class="label fade-up">OUR RESEARCH ENVIRONMENT</span>
+      <h2 class="display-md fade-up">Markets don't stand still. <span class="italic">Neither can our models.</span></h2>
+      <p class="body-text fade-up ai-lead">A research environment built around:</p>
+
+      <div class="what-we-do-grid">
+        <div class="what-we-do-item fade-up stagger-child">
+          <span class="ai-pillar-tag">ACCESS</span>
+          <p class="body-text">Frontier models, compute and research infrastructure that expand what can be explored.</p>
+        </div>
+        <div class="what-we-do-item fade-up stagger-child">
+          <span class="ai-pillar-tag">AUTONOMY</span>
+          <p class="body-text">Own difficult questions, challenge assumptions and follow the evidence.</p>
+        </div>
+        <div class="what-we-do-item fade-up stagger-child">
+          <span class="ai-pillar-tag">IMPACT</span>
+          <p class="body-text">Move promising ideas beyond prototypes and learn from real systems.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="research">
+    <div class="container">
+      <span class="label fade-up">RESEARCH IN MARKETS</span>
+      <h2 class="display-md fade-up">Rethinking Quantitative Research</h2>
+
+      <div class="ai-split">
+        <div class="fade-up">
+          <p class="body-text">
+            AI is not simply another tool in our research stack. It is changing how we think about the research process itself. We are building AI capabilities that augment how researchers generate, explore and test ideas, while investigating how machine learning can reshape signal discovery, feature generation and strategy development from the ground up.
+          </p>
+          <p class="body-text" style="margin-top: 20px;">
+            Our aim is to deepen and accelerate existing quantitative workflows and build automated frameworks - from idea exploration to experimentation.
+          </p>
+        </div>
+
+        <blockquote class="ai-quote fade-up">
+          <p>The question is not only how AI can improve quantitative research today - but what quantitative research should look like when <em>AI is native to it.</em></p>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="infrastructure">
+    <div class="container">
+      <span class="label fade-up">AI INFRASTRUCTURE</span>
+      <h2 class="display-md fade-up">The Best Tools for the <span class="italic">Best Ideas</span></h2>
+      <p class="body-large fade-up ai-lead" style="margin-top: 32px;">Great research should not be limited by the tools available to pursue it.</p>
+      <p class="body-text fade-up ai-lead">
+        We continuously evaluate and adopt advances across frontier AI models, research tooling and computing infrastructure - giving our teams increasingly capable ways to explore ideas, interrogate data and accelerate experimentation.
+      </p>
+
+      <div class="ai-cards">
+        <article class="ai-card fade-up stagger-child">
+          <span class="ai-card-number">01</span>
+          <h3>Frontier AI Models</h3>
+          <p class="body-text">Access to leading AI capabilities as the frontier advances - treated as research infrastructure, not a perk.</p>
+          <p class="ai-card-enables"><span>This enables</span>Researchers to evaluate new capabilities quickly and use the right model for the problem.</p>
+        </article>
+        <article class="ai-card fade-up stagger-child">
+          <span class="ai-card-number">02</span>
+          <h3>In-House GPU Compute</h3>
+          <p class="body-text">A substantially growing GPU environment, with increasing capacity behind AI-driven research and trading.</p>
+          <p class="ai-card-enables"><span>This enables</span>Broader experimentation and more parallel research without making compute the bottleneck.</p>
+        </article>
+        <article class="ai-card fade-up stagger-child">
+          <span class="ai-card-number">03</span>
+          <h3>Production-Grade AI</h3>
+          <p class="body-text">Engineering for latency, reliability, observability and performance - because useful AI has to hold up in real systems.</p>
+          <p class="ai-card-enables"><span>This enables</span>Promising work to move closer to production and generate real-world feedback for the next iteration.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section ai-statement">
+    <div class="container">
+      <span class="label fade-up">THE BEST GETS BETTER</span>
+      <p class="body-large fade-up ai-statement-text">
+        We believe exceptional people do their best work when they have ownership, powerful tools and the freedom to move quickly. Researchers are expected to question assumptions, pursue promising directions and follow the evidence - not simply optimise within a fixed playbook.
+      </p>
+      <p class="fade-up ai-statement-close">
+        The goal is not to replace human judgement. It is to give exceptional researchers and engineers <em>more leverage</em> - more room to think, test, build and improve.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="talent-pathways">
+    <div class="container">
+      <span class="label fade-up">TALENT PATHWAYS - CAREERS AT NK</span>
+      <h2 class="display-md fade-up">Do Your Best Work</h2>
+      <p class="fade-up ai-tagline">Hard problems. Exceptional peers. Serious technology.</p>
+
+      <div class="ai-pathways">
+        <a class="ai-pathway fade-up stagger-child" href="open-positions.html?team=quantitative-research-and-trading&amp;level=experienced">
+          <h3>Experienced Researchers</h3>
+          <p class="body-text">Own difficult problems end-to-end. Work close to data, systems and market feedback.</p>
+          <span class="link-arrow">Explore experienced research roles</span>
+        </a>
+        <a class="ai-pathway fade-up stagger-child" href="open-positions.html?team=quantitative-research-and-trading">
+          <h3>PhDs</h3>
+          <p class="body-text">Bring depth from mathematics, statistics, computer science, physics or adjacent fields into problems where outcomes are measurable.</p>
+          <span class="link-arrow">Explore PhD opportunities</span>
+        </a>
+        <a class="ai-pathway fade-up stagger-child" href="open-positions.html?level=early-career">
+          <h3>Graduates</h3>
+          <p class="body-text">Start close to real research and engineering problems, with high ownership and strong technical peers.</p>
+          <span class="link-arrow">Explore graduate roles</span>
+        </a>
+        <a class="ai-pathway fade-up stagger-child" href="culture.html#internships">
+          <h3>Internships</h3>
+          <p class="body-text">Work on substantive projects designed to contribute to the research or engineering environment - not shadow it.</p>
+          <span class="link-arrow">Explore internships</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section ai-cta">
+    <div class="container">
+      <div class="cta-block fade-up">
+        <h2 class="display-md">If this is the kind of environment in which you do your best work, <span class="italic">we would like to hear from you.</span></h2>
+        <a href="open-positions.html" class="link-arrow accent">Explore research &amp; engineering opportunities</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf" target="_blank">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">&copy; 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/vendor/three.min.js?v=1789993235"></script>
+  <script src="js/bundle-b.js?v=1789993235"></script>
+
+  <script>
+    (function() {
+      var container = document.getElementById('ai-network-container');
+      if (!container || typeof THREE === 'undefined') return;
+
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var BLUE = 0x395acb;
+      var GLOW = 0x6f8cff;
+      var BRIGHT = 0xc9d5ff;
+      var GREEN = 0x64a443;
+
+      function size() {
+        return { w: container.clientWidth || 460, h: container.clientHeight || 460 };
+      }
+
+      var d = size();
+      var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(d.w, d.h);
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(38, d.w / d.h, 0.1, 100);
+      camera.position.set(0, 1.2, 10.6);
+      camera.lookAt(0, -0.2, 0);
+
+      var glowMaterials = [];
+
+      function radialTexture(stops) {
+        var c = document.createElement('canvas');
+        c.width = c.height = 128;
+        var g = c.getContext('2d');
+        var grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+        stops.forEach(function(s) { grad.addColorStop(s[0], s[1]); });
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 128, 128);
+        return new THREE.CanvasTexture(c);
+      }
+
+      var softGlow = radialTexture([[0, 'rgba(255,255,255,0.9)'], [0.25, 'rgba(255,255,255,0.35)'], [1, 'rgba(255,255,255,0)']]);
+      var dotGlow = radialTexture([[0, 'rgba(255,255,255,1)'], [0.3, 'rgba(255,255,255,0.8)'], [1, 'rgba(255,255,255,0)']]);
+
+      function sprite(texture, color, scale, opacity) {
+        var mat = new THREE.SpriteMaterial({ map: texture, color: color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: opacity });
+        mat.userData.baseOpacity = opacity;
+        glowMaterials.push(mat);
+        var s = new THREE.Sprite(mat);
+        s.scale.setScalar(scale);
+        return s;
+      }
+
+      function glowLine(color, opacity) {
+        var mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity, depthWrite: false, blending: THREE.AdditiveBlending });
+        mat.userData.baseOpacity = opacity;
+        glowMaterials.push(mat);
+        return mat;
+      }
+
+      function glowMesh(color, opacity) {
+        var mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: opacity, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+        mat.userData.baseOpacity = opacity;
+        glowMaterials.push(mat);
+        return mat;
+      }
+
+      var root = new THREE.Group();
+      scene.add(root);
+
+      var core = new THREE.Group();
+      core.position.y = 0.35;
+      root.add(core);
+
+      var coreGlow = sprite(softGlow, GLOW, 5.2, 0.55);
+      core.add(coreGlow);
+
+      var chipBody = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 1.5, 0.16),
+        new THREE.MeshStandardMaterial({ color: 0x0c1330, metalness: 0.7, roughness: 0.35, emissive: 0x0a1440, emissiveIntensity: 0.6 })
+      );
+      core.add(chipBody);
+
+      var bezel = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.5, 1.5, 0.16)), glowLine(GLOW, 0.9));
+      core.add(bezel);
+
+      var die = new THREE.Mesh(
+        new THREE.BoxGeometry(1.08, 1.08, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0x16235c, metalness: 0.4, roughness: 0.4, emissive: 0x1b2f8a, emissiveIntensity: 0.55 })
+      );
+      die.position.z = 0.1;
+      core.add(die);
+      var dieEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.08, 1.08)), glowLine(BRIGHT, 0.7));
+      dieEdge.position.z = 0.125;
+      core.add(dieEdge);
+
+      var labelCanvas = document.createElement('canvas');
+      labelCanvas.width = labelCanvas.height = 512;
+      var labelTexture = new THREE.CanvasTexture(labelCanvas);
+      function drawLabel() {
+        var g = labelCanvas.getContext('2d');
+        g.clearRect(0, 0, 512, 512);
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        var text = 'AI @ NK';
+        var size = 150;
+        g.font = '600 ' + size + 'px Inter, Arial, sans-serif';
+        var width = g.measureText(text).width;
+        if (width > 430) size = Math.floor(size * 430 / width);
+        g.font = '600 ' + size + 'px Inter, Arial, sans-serif';
+        g.shadowColor = '#6f8cff';
+        g.shadowBlur = 36;
+        g.fillStyle = '#e3e9ff';
+        g.fillText(text, 256, 262);
+        g.shadowBlur = 10;
+        g.fillText(text, 256, 262);
+        labelTexture.needsUpdate = true;
+      }
+      drawLabel();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLabel);
+      var label = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0), new THREE.MeshBasicMaterial({ map: labelTexture, transparent: true, depthWrite: false }));
+      label.position.z = 0.13;
+      core.add(label);
+
+      var dieBack = die.clone();
+      dieBack.position.z = -0.1;
+      core.add(dieBack);
+      var dieEdgeBack = dieEdge.clone();
+      dieEdgeBack.position.z = -0.125;
+      core.add(dieEdgeBack);
+      var labelBack = label.clone();
+      labelBack.position.z = -0.13;
+      labelBack.rotation.y = Math.PI;
+      core.add(labelBack);
+
+      var pinMaterial = new THREE.MeshStandardMaterial({ color: 0x9fb2ff, metalness: 0.9, roughness: 0.25, emissive: 0x3350c0, emissiveIntensity: 0.6 });
+      var pinGeometry = new THREE.BoxGeometry(0.06, 0.2, 0.05);
+      var traces = [];
+      for (var side = 0; side < 4; side++) {
+        for (var i = 0; i < 7; i++) {
+          var offset = -0.6 + i * 0.2;
+          var pin = new THREE.Mesh(pinGeometry, pinMaterial);
+          var angle = side * Math.PI / 2;
+          var ox = Math.cos(angle), oy = Math.sin(angle);
+          var px = -oy, py = ox;
+          pin.position.set(ox * 0.84 + px * offset, oy * 0.84 + py * offset, 0);
+          pin.rotation.z = angle + Math.PI / 2;
+          core.add(pin);
+
+          if (i % 2 === 0) {
+            var len1 = 0.25 + Math.random() * 0.35;
+            var bend = (Math.random() - 0.5) * 0.6;
+            var len2 = 0.2 + Math.random() * 0.5;
+            var start = new THREE.Vector3(ox * 0.94 + px * offset, oy * 0.94 + py * offset, 0);
+            var mid = start.clone().add(new THREE.Vector3(ox * len1, oy * len1, 0));
+            var mid2 = mid.clone().add(new THREE.Vector3(px * bend, py * bend, 0));
+            var end = mid2.clone().add(new THREE.Vector3(ox * len2, oy * len2, 0));
+            traces.push([start, mid, mid2, end]);
+          }
+        }
+      }
+
+      function polylineGroup(paths, material, dotColor, dotScale, parent) {
+        var pos = [];
+        paths.forEach(function(path) {
+          for (var k = 0; k < path.length - 1; k++) {
+            pos.push(path[k].x, path[k].y, path[k].z, path[k + 1].x, path[k + 1].y, path[k + 1].z);
+          }
+          var tip = sprite(dotGlow, dotColor, dotScale, 0.9);
+          tip.position.copy(path[path.length - 1]);
+          parent.add(tip);
+        });
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        parent.add(new THREE.LineSegments(geo, material));
+      }
+      polylineGroup(traces, glowLine(GLOW, 0.55), BRIGHT, 0.12, core);
+
+      var hud = new THREE.Group();
+      core.add(hud);
+      [[1.75, 1.79, 10, 0.55], [2.0, 2.02, 28, 0.35]].forEach(function(r) {
+        var seg = (Math.PI * 2) / r[2];
+        for (var s2 = 0; s2 < r[2]; s2++) {
+          var arc = new THREE.Mesh(new THREE.RingGeometry(r[0], r[1], 24, 1, s2 * seg, seg * (r[2] > 12 ? 0.45 : 0.7)), glowMesh(GLOW, r[3]));
+          arc.position.z = -0.05;
+          hud.add(arc);
+        }
+      });
+
+      var orbits = [];
+      [
+        { r: 2.35, tiltX: 1.25, tiltY: 0.35, speed: 0.55, color: GLOW },
+        { r: 2.6, tiltX: 1.05, tiltY: -0.9, speed: -0.42, color: BRIGHT },
+        { r: 2.2, tiltX: 1.9, tiltY: 1.3, speed: 0.36, color: GREEN }
+      ].forEach(function(o) {
+        var group = new THREE.Group();
+        group.rotation.set(o.tiltX, o.tiltY, 0);
+        group.add(new THREE.Mesh(new THREE.TorusGeometry(o.r, 0.012, 8, 160), glowMesh(o.color, 0.95)));
+        group.add(new THREE.Mesh(new THREE.TorusGeometry(o.r, 0.05, 8, 160), glowMesh(o.color, 0.18)));
+        var electron = sprite(dotGlow, o.color === GREEN ? GREEN : BRIGHT, 0.32, 1);
+        group.add(electron);
+        var trail = sprite(softGlow, o.color, 0.9, 0.5);
+        group.add(trail);
+        core.add(group);
+        orbits.push({ group: group, r: o.r, speed: o.speed, electron: electron, trail: trail, phase: Math.random() * Math.PI * 2 });
+      });
+
+      var base = new THREE.Group();
+      base.position.y = -1.85;
+      root.add(base);
+      var plinthMaterial = new THREE.MeshStandardMaterial({ color: 0x10172f, metalness: 0.8, roughness: 0.3 });
+      var plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.65, 0.2, 64), plinthMaterial);
+      base.add(plinth);
+      var plinthLow = new THREE.Mesh(new THREE.CylinderGeometry(2.05, 2.15, 0.14, 64), plinthMaterial);
+      plinthLow.position.y = -0.17;
+      base.add(plinthLow);
+      var rim = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.018, 8, 128), glowMesh(GLOW, 1));
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = -0.1;
+      base.add(rim);
+      var rimHalo = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.08, 8, 128), glowMesh(GLOW, 0.25));
+      rimHalo.rotation.x = Math.PI / 2;
+      rimHalo.position.y = -0.1;
+      base.add(rimHalo);
+      var topRing = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.12, 96), glowMesh(BRIGHT, 0.45));
+      topRing.rotation.x = -Math.PI / 2;
+      topRing.position.y = 0.105;
+      base.add(topRing);
+      var beam = sprite(softGlow, GLOW, 3.4, 0.35);
+      beam.position.y = 0.6;
+      beam.scale.set(3.2, 1.6, 1);
+      base.add(beam);
+
+      var floorPaths = [];
+      var FLOOR_Y = -2.12;
+      for (var f = 0; f < 34; f++) {
+        var a = (f / 34) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
+        var r1 = 2.3;
+        var r2 = r1 + 0.5 + Math.random() * 1.0;
+        var turn = (Math.random() - 0.5) * 0.35;
+        var r3 = r2 + 0.4 + Math.random() * 1.4;
+        var p0 = new THREE.Vector3(Math.cos(a) * r1, FLOOR_Y, Math.sin(a) * r1);
+        var p1 = new THREE.Vector3(Math.cos(a) * r2, FLOOR_Y, Math.sin(a) * r2);
+        var p2 = new THREE.Vector3(Math.cos(a + turn) * r2, FLOOR_Y, Math.sin(a + turn) * r2);
+        var p3 = new THREE.Vector3(Math.cos(a + turn) * r3, FLOOR_Y, Math.sin(a + turn) * r3);
+        floorPaths.push([p0, p1, p2, p3]);
+      }
+      var floor = new THREE.Group();
+      root.add(floor);
+      polylineGroup(floorPaths, glowLine(BLUE, 0.45), GLOW, 0.16, floor);
+      var floorGlow = new THREE.Mesh(new THREE.CircleGeometry(4.6, 64), new THREE.MeshBasicMaterial({ map: softGlow, color: BLUE, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
+      floorGlow.material.userData.baseOpacity = 0.35;
+      glowMaterials.push(floorGlow.material);
+      floorGlow.rotation.x = -Math.PI / 2;
+      floorGlow.position.y = FLOOR_Y - 0.01;
+      floor.add(floorGlow);
+
+      var MAX_PULSES = 90;
+      var pulseSprites = [];
+      for (var q = 0; q < MAX_PULSES; q++) {
+        var ps = sprite(dotGlow, q % 3 === 0 ? GREEN : BRIGHT, 0.2, 1);
+        ps.visible = false;
+        root.add(ps);
+        pulseSprites.push({ sprite: ps, path: null, t: 0, speed: 0 });
+      }
+      var allPaths = floorPaths.map(function(p) { return { pts: p, parent: floor }; })
+        .concat(traces.map(function(p) { return { pts: p, parent: core }; }));
+      function pathPoint(path, t, out) {
+        var segs = path.length - 1;
+        var x = Math.min(t * segs, segs - 0.0001);
+        var k = Math.floor(x);
+        return out.lerpVectors(path[k], path[k + 1], x - k);
+      }
+      var tmp = new THREE.Vector3();
+
+      function launchPulse(path, speed) {
+        for (var i = 0; i < pulseSprites.length; i++) {
+          var p = pulseSprites[i];
+          if (p.path) continue;
+          p.path = path;
+          p.t = 0;
+          p.speed = speed;
+          p.sprite.visible = true;
+          return;
+        }
+      }
+
+      var shockwaves = [];
+      for (var w = 0; w < 3; w++) {
+        var wave = new THREE.Mesh(new THREE.RingGeometry(0.97, 1, 128), glowMesh(BRIGHT, 0.9));
+        wave.rotation.x = -Math.PI / 2;
+        wave.position.y = FLOOR_Y + 0.02;
+        wave.visible = false;
+        root.add(wave);
+        shockwaves.push({ mesh: wave, t: 1 });
+      }
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+      var key = new THREE.PointLight(GLOW, 1.4, 20);
+      key.position.set(0, 1.5, 4);
+      scene.add(key);
+      var top = new THREE.DirectionalLight(0xffffff, 0.6);
+      top.position.set(3, 6, 5);
+      scene.add(top);
+
+      var themeFactor = 1;
+      function updateTheme() {
+        var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        themeFactor = isLight ? 0.8 : 1;
+        glowMaterials.forEach(function(m) {
+          m.blending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
+          m.opacity = m.userData.baseOpacity * themeFactor;
+          m.needsUpdate = true;
+        });
+        requestRender();
+      }
+
+      var visible = true;
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function(entries) {
+          visible = entries[0].isIntersecting;
+          if (visible) requestRender();
+        }).observe(container);
+      }
+
+      var canvas = renderer.domElement;
+      canvas.style.touchAction = 'pan-y';
+      canvas.style.cursor = 'grab';
+
+      var raycaster = new THREE.Raycaster();
+      var pointer = new THREE.Vector2();
+      var hovering = false;
+      var dragging = false;
+      var moved = false;
+      var lastX = 0, lastY = 0;
+      var yawOffset = 0, yawVelocity = 0, pitchOffset = 0;
+      var tiltTarget = { x: 0, y: 0 }, tilt = { x: 0, y: 0 };
+      var energy = 0, energyTarget = 0;
+      var animTime = 1.2;
+      var orbitAngle = orbits.map(function(o) { return o.phase; });
+      var hudAngle = 0;
+
+      function updatePointer(e) {
+        var rect = canvas.getBoundingClientRect();
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      }
+
+      function hitChip() {
+        raycaster.setFromCamera(pointer, camera);
+        return raycaster.intersectObject(chipBody, false).length > 0;
+      }
+
+      function burst() {
+        energy = 1;
+        allPaths.forEach(function(path) { launchPulse(path, 0.9 + Math.random() * 0.5); });
+        shockwaves.forEach(function(s, i) {
+          s.t = -i * 0.18;
+          s.mesh.visible = true;
+        });
+        requestRender();
+      }
+
+      canvas.addEventListener('pointermove', function(e) {
+        updatePointer(e);
+        if (dragging) {
+          var dx = e.clientX - lastX;
+          var dy = e.clientY - lastY;
+          if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+          yawOffset += dx * 0.009;
+          yawVelocity = dx * 0.009;
+          pitchOffset = Math.max(-0.35, Math.min(0.35, pitchOffset + dy * 0.004));
+          lastX = e.clientX;
+          lastY = e.clientY;
+        } else if (e.pointerType === 'mouse') {
+          tiltTarget.y = pointer.x * 0.35;
+          tiltTarget.x = -pointer.y * 0.12;
+        }
+        hovering = hitChip();
+        energyTarget = hovering ? 0.55 : 0;
+        canvas.style.cursor = dragging ? 'grabbing' : (hovering ? 'pointer' : 'grab');
+        requestRender();
+      });
+
+      canvas.addEventListener('pointerdown', function(e) {
+        updatePointer(e);
+        dragging = true;
+        moved = false;
+        yawVelocity = 0;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        hovering = hitChip();
+        canvas.setPointerCapture(e.pointerId);
+        canvas.style.cursor = 'grabbing';
+      });
+
+      function endDrag(e) {
+        if (!dragging) return;
+        dragging = false;
+        if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+        updatePointer(e);
+        if (!moved && hitChip() && !reduceMotion) {
+          burst();
+        }
+        if (e.pointerType !== 'mouse') energyTarget = 0;
+        canvas.style.cursor = hovering ? 'pointer' : 'grab';
+        requestRender();
+      }
+      canvas.addEventListener('pointerup', endDrag);
+      canvas.addEventListener('pointercancel', endDrag);
+      canvas.addEventListener('pointerleave', function() {
+        if (dragging) return;
+        hovering = false;
+        energyTarget = 0;
+        tiltTarget.x = tiltTarget.y = 0;
+        requestRender();
+      });
+
+      function pose(dt) {
+        var settling = false;
+        if (!reduceMotion) animTime += dt;
+        var t = animTime;
+
+        energy += (energyTarget - energy) * Math.min(1, dt * 3);
+        tilt.x += (tiltTarget.x - tilt.x) * Math.min(1, dt * 4);
+        tilt.y += (tiltTarget.y - tilt.y) * Math.min(1, dt * 4);
+        if (!dragging) {
+          yawOffset += reduceMotion ? 0 : yawVelocity;
+          yawVelocity *= Math.pow(0.93, dt * 60);
+          pitchOffset *= Math.pow(0.9, dt * 60);
+          if (Math.abs(yawVelocity) > 0.0005 || Math.abs(pitchOffset) > 0.002) settling = true;
+        }
+        if (Math.abs(energyTarget - energy) > 0.01 || Math.abs(tiltTarget.y - tilt.y) > 0.002 || Math.abs(tiltTarget.x - tilt.x) > 0.002) settling = true;
+
+        root.rotation.y = Math.sin(t * 0.3) * 0.32 + yawOffset + tilt.y;
+        root.rotation.x = tilt.x + pitchOffset;
+        core.position.y = 0.35 + Math.sin(t * 1.1) * 0.08;
+
+        var boost = 1 + energy * 2.5;
+        hudAngle += reduceMotion ? 0 : dt * 0.15 * boost;
+        hud.rotation.z = hudAngle;
+        orbits.forEach(function(o, i) {
+          orbitAngle[i] += reduceMotion ? 0 : dt * o.speed * 2 * boost;
+          var ang = orbitAngle[i];
+          o.electron.position.set(Math.cos(ang) * o.r, Math.sin(ang) * o.r, 0);
+          var back = ang - Math.sign(o.speed) * (0.12 + energy * 0.15);
+          o.trail.position.set(Math.cos(back) * o.r, Math.sin(back) * o.r, 0);
+        });
+
+        rim.material.opacity = rim.material.userData.baseOpacity * themeFactor * (0.75 + Math.sin(t * 2) * 0.25);
+        coreGlow.material.opacity = coreGlow.material.userData.baseOpacity * themeFactor * (1 + energy * 0.8);
+        coreGlow.scale.setScalar(5.2 + energy * 1.2);
+        chipBody.material.emissiveIntensity = 0.6 + energy * 1.4;
+        die.material.emissiveIntensity = 0.55 + energy * 1.6;
+        key.intensity = 1.4 + energy * 1.6;
+
+        shockwaves.forEach(function(s) {
+          if (!s.mesh.visible) return;
+          settling = true;
+          s.t += dt * 0.9;
+          if (s.t < 0) { s.mesh.material.opacity = 0; return; }
+          if (s.t >= 1) { s.mesh.visible = false; return; }
+          s.mesh.scale.setScalar(1.6 + s.t * 3.6);
+          s.mesh.material.opacity = s.mesh.material.userData.baseOpacity * themeFactor * (1 - s.t);
+        });
+
+        pulseSprites.forEach(function(p) {
+          if (!p.path) {
+            if (!reduceMotion && Math.random() < dt * (1.2 + energy * 4)) {
+              p.path = allPaths[Math.floor(Math.random() * allPaths.length)];
+              p.t = 0;
+              p.speed = 0.35 + Math.random() * 0.5 + energy * 0.6;
+              p.sprite.visible = true;
+            }
+            return;
+          }
+          settling = true;
+          p.t += dt * p.speed;
+          if (p.t >= 1) {
+            p.path = null;
+            p.sprite.visible = false;
+            return;
+          }
+          pathPoint(p.path.pts, p.t, tmp);
+          p.path.parent.updateMatrixWorld();
+          tmp.applyMatrix4(p.path.parent.matrixWorld);
+          root.worldToLocal(tmp);
+          p.sprite.position.copy(tmp);
+        });
+
+        return settling;
+      }
+
+      var last = 0;
+      var rafId = null;
+      function frame(ts) {
+        rafId = null;
+        if (!visible) { last = 0; return; }
+        var dt = last ? Math.min((ts - last) / 1000, 0.05) : 0;
+        last = ts;
+        var busy = pose(dt);
+        renderer.render(scene, camera);
+        if (!reduceMotion || busy || dragging) {
+          rafId = requestAnimationFrame(frame);
+        } else {
+          last = 0;
+        }
+      }
+
+      function requestRender() {
+        if (rafId === null) rafId = requestAnimationFrame(frame);
+      }
+
+      new MutationObserver(updateTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      updateTheme();
+
+      window.addEventListener('resize', function() {
+        var s = size();
+        camera.aspect = s.w / s.h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(s.w, s.h);
+        requestRender();
+      });
+    })();
+  </script>
+</body>
+</html>
