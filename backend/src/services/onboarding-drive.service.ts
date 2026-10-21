@@ -127,31 +127,94 @@ function folderFor(config: IDriveConfig, key: string): string | null {
 }
 
 export type DriveSyncResult =
-  | { synced: true; uploaded: number; skipped: number; failed: number }
+  | { synced: true; uploaded: number; skipped: number; failed: number; error?: string }
   | { synced: false; reason: 'not_configured' | 'no_data' | 'nothing_mapped' | 'failed'; error?: string };
+
+export interface DriveDocumentPlan {
+  id: string;
+  label: string;
+  folderId: string | null;
+}
+
+export type DrivePlanResult =
+  | { planned: true; documents: DriveDocumentPlan[] }
+  | { planned: false; reason: 'not_configured' | 'no_data' | 'failed'; error?: string };
+
+function trackKeyFor(entry: DriveDocument): string {
+  return `${entry.key}:${String(entry.doc._id)}`;
+}
+
+type DriveContext = {
+  auth: IOnboardingAuth;
+  config: IDriveConfig;
+  documents: DriveDocument[];
+  person: string;
+};
+
+async function loadDriveContext(
+  onboardingAuthId: Types.ObjectId | string,
+): Promise<{ ok: true; ctx: DriveContext } | { ok: false; reason: 'not_configured' | 'no_data' | 'failed'; error?: string }> {
+  const auth = await OnboardingAuth.findById(onboardingAuthId)
+    .populate<{ user: IUser }>('user', 'firstName lastName email');
+
+  if (!auth?.driveConfig) return { ok: false, reason: 'not_configured' };
+  if (!isDriveConfigured()) {
+    return { ok: false, reason: 'failed', error: 'Google credentials are not configured on the server.' };
+  }
+
+  const config = await DriveConfig.findById(auth.driveConfig);
+  if (!config) return { ok: false, reason: 'not_configured' };
+
+  const data = await OnboardingData.findOne({ onboardingAuthId: auth._id }).populate(POPULATE);
+  if (!data) return { ok: false, reason: 'no_data' };
+
+  const documents = await collectDocuments(auth, data);
+  const person = data.fullName
+    || [ (auth.user as IUser | undefined)?.firstName, (auth.user as IUser | undefined)?.lastName ]
+      .filter(Boolean).join(' ');
+
+  return { ok: true, ctx: { auth, config, documents, person } };
+}
+
+export async function planOnboardingDrive(
+  onboardingAuthId: Types.ObjectId | string,
+): Promise<DrivePlanResult> {
+  try {
+    const loaded = await loadDriveContext(onboardingAuthId);
+    if (!loaded.ok) return { planned: false, reason: loaded.reason, error: loaded.error };
+
+    const { config, documents } = loaded.ctx;
+    return {
+      planned: true,
+      documents: documents.map((entry) => ({
+        id: trackKeyFor(entry),
+        label: entry.label,
+        folderId: folderFor(config, entry.key),
+      })),
+    };
+  } catch (err) {
+    console.error('[onboarding-drive] plan failure', err);
+    return { planned: false, reason: 'failed', error: (err as Error).message };
+  }
+}
 
 export async function pushOnboardingToDrive(
   onboardingAuthId: Types.ObjectId | string,
+  only?: string[],
 ): Promise<DriveSyncResult> {
   try {
-    const auth = await OnboardingAuth.findById(onboardingAuthId)
-      .populate<{ user: IUser }>('user', 'firstName lastName email');
+    const loaded = await loadDriveContext(onboardingAuthId);
+    if (!loaded.ok) return { synced: false, reason: loaded.reason, error: loaded.error };
 
-    if (!auth?.driveConfig) return { synced: false, reason: 'not_configured' };
-    if (!isDriveConfigured()) {
-      return { synced: false, reason: 'failed', error: 'Google credentials are not configured on the server.' };
+    const { auth, config, person } = loaded.ctx;
+    const wanted = only?.length ? new Set(only) : null;
+    const documents = wanted
+      ? loaded.ctx.documents.filter((entry) => wanted.has(trackKeyFor(entry)))
+      : loaded.ctx.documents;
+
+    if (wanted && !documents.length) {
+      return { synced: false, reason: 'failed', error: 'That document is no longer on this onboarding.' };
     }
-
-    const config = await DriveConfig.findById(auth.driveConfig);
-    if (!config) return { synced: false, reason: 'not_configured' };
-
-    const data = await OnboardingData.findOne({ onboardingAuthId: auth._id }).populate(POPULATE);
-    if (!data) return { synced: false, reason: 'no_data' };
-
-    const documents = await collectDocuments(auth, data);
-    const person = data.fullName
-      || [ (auth.user as IUser | undefined)?.firstName, (auth.user as IUser | undefined)?.lastName ]
-        .filter(Boolean).join(' ');
 
     const existing = auth.driveFiles instanceof Map ? new Map(auth.driveFiles) : new Map<string, string>();
     let uploaded = 0, skipped = 0, failed = 0;
@@ -166,7 +229,7 @@ export async function pushOnboardingToDrive(
         const mimeType = entry.doc.mimeType || 'application/octet-stream';
         const name = fileNameFor(person, entry.label, entry.doc, auth.onboardingKey);
 
-        const trackKey = `${entry.key}:${String(entry.doc._id)}`;
+        const trackKey = trackKeyFor(entry);
         const previous = existing.get(trackKey);
 
         const file = previous
@@ -187,11 +250,17 @@ export async function pushOnboardingToDrive(
       return { synced: false, reason: 'nothing_mapped' };
     }
 
+    const complete = !failed && loaded.ctx.documents
+      .filter((entry) => folderFor(config, entry.key))
+      .every((entry) => existing.has(trackKeyFor(entry)));
+
     await OnboardingAuth.updateOne(
       { _id: auth._id },
       failed
         ? { $set: { driveFiles: existing, driveError: lastError } }
-        : { $set: { driveSyncedAt: new Date(), driveFiles: existing }, $unset: { driveError: 1 } },
+        : complete
+          ? { $set: { driveSyncedAt: new Date(), driveFiles: existing }, $unset: { driveError: 1 } }
+          : { $set: { driveFiles: existing } },
     );
 
     await DriveConfig.updateOne(
@@ -202,7 +271,7 @@ export async function pushOnboardingToDrive(
     );
 
     if (failed && !uploaded) return { synced: false, reason: 'failed', error: lastError };
-    return { synced: true, uploaded, skipped, failed };
+    return { synced: true, uploaded, skipped, failed, error: lastError };
   } catch (err) {
     console.error('[onboarding-drive] unexpected failure', err);
     return { synced: false, reason: 'failed', error: (err as Error).message };

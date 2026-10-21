@@ -33,7 +33,7 @@ import { sendReminderFor } from '../services/onboarding-reminder.service';
 import { isGoogleSheetsConfigured, parseSpreadsheetId, getSpreadsheetInfo } from '../lib/google-sheets';
 import { parseFolderId, checkFolder, testFolderUpload, driveAccountEmail } from '../lib/google-drive';
 import { isDriveConfigured, isDriveUserConfigured } from '../lib/google-auth';
-import { DRIVE_DOCUMENTS, pushOnboardingToDrive } from '../services/onboarding-drive.service';
+import { DRIVE_DOCUMENTS, planOnboardingDrive, pushOnboardingToDrive } from '../services/onboarding-drive.service';
 import { buildCc, defaultOnboardingCc } from '../lib/email-recipients';
 import { normalizeExtraFields, ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
 import {
@@ -934,6 +934,72 @@ router.delete(
 );
 
 router.post(
+  '/onboardings/:id/drive-link',
+  requireAdminAuth,
+  requirePermission(Permission.ManageDrive),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const { driveId } = (req.body ?? {}) as { driveId?: string };
+
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid onboarding id.' });
+      return;
+    }
+    if (!driveId || !Types.ObjectId.isValid(driveId)) {
+      res.status(400).json({ error: 'Choose a Drive sync.' });
+      return;
+    }
+    if (!isDriveConfigured()) {
+      res.status(503).json({ error: 'Google credentials are not configured on the server.' });
+      return;
+    }
+
+    try {
+      const [auth, config] = await Promise.all([
+        OnboardingAuth.findById(id, { completed: 1, driveConfig: 1 }),
+        DriveConfig.findById(driveId),
+      ]);
+
+      if (!auth) {
+        res.status(404).json({ error: 'Onboarding not found.' });
+        return;
+      }
+      if (!auth.completed) {
+        res.status(400).json({ error: 'Only completed onboardings can be filed to Drive.' });
+        return;
+      }
+      if (!config) {
+        res.status(404).json({ error: 'That Drive sync no longer exists.' });
+        return;
+      }
+
+      if (String(auth.driveConfig ?? '') !== driveId) {
+        await OnboardingAuth.updateOne(
+          { _id: auth._id },
+          { $set: { driveConfig: config._id }, $unset: { driveFiles: 1, driveSyncedAt: 1, driveError: 1 } },
+        );
+      }
+
+      const plan = await planOnboardingDrive(id);
+      if (!plan.planned) {
+        const messages: Record<string, string> = {
+          not_configured: 'This onboarding is not linked to a Drive sync.',
+          no_data: 'This onboarding has no submitted data yet.',
+          failed: plan.error ?? 'Could not read the documents for this onboarding.',
+        };
+        res.status(400).json({ id, reason: plan.reason, error: messages[plan.reason] });
+        return;
+      }
+
+      res.json({ id, driveId, documents: plan.documents });
+    } catch (err) {
+      console.error('[admin/onboardings/:id/drive-link]', err);
+      res.status(500).json({ error: 'Could not link this onboarding to Drive.' });
+    }
+  },
+);
+
+router.post(
   '/onboardings/:id/drive-sync',
   requireAdminAuth,
   requirePermission(Permission.ManageDrive, Permission.ManageOnboardings),
@@ -944,9 +1010,19 @@ router.post(
       return;
     }
 
-    const result = await pushOnboardingToDrive(id);
+    const { only } = (req.body ?? {}) as { only?: unknown };
+    const onlyKeys = Array.isArray(only) ? only.filter((k): k is string => typeof k === 'string') : undefined;
+
+    const result = await pushOnboardingToDrive(id, onlyKeys);
     if (result.synced) {
-      res.json({ id, synced: true, uploaded: result.uploaded, skipped: result.skipped, failed: result.failed });
+      res.json({
+        id,
+        synced: true,
+        uploaded: result.uploaded,
+        skipped: result.skipped,
+        failed: result.failed,
+        error: result.error ?? null,
+      });
       return;
     }
 
@@ -2194,6 +2270,7 @@ router.get('/onboardings', requireAdminAuth, requirePermission(Permission.ViewOn
           sheetSyncedAt: auth.sheetSyncedAt ?? null,
           sheetError: auth.sheetError ?? null,
           driveConfigured: !!auth.driveConfig,
+          driveId: auth.driveConfig ? (auth.driveConfig as object).toString() : null,
           driveSyncedAt: auth.driveSyncedAt ?? null,
           driveError: auth.driveError ?? null,
           createdAt: auth.createdAt,

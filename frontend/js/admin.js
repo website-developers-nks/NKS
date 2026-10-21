@@ -376,12 +376,8 @@
           });
         }
 
-        if (item.driveConfigured && can('manage_drive')) {
-          menuItems.push({
-            label: item.driveSyncedAt ? 'Re-file to Drive' : 'File to Drive',
-            keepOpen: true,
-            onSelect: function (entry) { syncOnboardingToDrive(item, entry); }
-          });
+        if (can('manage_drive')) {
+          menuItems.push({ label: 'Sync Docs to Drive', onSelect: function () { openDriveSync(item); } });
         }
       } else if (canViewProgress()) {
         menuItems.push({ label: 'View Progress', onSelect: function () { openOnboardingProgress(item); } });
@@ -2276,38 +2272,282 @@
         });
     }
 
-    function syncOnboardingToDrive(item, btn) {
-      var originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Filing…';
+    var driveSyncModal = document.getElementById('admin-drive-sync-modal');
+    var driveSyncIntro = document.getElementById('drive-sync-intro');
+    var driveSyncSelect = document.getElementById('drive-sync-select');
+    var driveSyncHint = document.getElementById('drive-sync-hint');
+    var driveSyncProgress = document.getElementById('drive-sync-progress');
+    var driveSyncTrack = document.getElementById('drive-sync-progress-track');
+    var driveSyncFill = document.getElementById('drive-sync-progress-fill');
+    var driveSyncLabel = document.getElementById('drive-sync-progress-label');
+    var driveSyncFiles = document.getElementById('drive-sync-files');
+    var driveSyncStatus = document.getElementById('drive-sync-status');
+    var driveSyncCancelBtn = document.getElementById('drive-sync-cancel');
+    var driveSyncConfirmBtn = document.getElementById('drive-sync-confirm');
+    var driveSyncItem = null;
+    var driveSyncConfigs = [];
+    var driveSyncRunning = false;
+    var driveSyncFinished = false;
 
-      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/drive-sync', {
-        method: 'POST',
+    function closeDriveSync() {
+      if (driveSyncRunning || !driveSyncModal) return;
+      driveSyncModal.hidden = true;
+      if (driveSyncFinished) loadOnboardings();
+      driveSyncItem = null;
+    }
+
+    if (driveSyncModal) {
+      Array.prototype.forEach.call(driveSyncModal.querySelectorAll('[data-modal-close]'), function (el) {
+        el.addEventListener('click', closeDriveSync);
+      });
+    }
+
+    function setDriveSyncProgress(done, total, failed) {
+      var pct = total ? Math.round((done / total) * 100) : 0;
+      driveSyncFill.style.width = pct + '%';
+      driveSyncTrack.setAttribute('aria-valuenow', String(pct));
+      driveSyncProgress.classList.toggle('has-failures', failed > 0);
+      driveSyncLabel.textContent = done + ' of ' + total + ' document' + (total === 1 ? '' : 's') +
+        (failed ? ' · ' + failed + ' failed' : '') + ' (' + pct + '%)';
+    }
+
+    function setDriveSyncFileState(li, state, text) {
+      li.className = 'drive-sync-file' + (state ? ' is-' + state : '');
+      li.querySelector('.drive-sync-file-state').textContent = text;
+    }
+
+    function renderDriveSyncHint() {
+      var id = driveSyncSelect.value;
+      var config = driveSyncConfigs.filter(function (c) { return c.id === id; })[0];
+      if (!config) {
+        driveSyncHint.textContent = '';
+        return;
+      }
+
+      var parts = [];
+      if (config.mappedCount) parts.push(config.mappedCount + ' document type' + (config.mappedCount === 1 ? '' : 's') + ' have their own folder');
+      parts.push(config.defaultFolderName
+        ? 'everything else goes to "' + config.defaultFolderName + '"'
+        : 'anything without a folder is skipped');
+      var text = parts.join(', ') + '.';
+
+      if (driveSyncItem && driveSyncItem.driveId && driveSyncItem.driveId !== id) {
+        text += ' This onboarding is linked to a different Drive sync; switching files every document again into the new folders.';
+      } else if (driveSyncItem && driveSyncItem.driveSyncedAt && driveSyncItem.driveId === id) {
+        text += ' Documents already filed are updated in place.';
+      }
+      driveSyncHint.textContent = text;
+    }
+
+    if (driveSyncSelect) driveSyncSelect.addEventListener('change', renderDriveSyncHint);
+
+    function openDriveSync(item) {
+      if (!driveSyncModal) return;
+      driveSyncItem = item;
+      driveSyncConfigs = [];
+      driveSyncRunning = false;
+      driveSyncFinished = false;
+
+      driveSyncIntro.textContent = 'File the documents ' + (item.fullName || item.email || 'this candidate') +
+        ' uploaded into Google Drive. Pick the Drive sync to use, then confirm.';
+      driveSyncSelect.innerHTML = '<option value="">Loading…</option>';
+      driveSyncSelect.disabled = true;
+      driveSyncHint.textContent = '';
+      driveSyncProgress.hidden = true;
+      driveSyncFiles.innerHTML = '';
+      setDriveSyncProgress(0, 0, 0);
+      clearFormStatus(driveSyncStatus);
+      driveSyncCancelBtn.disabled = false;
+      driveSyncCancelBtn.textContent = 'Cancel';
+      driveSyncConfirmBtn.disabled = true;
+      driveSyncConfirmBtn.textContent = 'Sync Documents';
+      driveSyncModal.hidden = false;
+
+      fetch(API_BASE + '/drive', {
+        method: 'GET',
         credentials: 'include',
         headers: { 'Accept': 'application/json' }
       })
         .then(parseJson)
         .then(function (result) {
-          btn.disabled = false;
-          btn.textContent = originalText;
+          if (driveSyncItem !== item) return;
+          if (result.status === 401) driveSyncModal.hidden = true;
           if (handleApiFailure(result)) return;
-
-          if (result.status === 200 && result.data && result.data.synced) {
-            item.driveSyncedAt = new Date().toISOString();
-            var msg = 'Filed ' + result.data.uploaded + ' document(s) to Drive.';
-            if (result.data.failed) msg += ' ' + result.data.failed + ' failed.';
-            showToast(msg, result.data.failed ? 'error' : 'success');
+          if (result.status !== 200 || !result.data || !Array.isArray(result.data.configs)) {
+            setFormStatus(driveSyncStatus, (result.data && result.data.error) || 'Could not load Drive syncs.', 'error');
             return;
           }
-          showToast((result.data && result.data.error) || 'Could not file to Drive.', 'error');
+          if (!result.data.configured) {
+            setFormStatus(driveSyncStatus, 'Google credentials are not configured on the server.', 'error');
+          }
+
+          driveSyncConfigs = result.data.configs;
+          driveSyncSelect.innerHTML = '';
+
+          var usable = driveSyncConfigs.filter(function (c) { return c.mappedCount || c.defaultFolderId; });
+          var placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = usable.length ? 'Choose a Drive sync' : 'No Drive sync set up yet';
+          driveSyncSelect.appendChild(placeholder);
+
+          driveSyncConfigs.forEach(function (config) {
+            var ok = config.mappedCount || config.defaultFolderId;
+            var opt = document.createElement('option');
+            opt.value = config.id;
+            opt.textContent = ok ? config.name : config.name + ' — no folders set';
+            opt.disabled = !ok;
+            driveSyncSelect.appendChild(opt);
+          });
+
+          var preselect = usable.filter(function (c) { return c.id === item.driveId; })[0] ||
+            (usable.length === 1 ? usable[0] : null);
+          driveSyncSelect.value = preselect ? preselect.id : '';
+          driveSyncSelect.disabled = !usable.length;
+          driveSyncConfirmBtn.disabled = !usable.length || !result.data.configured;
+          renderDriveSyncHint();
+        })
+        .catch(function (err) {
+          console.error('[admin] drive config fetch failed:', err);
+          if (driveSyncItem === item) setFormStatus(driveSyncStatus, 'Could not load Drive syncs.', 'error');
+        });
+    }
+
+    function syncDriveDocument(item, doc) {
+      return fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/drive-sync', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ only: [doc.id] })
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status === 200 && result.data && result.data.synced && result.data.uploaded) {
+            return { ok: true };
+          }
+          return { ok: false, error: (result.data && result.data.error) || 'Upload failed.' };
+        })
+        .catch(function () { return { ok: false, error: 'Network error.' }; });
+    }
+
+    function runDriveSync() {
+      var item = driveSyncItem;
+      var driveId = driveSyncSelect.value;
+      if (!item) return;
+      if (!driveId) {
+        setFormStatus(driveSyncStatus, 'Choose a Drive sync first.', 'error');
+        return;
+      }
+
+      driveSyncRunning = true;
+      clearFormStatus(driveSyncStatus);
+      driveSyncSelect.disabled = true;
+      driveSyncCancelBtn.disabled = true;
+      driveSyncConfirmBtn.disabled = true;
+      driveSyncConfirmBtn.textContent = 'Syncing…';
+      driveSyncProgress.hidden = false;
+      driveSyncFiles.innerHTML = '';
+      setDriveSyncProgress(0, 0, 0);
+      driveSyncLabel.textContent = 'Preparing documents…';
+
+      function finish(message, type) {
+        driveSyncRunning = false;
+        driveSyncFinished = true;
+        driveSyncCancelBtn.disabled = false;
+        driveSyncCancelBtn.textContent = 'Close';
+        driveSyncConfirmBtn.disabled = false;
+        driveSyncConfirmBtn.textContent = 'Sync Again';
+        driveSyncSelect.disabled = false;
+        setFormStatus(driveSyncStatus, message, type);
+        showToast(message, type);
+      }
+
+      fetch(API_BASE + '/onboardings/' + encodeURIComponent(item.id) + '/drive-link', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driveId: driveId })
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status === 401) {
+            driveSyncRunning = false;
+            driveSyncModal.hidden = true;
+            handleApiFailure(result);
+            return;
+          }
+          if (result.status !== 200 || !result.data || !Array.isArray(result.data.documents)) {
+            driveSyncProgress.hidden = true;
+            finish((result.data && result.data.error) || 'Could not link this onboarding to Drive.', 'error');
+            return;
+          }
+
+          if (item.driveId !== driveId) item.driveSyncedAt = null;
+          item.driveId = driveId;
+          item.driveConfigured = true;
+
+          var documents = result.data.documents;
+          var queue = [];
+
+          documents.forEach(function (doc) {
+            var li = document.createElement('li');
+            var label = document.createElement('span');
+            label.textContent = doc.label;
+            var state = document.createElement('span');
+            state.className = 'drive-sync-file-state';
+            li.appendChild(label);
+            li.appendChild(state);
+            driveSyncFiles.appendChild(li);
+
+            if (doc.folderId) {
+              setDriveSyncFileState(li, '', 'Waiting');
+              queue.push({ doc: doc, li: li });
+            } else {
+              setDriveSyncFileState(li, 'skipped', 'Skipped — no folder');
+            }
+          });
+
+          if (!queue.length) {
+            setDriveSyncProgress(0, 0, 0);
+            finish(documents.length
+              ? 'None of these documents has a folder in that Drive sync, so nothing was filed.'
+              : 'This onboarding has no uploaded documents to file.', 'error');
+            return;
+          }
+
+          var done = 0, failed = 0;
+          setDriveSyncProgress(0, queue.length, 0);
+
+          return queue.reduce(function (chain, entry) {
+            return chain.then(function () {
+              setDriveSyncFileState(entry.li, 'active', 'Uploading…');
+              entry.li.scrollIntoView({ block: 'nearest' });
+              return syncDriveDocument(item, entry.doc).then(function (outcome) {
+                done += 1;
+                if (outcome.ok) {
+                  setDriveSyncFileState(entry.li, 'done', 'Filed ✓');
+                } else {
+                  failed += 1;
+                  setDriveSyncFileState(entry.li, 'failed', 'Failed');
+                  entry.li.title = outcome.error;
+                }
+                setDriveSyncProgress(done, queue.length, failed);
+              });
+            });
+          }, Promise.resolve()).then(function () {
+            var filed = done - failed;
+            if (!failed) item.driveSyncedAt = new Date().toISOString();
+            finish(failed
+              ? 'Filed ' + filed + ' of ' + queue.length + ' document(s). ' + failed + ' failed — hover a failed row for the reason, or try Sync Again.'
+              : 'Filed ' + filed + ' document(s) to Drive.', failed ? 'error' : 'success');
+          });
         })
         .catch(function (err) {
           console.error('[admin] drive sync failed:', err);
-          btn.disabled = false;
-          btn.textContent = originalText;
-          showToast('Could not file to Drive.', 'error');
+          finish('Could not file to Drive.', 'error');
         });
     }
+
+    if (driveSyncConfirmBtn) driveSyncConfirmBtn.addEventListener('click', runDriveSync);
 
     var currentExportOnboardingId = null;
 

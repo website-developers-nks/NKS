@@ -2252,3 +2252,76 @@ a.form-submit {
 .admin-modal.is-expanded .admin-modal-dialog > .users-list {
   overflow-y: auto;
 }
+
+.drive-sync-progress {
+  margin-top: 20px;
+}
+
+.drive-sync-progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.drive-sync-progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.drive-sync-progress.has-failures .drive-sync-progress-fill {
+  background: #c62828;
+}
+
+.drive-sync-progress-label {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.drive-sync-files {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.drive-sync-file {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.drive-sync-file-state {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.drive-sync-file.is-active .drive-sync-file-state {
+  color: var(--accent);
+}
+
+.drive-sync-file.is-done .drive-sync-file-state {
+  color: var(--accent-secondary);
+}
+
+.drive-sync-file.is-failed .drive-sync-file-state {
+  color: #c62828;
+}
+
+.drive-sync-file.is-skipped {
+  color: var(--text-secondary);
+}
+
+.drive-sync-progress + .form-status.is-visible {
+  margin-top: 16px;
+}

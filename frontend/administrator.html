@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/styles.css?v=1789993235">
   <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
 
-  <link rel="stylesheet" href="css/admin.css?v=1789993235">
+  <link rel="stylesheet" href="css/admin.css?v=1792569920">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -474,6 +474,40 @@
     </div>
   </div>
 
+  <div class="admin-modal" id="admin-drive-sync-modal" data-stacked hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog admin-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="drive-sync-title">
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="drive-sync-title">Sync Docs to Drive</h3>
+      <p class="body-text" id="drive-sync-intro"></p>
+
+      <div class="form-group">
+        <label for="drive-sync-select">Google Drive</label>
+        <div class="select-wrapper">
+          <select id="drive-sync-select">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+      </div>
+      <p class="markdown-hint" id="drive-sync-hint"></p>
+
+      <div class="drive-sync-progress" id="drive-sync-progress" hidden>
+        <div class="drive-sync-progress-track" id="drive-sync-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span class="drive-sync-progress-fill" id="drive-sync-progress-fill"></span>
+        </div>
+        <div class="drive-sync-progress-label" id="drive-sync-progress-label"></div>
+        <ul class="drive-sync-files" id="drive-sync-files"></ul>
+      </div>
+
+      <div class="form-status" id="drive-sync-status" role="alert" aria-live="polite"></div>
+
+      <div class="admin-confirm-actions">
+        <button type="button" class="btn-secondary" id="drive-sync-cancel" data-modal-close>Cancel</button>
+        <button type="button" class="form-submit admin-confirm-ok" id="drive-sync-confirm">Sync Documents</button>
+      </div>
+    </div>
+  </div>
+
   <div class="admin-modal" id="admin-onboarding-progress-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
     <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Onboarding progress">
@@ -571,7 +605,7 @@
   <script src="js/bundle-b.js?v=1789993235"></script>
   <script src="js/modal-expand.js?v=1789993235"></script>
   <script src="js/modal-a11y.js?v=1789993235"></script>
-  <script src="js/admin.js?v=1789993235"></script>
+  <script src="js/admin.js?v=1792569920"></script>
 
 </body>
 </html>
