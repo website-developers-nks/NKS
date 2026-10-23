@@ -193,7 +193,8 @@
   var locationLabels = {
     gurugram: 'Gurugram',
     gift_city: 'GIFT City',
-    dubai: 'Dubai'
+    dubai: 'Dubai',
+    singapore: 'Singapore'
   };
 
   var fieldLabels = {
@@ -254,6 +255,21 @@
     experience_feedback: 'Feedback'
   };
 
+  var SINGAPORE_FIELD_LABELS = {
+    dob: 'Date of birth (As per passport)',
+    passport_number: 'NRIC Number',
+    pan_number: 'Tax Reference Number',
+    uan_number: 'CPF Account Number',
+    ifsc: 'Branch code',
+    id_doc: 'NRIC (front and back)',
+    higher_secondary_doc: 'High School Diploma / A-Levels / Pre-University Certificate'
+  };
+
+  function fieldLabelFor(name) {
+    if (isSingapore() && SINGAPORE_FIELD_LABELS[name]) return SINGAPORE_FIELD_LABELS[name];
+    return fieldLabels[name] || name;
+  }
+
   var currentLocation = 'gurugram';
   var currentDepartment = null;
 
@@ -270,6 +286,7 @@
     });
     updateDocBasisLabels(location);
     updatePayrollLedgerRequirement(location);
+    setFieldsRequired(PASSPORT_FIELD_NAMES, location === 'singapore');
     if (typeof applyDefaultPhoneCountry === 'function') applyDefaultPhoneCountry();
     if (typeof applyBenefitVisibility === 'function') applyBenefitVisibility();
   }
@@ -279,10 +296,14 @@
   // The section stays visible for Dubai so employees can still fill it in
   // voluntarily, it just isn't required to submit.
   var PAYROLL_LEDGER_FIELD_NAMES = ['bank_name', 'account_holder', 'account_number', 'ifsc', 'bank_doc'];
+  var PASSPORT_FIELD_NAMES = ['passport_no', 'passport_doc'];
 
   function updatePayrollLedgerRequirement(location) {
-    var required = location !== 'dubai';
-    PAYROLL_LEDGER_FIELD_NAMES.forEach(function (name) {
+    setFieldsRequired(PAYROLL_LEDGER_FIELD_NAMES, location !== 'dubai');
+  }
+
+  function setFieldsRequired(names, required) {
+    names.forEach(function (name) {
       var field = form.elements[name];
       var el = field instanceof RadioNodeList ? field[0] : field;
       if (!el) return;
@@ -301,26 +322,40 @@
   }
 
   var DOC_BASIS_LABELS = {
-    first_name: { dubai: 'First name (As per Passport)', default: 'First name (As per Aadhar)' },
-    last_name: { dubai: 'Last name (As per Passport)', default: 'Last name (As per Aadhar)' },
-    dob: { dubai: 'Date of birth (As per Passport)', default: 'Date of birth (As per Aadhar)' },
-    identity_number: { dubai: 'Passport Number', default: 'Aadhar Number' },
-    id_proof_type: { dubai: 'Passport', default: 'Aadhar' }
+    first_name: { dubai: 'First name (As per Passport)', singapore: 'First name (As per passport)', default: 'First name (As per Aadhar)' },
+    last_name: { dubai: 'Last name (As per Passport)', singapore: 'Last name (As per passport)', default: 'Last name (As per Aadhar)' },
+    dob: { dubai: 'Date of birth (As per Passport)', singapore: 'Date of birth (As per passport)', default: 'Date of birth (As per Aadhar)' },
+    identity_number: { dubai: 'Passport Number', singapore: 'NRIC Number', default: 'Aadhar Number' },
+    id_proof_type: { dubai: 'Passport', singapore: 'Passport', default: 'Aadhar' },
+    id_proof: { dubai: 'ID Proof (Passport)', singapore: 'NRIC (National Registration Identity Card) - Front and back', default: 'ID Proof (Aadhar)' },
+    tax_number: { singapore: 'Tax Reference Number', default: 'PAN Card Number' },
+    pf_number: { singapore: 'CPF Account Number', default: 'UAN Number' },
+    higher_secondary: { singapore: 'High School Diploma / A-Levels / Pre-University Certificate', default: 'Higher Secondary Marksheet' },
+    bank_code: { singapore: 'Branch code', default: 'IFSC code' }
+  };
+
+  var DOC_BASIS_PLACEHOLDERS = {
+    passport_number: { dubai: 'Enter passport number', singapore: 'Enter NRIC number', default: 'Enter Aadhar number' },
+    pan_number: { singapore: 'Enter tax reference number', default: 'Enter PAN number' },
+    uan_number: { singapore: 'Enter CPF account number', default: 'Enter UAN number' },
+    ifsc: { singapore: 'Enter 3-digit branch code', default: '' }
   };
 
   function updateDocBasisLabels(location) {
-    var basis = location === 'dubai' ? 'dubai' : 'default';
+    var basis = location === 'dubai' || location === 'singapore' ? location : 'default';
     Object.keys(DOC_BASIS_LABELS).forEach(function (field) {
+      var labels = DOC_BASIS_LABELS[field];
       Array.prototype.forEach.call(
         document.querySelectorAll('[data-doc-basis-label="' + field + '"]'),
-        function (el) { el.textContent = DOC_BASIS_LABELS[field][basis]; },
+        function (el) { el.textContent = labels[basis] || labels.default; },
       );
     });
 
-    var identityInput = document.querySelector('input[name="passport_number"]');
-    if (identityInput) {
-      identityInput.placeholder = basis === 'dubai' ? 'Enter passport number' : 'Enter Aadhar number';
-    }
+    Object.keys(DOC_BASIS_PLACEHOLDERS).forEach(function (name) {
+      var input = document.querySelector('input[name="' + name + '"]');
+      var placeholders = DOC_BASIS_PLACEHOLDERS[name];
+      if (input) input.placeholder = basis in placeholders ? placeholders[basis] : placeholders.default;
+    });
   }
 
   function showStep(index, moveFocus) {
@@ -751,7 +786,7 @@
         });
 
         if (rejected.length === 1) {
-          var label = fieldLabels[rejected[0].name] || rejected[0].name;
+          var label = fieldLabelFor(rejected[0].name);
           showErrorToast('Could not save "' + label + '": ' + (rejected[0].error || 'Please try again.'));
         } else if (rejected.length > 1) {
           showErrorToast('Could not save ' + rejected.length + ' fields - check the highlighted fields for details.');
@@ -800,6 +835,7 @@
   var IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
   var AADHAR_RE = /^[2-9][0-9]{11}$/;
   var PASSPORT_RE = /^[A-Za-z0-9]{6,12}$/;
+  var NRIC_RE = /^[STFGM]\d{7}[A-Z]$/i;
   var BANK_NAME_RE = /^[A-Za-z][A-Za-z0-9 .,'&-]*$/;
 
   var validationErrors = {};
@@ -886,6 +922,10 @@
     return currentLocation === 'dubai';
   }
 
+  function isSingapore() {
+    return currentLocation === 'singapore';
+  }
+
   var FIELD_VALIDATORS = {
     full_name: function (value) {
       return NAME_RE.test(value) ? '' : 'Name can only contain letters, spaces, apostrophes, dots and hyphens.';
@@ -946,6 +986,9 @@
       return value.length >= 3 ? '' : 'Enter the contact name and their relationship to you.';
     },
     passport_number: function (value) {
+      if (isSingapore()) {
+        return NRIC_RE.test(value.trim()) ? '' : 'Enter a valid NRIC number, e.g. S1234567D.';
+      }
       if (isDubai()) {
         return PASSPORT_RE.test(value) ? '' : 'Enter a valid passport number (6-12 letters or digits).';
       }
@@ -956,10 +999,16 @@
     },
     pan_number: function (value) {
       if (/^NA$/i.test(value)) return '';
+      if (isSingapore()) {
+        return /^[A-Za-z0-9]{8,12}$/.test(value.replace(/\s/g, '')) ? '' : 'Enter a valid tax reference number (or NA if you do not have one).';
+      }
       return PAN_RE.test(value.toUpperCase()) ? '' : 'Enter a valid PAN, e.g. ABCDE1234F (or NA if you do not have one).';
     },
     uan_number: function (value) {
       if (/^NA$/i.test(value)) return '';
+      if (isSingapore()) {
+        return /^[A-Za-z0-9]{6,15}$/.test(value.replace(/\s/g, '')) ? '' : 'Enter a valid CPF account number (or NA if you do not have one).';
+      }
       return /^\d{12}$/.test(value.replace(/\s/g, '')) ? '' : 'Enter a valid 12-digit UAN (or NA if you do not have one).';
     },
     bank_name: function (value) {
@@ -973,6 +1022,9 @@
       if (isDubai()) {
         return /^[A-Za-z0-9]{8,34}$/.test(cleaned) ? '' : 'Enter a valid account number.';
       }
+      if (isSingapore()) {
+        return /^\d{6,17}$/.test(cleaned.replace(/-/g, '')) ? '' : 'Enter a valid account number (6-17 digits).';
+      }
       return /^\d{9,18}$/.test(cleaned) ? '' : 'Enter a valid account number (9-18 digits).';
     },
     intro_line: function (value) {
@@ -981,7 +1033,8 @@
         : 'Please write at least a sentence (' + MIN_INTRO_LENGTH + '+ characters) - this one is shared with the whole team.';
     },
     ifsc: function (value) {
-      if (isDubai()) return ''; 
+      if (isDubai()) return '';
+      if (isSingapore()) return /^\d{3}$/.test(value.trim()) ? '' : 'Enter a valid 3-digit branch code, e.g. 081.';
       return IFSC_RE.test(value.toUpperCase()) ? '' : 'Enter a valid IFSC code, e.g. HDFC0001234.';
     }
   };
@@ -1775,7 +1828,7 @@
   function applyDefaultPhoneCountry() {
     var codes = window.NKSCountryCodes;
     if (!codes) return;
-    var iso = currentLocation === 'dubai' ? 'AE' : 'IN';
+    var iso = currentLocation === 'dubai' ? 'AE' : currentLocation === 'singapore' ? 'SG' : 'IN';
     if (!codes.byIso(iso)) return;
     PHONE_FIELDS.forEach(function (cfg) {
       var e = phoneEls(cfg);
@@ -1875,7 +1928,7 @@
   }
 
   function applyBenefitVisibility() {
-    var isTech = currentDepartment === 'tech';
+    var isTech = currentDepartment === 'tech' && currentLocation !== 'singapore';
     var accomSel = form.elements['accommodation'];
     var accomVal = accomSel ? accomSel.value : '';
 

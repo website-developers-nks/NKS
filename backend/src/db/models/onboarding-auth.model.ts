@@ -6,6 +6,7 @@ export enum OfficeLocation {
   Gurugram = 'gurugram',
   GiftCity = 'gift_city',
   Dubai = 'dubai',
+  Singapore = 'singapore',
 }
 
 export enum Company {

@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import { verifyOnboardingAuth, sendOnboardingOtp, verifyOnboardingOtp, checkOtpStatus } from '../services/onboarding.service';
 import { syncFormFields } from '../services/sync-form.service';
 import { OnboardingAuth, IOnboardingAuth, OfficeLocation, Department, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
-import { OnboardingData, Accommodation } from '../db/models/onboarding-data.model';
+import { OnboardingData, Accommodation, InsuranceCoverage } from '../db/models/onboarding-data.model';
 import { requireOnboardingAuth } from '../middleware/onboarding-auth.middleware';
 import { EmailAddress, getEmailEngineByCompany, getSenderByCompany } from '../email';
 import { OnboardingSubmittedEmail } from '../email/emails/onboarding-submitted.email';
@@ -247,6 +247,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     const location = auth.auth.location;
     const isDubai = location === OfficeLocation.Dubai;
     const isIndia = location === OfficeLocation.Gurugram || location === OfficeLocation.GiftCity;
+    const isSingapore = location === OfficeLocation.Singapore;
 
     // Always required
     requireTrue(data.welcomeAck,            'welcome_ack');
@@ -278,6 +279,10 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     requireStr(data.mothersName,             'mothers_name');
     requireDoc(data.mothersDob,             'mothers_dob');
     requireDoc(data.insuranceCoverage,             'insurance_coverage');
+    if (data.insuranceCoverage) {
+      const singaporeCover = data.insuranceCoverage === InsuranceCoverage.Yes || data.insuranceCoverage === InsuranceCoverage.No;
+      if (singaporeCover !== isSingapore) missing.push('insurance_coverage');
+    }
     for (const org of data.orgs ?? []) {
       if (org.current || org.relievingLetterDoc) continue;
       missing.push(org.orgId ? orgDocType(org.orgId) : 'orgs');
@@ -295,6 +300,17 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
       requireStr(data.ifsc,                  'ifsc');
     }
 
+    if (isSingapore) {
+      requireDoc(data.higherSecondaryDoc,  'higher_secondary_doc');
+      requireDoc(data.passportDoc,         'passport_doc');
+      requireStr(data.passportNo,          'passport_no');
+      requireDoc(data.bankDoc,             'bank_doc');
+      requireStr(data.bankName,            'bank_name');
+      requireStr(data.accountHolder,       'account_holder');
+      requireStr(data.accountNumber,       'account_number');
+      requireStr(data.ifsc,                'ifsc');
+    }
+
     // Required for Dubai only
     if (isDubai) {
       requireDoc(data.offerLetterDoc,      'offer_letter_doc');
@@ -306,7 +322,7 @@ router.get('/submit-data', requireOnboardingAuth, async (req: Request, res: Resp
     }
 
     const department = auth.auth.department;
-    if (department === Department.Tech) {
+    if (department === Department.Tech && !isSingapore) {
       requireStr(data.accommodation, 'accommodation');
       if (data.accommodation === Accommodation.Yes) {
         requireStr(data.stayDates, 'stay_dates');

@@ -333,7 +333,7 @@
     // one person. Since the user is already the subject of the popup, the rows
     // lead with what actually distinguishes them: company and location.
 
-    var LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai' };
+    var LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai', singapore: 'Singapore' };
     var COMPANY_LABELS = {
       nksecurities: 'NK Securities',
       'nk securities research & tech': 'NKS Research & Tech'
@@ -473,7 +473,7 @@
       nksecurities: 'NK Securities',
       'nk securities research & tech': 'NKS Research & Tech'
     };
-    var THREAD_LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai' };
+    var THREAD_LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai', singapore: 'Singapore' };
 
     function setThreadMessage(message) {
       threadSelect.innerHTML = '';

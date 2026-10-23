@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { OnboardingData, MealPreference, MaritalStatus, BloodGroup, InsuranceCoverage, Gender, Accommodation, GymMembership, TshirtSize, IOrg, IChildInfo } from '../db/models/onboarding-data.model';
-import { OnboardingAuth, OnboardingExpiryReason } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, OnboardingExpiryReason, OfficeLocation } from '../db/models/onboarding-auth.model';
 import { Doc } from '../db/models/doc.model';
 import { Limits } from '../lib/limits';
 import { extraFieldName, validateExtraValue } from '../lib/extra-fields';
@@ -208,6 +208,10 @@ function childsInfoValidator(): Validator {
 // location) - those must accept an empty value here rather than reject the sync.
 const NO_EDIT_LIMIT_FIELDS = new Set(['intro_line', 'experience_feedback']);
 
+const NON_INDIA_VALIDATORS: Record<string, Validator> = {
+  ifsc: stringValidator(20, false),
+};
+
 const FIELD_DEFS: Record<string, FieldDef> = {
   // Core
   welcome_ack:              { modelField: 'welcomeAck',            validate: boolValidator() },
@@ -321,6 +325,8 @@ export async function syncFormFields(
   const $unset: Record<string, ''> = {};
   const fieldIncrements: Record<string, number> = {};
 
+  const isIndia = authUpdate?.location === OfficeLocation.Gurugram || authUpdate?.location === OfficeLocation.GiftCity;
+
   const extraDefs = new Map(
     (authUpdate?.extraFields ?? []).map((def) => [extraFieldName(def.key), def]),
   );
@@ -351,7 +357,8 @@ export async function syncFormFields(
       continue;
     }
 
-    const validation = def.validate(value);
+    const validate = (!isIndia && NON_INDIA_VALIDATORS[fieldName]) || def.validate;
+    const validation = validate(value);
     if (!validation.ok) {
       results.push({ field_name: fieldName, saved: false, error: validation.error });
       continue;

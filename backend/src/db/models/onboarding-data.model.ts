@@ -55,6 +55,8 @@ export enum BloodGroup {
 export enum InsuranceCoverage {
   EmployeeParents = 'employee_parents',
   EmployeeSpouseKids = 'employee_spouse_kids',
+  Yes = 'yes',
+  No = 'no',
 }
 
 export interface IChildInfo {

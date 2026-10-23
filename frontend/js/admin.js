@@ -33,7 +33,7 @@
   //    the "Manage Users" card here is a plain link to that page.)
   //   POST /api/admin/register-onboarding -> manage_onboardings, body { userId, ttl, location, company,
   //                                          expirationDate, cc?, bcc?, extraContent?, extraContentMarkdown?, attachmentIds? }
-  //                                        location: OfficeLocation enum - 'gurugram' | 'gift_city' | 'dubai'
+  //                                        location: OfficeLocation enum - 'gurugram' | 'gift_city' | 'dubai' | 'singapore'
   //                                        company: Company enum - 'nksecurities' | 'nk securities research & tech'
   //                                        expirationDate: ISO date string, must be in the future
   //                                        extraContent: sanitized HTML actually emailed; extraContentMarkdown: raw
@@ -260,7 +260,7 @@
 
     // ---- View Onboardings (search/filter list + submitted-data viewer) ----
 
-    var LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai' };
+    var LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai', singapore: 'Singapore' };
     function formatLocation(loc) { return LOCATION_LABELS[loc] || loc; }
 
     var EXPIRY_REASON_LABELS = {
@@ -2042,6 +2042,19 @@
       bank_doc: 'Bank Document'
     };
 
+    var SINGAPORE_FIELD_LABELS = {
+      dob: 'Date of Birth (As per Passport)',
+      passport_number: 'NRIC Number',
+      pan_number: 'Tax Reference Number',
+      uan_number: 'CPF Account Number',
+      ifsc: 'Branch Code'
+    };
+
+    var SINGAPORE_DOC_LABELS = {
+      id_doc: 'NRIC (Front and Back)',
+      higher_secondary_doc: 'High School Diploma / A-Levels / Pre-University Certificate'
+    };
+
     var DATE_FIELD_KEYS = {
       dob: true, preferred_dob: true, fathers_dob: true, mothers_dob: true, spouse_dob: true
     };
@@ -2148,10 +2161,13 @@
       grid.className = 'onboarding-data-grid';
       var fields = data.fields || {};
       var isDubai = data.location === 'dubai';
+      var isSingapore = data.location === 'singapore';
 
       Object.keys(FIELD_LABELS).forEach(function (key) {
+        if (isSingapore && key === 'preferred_dob') return;
         var label = FIELD_LABELS[key];
         if (key === 'passport_number') label = isDubai ? 'Passport Number' : 'Aadhar Number';
+        if (isSingapore && SINGAPORE_FIELD_LABELS[key]) label = SINGAPORE_FIELD_LABELS[key];
         var value = fields[key];
         if (key === 'experience_rating' && value != null) value = value + ' / 5';
         if (DATE_FIELD_KEYS[key]) value = formatDisplayDate(value);
@@ -2230,6 +2246,7 @@
         var doc = docs[key];
         var label = DOC_LABELS[key];
         if (key === 'id_doc') label = 'ID Proof (' + (isDubai ? 'Passport' : 'Aadhar') + ')';
+        if (isSingapore && SINGAPORE_DOC_LABELS[key]) label = SINGAPORE_DOC_LABELS[key];
         appendDocField(docsGrid, label, doc, authId);
       });
 

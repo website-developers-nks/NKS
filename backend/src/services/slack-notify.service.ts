@@ -8,6 +8,7 @@ const LOCATION_LABELS: Record<string, string> = {
   gurugram: 'Gurugram',
   gift_city: 'GIFT City',
   dubai: 'Dubai',
+  singapore: 'Singapore',
 };
 
 const COMPANY_LABELS: Record<string, string> = {

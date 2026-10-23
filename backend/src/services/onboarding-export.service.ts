@@ -4,7 +4,7 @@ import { Doc } from '../db/models/doc.model';
 import { ExtraFieldDef, ExtraFieldType } from '../lib/extra-fields';
 import { Readable } from 'stream';
 import { r2, R2_BUCKET } from '../lib/r2';
-import { OnboardingAuth } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, OfficeLocation } from '../db/models/onboarding-auth.model';
 import { OnboardingData } from '../db/models/onboarding-data.model';
 import { IDoc } from '../db/models/doc.model';
 import { IUser } from '../db/models/user.model';
@@ -71,6 +71,19 @@ const FIELD_LABELS: Record<string, string> = {
   mealPreference: 'Meal Preference',
   experienceRating: 'Experience Rating (out of 5)',
   experienceFeedback: 'Feedback',
+};
+
+const SINGAPORE_FIELD_LABELS: Record<string, string> = {
+  dob: 'Date of Birth (As per Passport)',
+  passportNumber: 'NRIC Number',
+  panNumber: 'Tax Reference Number',
+  uanNumber: 'CPF Account Number',
+  ifsc: 'Branch Code',
+};
+
+const SINGAPORE_DOC_LABELS: Record<string, string> = {
+  idDoc: 'NRIC (Front and Back)',
+  higherSecondaryDoc: 'High School Diploma / A-Levels / Pre-University Certificate',
 };
 
 const BOOLEAN_LABELS: Record<string, string> = {
@@ -205,11 +218,16 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
   const user = auth.user as IUser | undefined;
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Unknown';
 
+  const isSingapore = auth.location === OfficeLocation.Singapore;
+  const fieldLabels = isSingapore ? { ...FIELD_LABELS, ...SINGAPORE_FIELD_LABELS } : FIELD_LABELS;
+  const docLabels = isSingapore ? { ...DOC_LABELS, ...SINGAPORE_DOC_LABELS } : DOC_LABELS;
+
   const fieldRows: string[] = [];
-  Object.keys(FIELD_LABELS).forEach((key) => {
+  Object.keys(fieldLabels).forEach((key) => {
+    if (isSingapore && key === 'preferredDob') return;
     const raw = record[key];
     const value = DATE_FIELDS.has(key) ? formatDate(raw) : raw;
-    fieldRows.push(fieldRow(FIELD_LABELS[key], value));
+    fieldRows.push(fieldRow(fieldLabels[key], value));
   });
   Object.keys(BOOLEAN_LABELS).forEach((key) => {
     const value = record[key];
@@ -273,7 +291,7 @@ export async function buildOnboardingExportHtml(authId: string): Promise<Onboard
     const doc = record[field] as IDoc | undefined;
     if (!doc || !doc.path) continue;
     const dataUri = await fetchDocAsDataUri(doc);
-    docCards.push(docCard(DOC_LABELS[field], doc, dataUri));
+    docCards.push(docCard(docLabels[field], doc, dataUri));
   }
 
   const orgs = (record.orgs ?? []) as { name: string; relievingLetterDoc?: IDoc }[];

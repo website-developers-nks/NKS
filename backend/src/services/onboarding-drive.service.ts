@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { r2, R2_BUCKET } from '../lib/r2';
-import { OnboardingAuth, IOnboardingAuth } from '../db/models/onboarding-auth.model';
+import { OnboardingAuth, IOnboardingAuth, OfficeLocation } from '../db/models/onboarding-auth.model';
 import { OnboardingData, IOnboardingData } from '../db/models/onboarding-data.model';
 import { IUser } from '../db/models/user.model';
 import { Doc, IDoc } from '../db/models/doc.model';
@@ -35,6 +35,11 @@ const DOC_FIELDS: Array<{ key: string; field: keyof IOnboardingData; label: stri
   { key: 'relieving_letter_doc', field: 'relievingLetterDoc', label: 'Relieving letter (legacy)' },
 ];
 
+const SINGAPORE_DOC_LABELS: Record<string, string> = {
+  id_doc: 'NRIC (Front and Back)',
+  higher_secondary_doc: 'High School Diploma - A-Levels - Pre-University Certificate',
+};
+
 export const ORG_RELIEVING_KEY = 'org_relieving_letters';
 export const EXTRA_DOCS_KEY = 'extra_field_docs';
 
@@ -66,10 +71,11 @@ async function collectDocuments(
   data: IOnboardingData,
 ): Promise<DriveDocument[]> {
   const out: DriveDocument[] = [];
+  const isSingapore = auth.location === OfficeLocation.Singapore;
 
   for (const { key, field, label } of DOC_FIELDS) {
     const value = (data as unknown as Record<string, unknown>)[field as string];
-    if (isDoc(value)) out.push({ key, label, doc: value });
+    if (isDoc(value)) out.push({ key, label: (isSingapore && SINGAPORE_DOC_LABELS[key]) || label, doc: value });
   }
 
   (data.orgs ?? []).forEach((org, index) => {
