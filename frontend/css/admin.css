@@ -139,7 +139,7 @@ body {
   border-left: 3px solid var(--accent);
   border-radius: 4px;
   background: var(--bg);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--text-secondary);
@@ -199,7 +199,7 @@ body {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
@@ -330,7 +330,7 @@ a.form-submit {
 }
 
 .notif-item-title {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
@@ -381,7 +381,7 @@ a.form-submit {
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   transition: border-color 0.2s ease;
 }
 
@@ -434,7 +434,7 @@ a.form-submit {
   padding: 0;
   background: none;
   border: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 12px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -477,7 +477,7 @@ a.form-submit {
 }
 
 .field-map-label {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   color: var(--text-primary);
 }
@@ -500,7 +500,7 @@ a.form-submit {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 8px 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   color: var(--text-primary);
   outline: none;
@@ -779,7 +779,7 @@ a.form-submit {
   border: none;
   border-bottom: 1px solid var(--border);
   padding: 12px 24px 12px 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   color: var(--text-primary);
   transition: border-color 0.3s ease;
@@ -926,7 +926,7 @@ a.form-submit {
   border-radius: 8px;
   padding: 28px 24px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   text-align: left;
   transition: border-color 0.2s ease;
 }
@@ -1047,7 +1047,7 @@ a.form-submit {
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1079,7 +1079,7 @@ a.form-submit {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 8px 16px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -1136,7 +1136,7 @@ a.form-submit {
 .markdown-preview-body h4,
 .markdown-preview-body h5,
 .markdown-preview-body h6 {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', Georgia, serif;
   line-height: 1.3;
   color: var(--text-primary);
 }
@@ -1308,7 +1308,7 @@ a.form-submit {
   border: none;
   border-bottom: 1px solid var(--border);
   padding: 10px 4px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   color: var(--text-primary);
   outline: none;
@@ -1333,7 +1333,7 @@ a.form-submit {
   border: none;
   border-bottom: 1px solid var(--border);
   padding: 10px 24px 10px 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   color: var(--text-primary);
   transition: border-color 0.3s ease;
@@ -1419,7 +1419,7 @@ a.form-submit {
 .onboarding-row-error {
   font-size: 12px;
   color: #c62828;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1440,7 +1440,7 @@ a.form-submit {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 6px 12px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -1496,7 +1496,7 @@ a.form-submit {
 .onboarding-data-section h4 {
   font-size: 20px;
   margin-bottom: 12px;
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', Georgia, serif;
   color: var(--text-primary);
 }
 
@@ -1638,7 +1638,7 @@ a.form-submit {
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   padding: 10px 16px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -1755,7 +1755,7 @@ a.form-submit {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 6px 24px 6px 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 12px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -1785,7 +1785,7 @@ a.form-submit {
   border: 1px solid rgba(200, 35, 35, 0.5);
   border-radius: 4px;
   padding: 8px 16px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: #c62828;
@@ -1822,7 +1822,7 @@ a.form-submit {
 
 .nav-logout {
   display: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -1862,7 +1862,7 @@ a.form-submit {
   background: transparent;
   border: none;
   padding: 0;
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', serif;
   font-size: 24px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -1887,7 +1887,7 @@ a.form-submit {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-secondary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -1923,7 +1923,7 @@ a.form-submit {
   border: none;
   border-bottom: 1px solid var(--border);
   padding: 8px 4px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   color: var(--text-primary);
   outline: none;
@@ -2057,7 +2057,7 @@ a.form-submit {
   border: none;
   border-radius: 4px;
   padding: 9px 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
@@ -2118,14 +2118,14 @@ a.form-submit {
 }
 
 .email-detail-header h4 {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', Georgia, serif;
   font-size: 22px;
   color: var(--text-primary);
   margin: 0;
 }
 
 .email-detail-body-heading {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', Georgia, serif;
   font-size: 18px;
   color: var(--text-primary);
   margin: 24px 0 10px;

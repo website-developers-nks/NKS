@@ -1,4 +1,33 @@
 
+@font-face {
+  font-family: 'Instrument Serif Fallback';
+  src: local('Times New Roman'), local('TimesNewRomanPSMT'), local('Liberation Serif'), local('Tinos');
+  font-style: normal;
+  size-adjust: 81%;
+  ascent-override: 122%;
+  descent-override: 38%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Instrument Serif Fallback';
+  src: local('Times New Roman Italic'), local('TimesNewRomanPS-ItalicMT'), local('Liberation Serif Italic'), local('Tinos Italic');
+  font-style: italic;
+  size-adjust: 85.3%;
+  ascent-override: 116%;
+  descent-override: 36%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
+  size-adjust: 106.3%;
+  ascent-override: 91%;
+  descent-override: 22.6%;
+  line-gap-override: 0%;
+}
+
 :root {
   --bg: #0a0a0a;
   --surface: #111111;
@@ -150,7 +179,7 @@ main:focus {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', 'Inter Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 17px;
   line-height: 1.75;
   color: var(--text-secondary);
@@ -163,7 +192,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', Georgia, serif;
   color: var(--text-primary);
   font-weight: 400;
   letter-spacing: -0.03em;
@@ -202,7 +231,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .label {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -219,7 +248,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .body-large {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', Georgia, serif;
   font-size: clamp(20px, 2.5vw, 28px);
   line-height: 1.5;
   color: var(--text-primary);
@@ -337,7 +366,7 @@ a:hover {
 }
 
 .nav-logo-text {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
@@ -395,7 +424,7 @@ a:hover {
 
 .nav-cta {
   display: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
@@ -491,7 +520,7 @@ a:hover {
 .mobile-menu a {
   font-size: 24px;
   color: var(--text-secondary);
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', serif;
 }
 
 .mobile-menu a:hover,
@@ -601,7 +630,7 @@ a:hover {
 }
 
 .stat-number {
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', serif;
   font-size: clamp(36px, 4vw, 48px);
   color: var(--text-primary);
   margin-bottom: 8px;
@@ -664,7 +693,7 @@ a:hover {
 }
 
 .about-text {
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', serif;
   font-size: clamp(20px, 2.5vw, 28px);
   line-height: 1.5;
   color: var(--text-primary);
@@ -714,7 +743,7 @@ a:hover {
 }
 
 .what-we-do-item h3 {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
@@ -760,7 +789,7 @@ a:hover {
 }
 
 .value-title {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 16px;
   font-weight: 500;
   color: var(--text-primary);
@@ -846,7 +875,7 @@ a:hover {
 }
 
 .footer-logo {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
@@ -967,7 +996,7 @@ a:hover {
 }
 
 .leader-name {
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Instrument Serif', 'Instrument Serif Fallback', serif;
   font-size: 28px;
   color: var(--text-primary);
   margin-bottom: 12px;
@@ -1114,7 +1143,7 @@ a:hover {
 }
 
 .contact-info h3 {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
@@ -1151,7 +1180,7 @@ a:hover {
   border: none;
   border-bottom: 1px solid var(--border);
   padding: 12px 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 14px;
   color: var(--text-primary);
   transition: border-color 0.3s ease;
@@ -1172,7 +1201,7 @@ a:hover {
   width: 100%;
   background-color: var(--accent);
   color: var(--bg);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Inter Fallback', sans-serif;
   font-size: 15px;
   font-weight: 600;
   height: 48px;
@@ -1295,7 +1324,7 @@ a:hover {
 }
 
 .splash-wordmark {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', 'Inter Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
