@@ -116,9 +116,9 @@
     readMask  : svg('<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-9H7v4h10v-4z"/>'),
   };
 
-  function makeSwitch(key) {
-    var label = el('label', { className: 'nks-a11y-switch', title: key });
-    var input = el('input', { type: 'checkbox' });
+  function makeSwitch(key, name) {
+    var label = el('label', { className: 'nks-a11y-switch' });
+    var input = el('input', { type: 'checkbox', role: 'switch', 'aria-label': name });
     input.checked = !!state[key];
     input.addEventListener('change', function () {
       state[key] = input.checked;
@@ -131,12 +131,12 @@
     return label;
   }
 
-  function makeStepper(key, min, max, fmt) {
-    var wrap = el('div', { className: 'nks-a11y-stepper' });
-    var dec  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Decrease', type: 'button' });
+  function makeStepper(key, name, min, max, fmt) {
+    var wrap = el('div', { className: 'nks-a11y-stepper', role: 'group', 'aria-label': name });
+    var dec  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Decrease ' + name, type: 'button' });
     dec.innerHTML = '&#8722;';
-    var valSpan = el('span', { className: 'nks-a11y-st-val' });
-    var inc  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Increase', type: 'button' });
+    var valSpan = el('span', { className: 'nks-a11y-st-val', 'aria-live': 'polite' });
+    var inc  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Increase ' + name, type: 'button' });
     inc.innerHTML = '+';
 
     function update() {
@@ -149,9 +149,11 @@
 
     dec.addEventListener('click', function () {
       if (state[key] > min) { state[key]--; applyAll(); }
+      if (dec.disabled) inc.focus();
     });
     inc.addEventListener('click', function () {
       if (state[key] < max) { state[key]++; applyAll(); }
+      if (inc.disabled) dec.focus();
     });
 
     wrap.appendChild(dec);
@@ -165,7 +167,7 @@
   function makeRow(iconHtml, labelText, control) {
     var row = el('div', { className: 'nks-a11y-row' });
     var lbl = el('div', { className: 'nks-a11y-row-lbl' });
-    var iconWrap = el('span');
+    var iconWrap = el('span', { 'aria-hidden': 'true' });
     iconWrap.innerHTML = iconHtml;
     lbl.appendChild(iconWrap);
     lbl.appendChild(document.createTextNode(labelText));
@@ -181,7 +183,7 @@
   }
 
   function createWidget() {
-    var widget = el('div', { id: 'nks-a11y-widget', role: 'region', 'aria-label': 'Accessibility Options' });
+    var widget = el('div', { id: 'nks-a11y-widget' });
 
     var panel = el('div', { id: 'nks-a11y-panel', role: 'dialog', 'aria-label': 'Accessibility Panel', 'aria-modal': 'false' });
 
@@ -195,7 +197,10 @@
 
     var closeBtn = el('button', { className: 'nks-a11y-hdr-close', 'aria-label': 'Close accessibility panel', type: 'button' });
     closeBtn.innerHTML = IC.close;
-    closeBtn.addEventListener('click', closePanel);
+    closeBtn.addEventListener('click', function () {
+      closePanel();
+      ui.toggleBtn.focus();
+    });
 
     hdr.appendChild(title);
     hdr.appendChild(closeBtn);
@@ -206,22 +211,22 @@
     body.appendChild(makeGrpLabel('Text'));
 
     body.appendChild(makeRow(IC.fontSize, 'Font Size',
-      makeStepper('fontSizeStep', -3, 6, function (v) {
+      makeStepper('fontSizeStep', 'Font Size', -3, 6, function (v) {
         if (v === 0) return 'Default';
         return (v > 0 ? '+' : '') + (v * 10) + '%';
       })
     ));
 
     body.appendChild(makeRow(IC.lineHt, 'Line Height',
-      makeStepper('lineHeightStep', 0, 5, function (v) {
+      makeStepper('lineHeightStep', 'Line Height', 0, 5, function (v) {
         return v === 0 ? 'Default' : '+' + v;
       })
     ));
 
-    body.appendChild(makeRow(IC.bold, 'Bold Text', makeSwitch('fontWeight')));
+    body.appendChild(makeRow(IC.bold, 'Bold Text', makeSwitch('fontWeight', 'Bold Text')));
 
     body.appendChild(makeRow(IC.letterSp, 'Letter Spacing',
-      makeStepper('letterSpacingStep', -1, 5, function (v) {
+      makeStepper('letterSpacingStep', 'Letter Spacing', -1, 5, function (v) {
         if (v === 0) return 'Default';
         return (v > 0 ? '+' : '') + (v * 0.8).toFixed(1) + 'px';
       })
@@ -230,16 +235,16 @@
     body.appendChild(el('div', { className: 'nks-a11y-divider' }));
 
     body.appendChild(makeGrpLabel('Display'));
-    body.appendChild(makeRow(IC.contrast,  'High Contrast',   makeSwitch('highContrast')));
-    body.appendChild(makeRow(IC.cursor,    'Big Cursor',      makeSwitch('bigCursor')));
-    body.appendChild(makeRow(IC.hideImg,   'Hide Images',     makeSwitch('hideImages')));
-    body.appendChild(makeRow(IC.stopAnim,  'Stop Animations', makeSwitch('stopAnimations')));
+    body.appendChild(makeRow(IC.contrast,  'High Contrast',   makeSwitch('highContrast', 'High Contrast')));
+    body.appendChild(makeRow(IC.cursor,    'Big Cursor',      makeSwitch('bigCursor', 'Big Cursor')));
+    body.appendChild(makeRow(IC.hideImg,   'Hide Images',     makeSwitch('hideImages', 'Hide Images')));
+    body.appendChild(makeRow(IC.stopAnim,  'Stop Animations', makeSwitch('stopAnimations', 'Stop Animations')));
 
     body.appendChild(el('div', { className: 'nks-a11y-divider' }));
 
     body.appendChild(makeGrpLabel('Reading'));
-    body.appendChild(makeRow(IC.readLine, 'Reading Line', makeSwitch('readingLine')));
-    body.appendChild(makeRow(IC.readMask, 'Reading Mask', makeSwitch('readingMask')));
+    body.appendChild(makeRow(IC.readLine, 'Reading Line', makeSwitch('readingLine', 'Reading Line')));
+    body.appendChild(makeRow(IC.readMask, 'Reading Mask', makeSwitch('readingMask', 'Reading Mask')));
 
     panel.appendChild(body);
 
@@ -283,6 +288,14 @@
 
     ui.panel     = panel;
     ui.toggleBtn = toggleBtn;
+    ui.closeBtn  = closeBtn;
+
+    panel.addEventListener('focusout', function (e) {
+      if (panel.classList.contains('nks-open') && e.relatedTarget &&
+          !panel.contains(e.relatedTarget) && e.relatedTarget !== toggleBtn) {
+        closePanel();
+      }
+    });
 
     document.addEventListener('click', function (e) {
       if (ui.panel.classList.contains('nks-open') &&
@@ -322,10 +335,13 @@
 
     var listenTray = document.getElementById('listenTray');
     if (listenTray) listenTray.classList.remove('open');
+    var listenBtn = document.getElementById('listenNavBtn');
+    if (listenBtn) listenBtn.setAttribute('aria-expanded', 'false');
 
     panel.classList.add('nks-open');
     ui.toggleBtn.setAttribute('aria-expanded', 'true');
     ui.toggleBtn.classList.add('nks-active');
+    setTimeout(function () { ui.closeBtn.focus(); }, 50);
   }
 
   function closePanel() {

@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789993235">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+  <link rel="stylesheet" href="css/styles.css?v=1793089944">
+  <link rel="stylesheet" href="css/accessibility.css?v=1793089944">
 
   <style>
     html, body {
@@ -373,6 +373,41 @@
       transition: filter 0.4s ease;
     }
 
+    .outings-video-toggle {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      background: rgba(10, 10, 10, 0.65);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .outings-video-toggle svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .outings-video-toggle .icon-play {
+      display: none;
+    }
+
+    .outings-video-toggle.is-paused .icon-play {
+      display: block;
+    }
+
+    .outings-video-toggle.is-paused .icon-pause {
+      display: none;
+    }
+
     html:not([data-theme="light"]) .outings-video video {
       filter: brightness(0.85) contrast(1.05);
     }
@@ -496,7 +531,7 @@
     }
 
     [data-theme="light"] .cta-block-image::before {
-      background: linear-gradient(135deg, rgba(10, 10, 10, 0.4) 0%, rgba(10, 10, 10, 0.25) 100%);
+      background: linear-gradient(135deg, rgba(10, 10, 10, 0.7) 0%, rgba(10, 10, 10, 0.55) 100%);
     }
 
     .cta-block-image .cta-content {
@@ -519,28 +554,29 @@
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to content</a>
   <div id="splash" role="status" aria-label="Loading">
     <div class="splash-inner">
-      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <img src="images/logo.webp" alt="" class="splash-logo">
       <div class="splash-wordmark">NK Securities <span>Research</span></div>
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
 
-  <div id="particles-bg"></div>
+  <div id="particles-bg" aria-hidden="true"></div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Main">
     <div class="nav-container">
       <div class="nav-left">
-        <a href="index.html" class="nav-logo">
-          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+        <a href="index.html" class="nav-logo" aria-label="NK Securities Research home">
+          <img src="images/logo.webp" alt="" class="nav-logo-img">
           <span class="nav-logo-text">Securities <span>Research</span></span>
         </a>
 
         <div class="nav-links">
           <a href="index.html" class="nav-link">HOME</a>
           <a href="about.html" class="nav-link">ABOUT</a>
-          <a href="culture.html" class="nav-link active">CULTURE</a>
+          <a href="culture.html" class="nav-link active" aria-current="page">CULTURE</a>
           <a href="ai-research.html" class="nav-link">AI &amp; RESEARCH</a>
           <a href="contact.html" class="nav-link">CONTACT</a>
         </div>
@@ -554,27 +590,29 @@
         <a href="open-positions.html" class="nav-cta">Open Positions</a>
       </div>
 
-      <div class="nav-hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <button type="button" class="nav-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
-  <div class="mobile-menu">
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
     <a href="index.html">HOME</a>
     <a href="about.html">ABOUT</a>
-    <a href="culture.html" class="active">CULTURE</a>
+    <a href="culture.html" class="active" aria-current="page">CULTURE</a>
     <a href="ai-research.html">AI &amp; RESEARCH</a>
     <a href="contact.html">CONTACT</a>
     <a href="open-positions.html">OPEN POSITIONS</a>
-  </div>
+  </nav>
+
+  <main id="main" tabindex="-1">
 
   <section class="page-hero">
 
     <div class="hero-illustration">
-      <img src="images/say-hello-to-new-people (1).svg" alt="Culture illustration">
+      <img src="images/say-hello-to-new-people (1).svg" alt="">
     </div>
 
     <div class="container">
@@ -645,21 +683,21 @@
 
       <div class="campus-grid fade-up">
         <div class="campus-item">
-          <img src="images/more_images/campus/IITB.webp" alt="IIT Bombay" loading="lazy" decoding="async">
+          <img src="images/more_images/campus/IITB.webp" alt="" loading="lazy" decoding="async">
           <div class="campus-item-label">
             <h3>IIT Bombay</h3>
             <span>Mumbai, India</span>
           </div>
         </div>
         <div class="campus-item">
-          <img src="images/more_images/campus/IITD.webp" alt="IIT Delhi" loading="lazy" decoding="async">
+          <img src="images/more_images/campus/IITD.webp" alt="" loading="lazy" decoding="async">
           <div class="campus-item-label">
             <h3>IIT Delhi</h3>
             <span>New Delhi, India</span>
           </div>
         </div>
         <div class="campus-item">
-          <img src="images/more_images/campus/IITM.webp" alt="IIT Madras" loading="lazy" decoding="async">
+          <img src="images/more_images/campus/IITM.webp" alt="" loading="lazy" decoding="async">
           <div class="campus-item-label">
             <h3>IIT Madras</h3>
             <span>Chennai, India</span>
@@ -679,25 +717,25 @@
 
       <div class="new-hires-grid fade-up">
         <div class="new-hires-item">
-          <img src="images/onboarding/image.webp" alt="New Joiners Welcome" loading="lazy" decoding="async">
+          <img src="images/onboarding/image.webp" alt="" loading="lazy" decoding="async">
           <div class="new-hires-caption">
             <span>New Joiners Welcome</span>
           </div>
         </div>
         <div class="new-hires-item">
-          <img src="images/onboarding/image copy 3.webp" alt="Batch 2026" loading="lazy" decoding="async">
+          <img src="images/onboarding/image copy 3.webp" alt="" loading="lazy" decoding="async">
           <div class="new-hires-caption">
             <span>Batch 2026</span>
           </div>
         </div>
         <div class="new-hires-item">
-          <img src="images/onboarding/image copy 2.webp" alt="Onboarding Session" loading="lazy" decoding="async">
+          <img src="images/onboarding/image copy 2.webp" alt="" loading="lazy" decoding="async">
           <div class="new-hires-caption">
             <span>Onboarding Session</span>
           </div>
         </div>
         <div class="new-hires-item">
-          <img src="images/onboarding/image copy.webp" alt="Welcome Kit" loading="lazy" decoding="async">
+          <img src="images/onboarding/image copy.webp" alt="" loading="lazy" decoding="async">
           <div class="new-hires-caption">
             <span>Welcome Kit</span>
           </div>
@@ -747,21 +785,25 @@
       <div class="outings-grid fade-up">
 
         <div class="outings-video">
-          <video id="outings-video" muted loop playsinline preload="none" poster="images/tour/team-outings-poster.webp">
+          <video id="outings-video" muted loop playsinline preload="none" poster="images/tour/team-outings-poster.webp" aria-label="Highlights from team outings">
             <source data-src="images/tour/team-outings.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
+          <button type="button" class="outings-video-toggle" id="outings-video-toggle" aria-label="Pause video">
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
         </div>
 
         <div class="outings-images">
           <div class="outings-image">
-            <img src="images/tour/image.webp" alt="Mussoorie Offsite 2026" loading="lazy" decoding="async">
+            <img src="images/tour/image.webp" alt="" loading="lazy" decoding="async">
             <div class="outings-image-caption">
               <span>Mussoorie 2026</span>
             </div>
           </div>
           <div class="outings-image">
-            <img src="images/tour/baku-almaty-trip.webp" alt="Resort Entrance" loading="lazy" decoding="async">
+            <img src="images/tour/baku-almaty-trip.webp" alt="" loading="lazy" decoding="async">
             <div class="outings-image-caption">
               <span>International Trip</span>
             </div>
@@ -774,7 +816,7 @@
   <section class="section">
     <div class="container">
       <div class="cta-block-image fade-up">
-        <img src="images/image copy 9.webp" alt="NK Securities Team" loading="lazy" decoding="async">
+        <img src="images/image copy 9.webp" alt="" loading="lazy" decoding="async">
         <div class="cta-content">
           <h2 class="display-md">Ready to build?</h2>
           <a href="open-positions.html" class="link-arrow accent">See Open Positions</a>
@@ -782,6 +824,8 @@
       </div>
     </div>
   </section>
+
+  </main>
 
   <footer class="footer">
     <div class="container">
@@ -798,29 +842,61 @@
       </div>
 
       <div class="footer-bottom">
-        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
         <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
       </div>
     </div>
   </footer>
 
-  <script src="js/vendor/three.min.js?v=1789993235"></script>
-  <script src="js/vendor/three-lines.js?v=1789993235"></script>
-  <script src="js/bundle-a.js?v=1789993235"></script>
+  <script src="js/vendor/three.min.js?v=1793089944"></script>
+  <script src="js/vendor/three-lines.js?v=1793089944"></script>
+  <script src="js/bundle-a.js?v=1793089944"></script>
 
   <script>
     (function () {
       var video = document.getElementById('outings-video');
+      var toggle = document.getElementById('outings-video-toggle');
       if (!video) return;
-      var observer = new IntersectionObserver(function (entries) {
-        if (!entries[0].isIntersecting) return;
-        observer.disconnect();
+      var userPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function loadSource() {
         var source = video.querySelector('source[data-src]');
         if (source) {
           source.src = source.dataset.src;
+          source.removeAttribute('data-src');
           video.load();
         }
-        video.play().catch(function () {});
+      }
+
+      function syncToggle() {
+        if (!toggle) return;
+        var paused = video.paused;
+        toggle.classList.toggle('is-paused', paused);
+        toggle.setAttribute('aria-label', paused ? 'Play video' : 'Pause video');
+      }
+
+      video.addEventListener('play', syncToggle);
+      video.addEventListener('pause', syncToggle);
+      syncToggle();
+
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          if (video.paused) {
+            userPaused = false;
+            loadSource();
+            video.play().catch(function () {});
+          } else {
+            userPaused = true;
+            video.pause();
+          }
+        });
+      }
+
+      var observer = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        observer.disconnect();
+        loadSource();
+        if (!userPaused && !window.nksA11yAnimPaused) video.play().catch(function () {});
       }, { rootMargin: '200px' });
       observer.observe(video);
     })();

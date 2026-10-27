@@ -4,9 +4,10 @@
   --surface: #111111;
   --border: #1f1f1f;
   --text-primary: #f0ede6;
-  --text-secondary: #6b6b6b;
-  --text-muted: #3a3a3a;
-  --accent: #395acb;
+  --text-secondary: #8a8a8a;
+  --text-muted: #808080;
+  --input-border: #6b6b6b;
+  --accent: #5b7be0;
   --accent-secondary: #64a443;
   --accent-dim: rgba(36, 61, 147, 0.08);
 }
@@ -17,7 +18,8 @@
   --border: #e5e5e5;
   --text-primary: #1a1a1a;
   --text-secondary: #666666;
-  --text-muted: #999999;
+  --text-muted: #6b6b6b;
+  --input-border: #8a8a8a;
   --accent: #243d93;
   --accent-secondary: #64a443;
   --accent-dim: rgba(36, 61, 147, 0.08);
@@ -104,7 +106,47 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 80px;
   overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100001;
+  padding: 10px 16px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  font-size: 15px;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+main:focus {
+  outline: none;
 }
 
 body {
@@ -387,6 +429,9 @@ a:hover {
   gap: 5px;
   cursor: pointer;
   padding: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
 }
 
 @media (min-width: 1024px) {
@@ -426,12 +471,21 @@ a:hover {
   flex-direction: column;
   gap: 24px;
   transform: translateX(100%);
-  transition: transform 0.3s ease;
+  visibility: hidden;
+  transition: transform 0.3s ease, visibility 0s linear 0.3s;
   z-index: 9998;
 }
 
 .mobile-menu.active {
   transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.3s ease, visibility 0s linear 0s;
+}
+
+@media (min-width: 1024px) {
+  .mobile-menu {
+    display: none;
+  }
 }
 
 .mobile-menu a {
@@ -617,7 +671,7 @@ a:hover {
 }
 
 .about-text .word {
-  opacity: 0.15;
+  opacity: 0.62;
   transition: opacity 0.1s ease;
 }
 
@@ -1101,7 +1155,6 @@ a:hover {
   font-size: 14px;
   color: var(--text-primary);
   transition: border-color 0.3s ease;
-  outline: none;
 }
 
 .form-group input:focus,

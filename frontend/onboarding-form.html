@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789993235">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+  <link rel="stylesheet" href="css/styles.css?v=1793089944">
+  <link rel="stylesheet" href="css/accessibility.css?v=1793089944">
 
   <style>
     html, body {
@@ -506,6 +506,117 @@
       width: auto;
       min-width: 0;
       padding-right: 28px;
+    }
+
+    .field-grid .phone-input select.phone-country.is-enhanced {
+      display: none;
+    }
+
+    .field-grid .phone-input .phone-country-btn {
+      flex: 0 0 120px;
+      min-width: 0;
+      background: var(--bg);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 28px 14px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      color: var(--text-primary);
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    .field-grid .phone-input .phone-country-btn:focus-visible,
+    .field-grid .phone-input .phone-country-btn[aria-expanded="true"] {
+      border-color: var(--accent);
+    }
+
+    .phone-country-panel {
+      position: fixed;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+    }
+
+    .phone-country-panel[hidden] {
+      display: none;
+    }
+
+    .phone-country-search {
+      flex: 0 0 auto;
+      margin: 8px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .phone-country-search:focus {
+      border-color: var(--accent);
+    }
+
+    .phone-country-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      margin: 0;
+      padding: 0 0 6px;
+      list-style: none;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .phone-country-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      font-size: 14px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .phone-country-option.is-active {
+      background: var(--accent-dim);
+    }
+
+    .phone-country-option[aria-selected="true"] {
+      font-weight: 600;
+    }
+
+    .phone-country-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .phone-country-dial {
+      flex: 0 0 auto;
+      color: var(--text-secondary);
+    }
+
+    .phone-country-empty {
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--text-secondary);
     }
 
     .field-grid .phone-input .phone-local {
@@ -1493,15 +1604,15 @@
         <a href="open-positions.html" class="nav-cta">Open Positions</a>
       </div>
 
-      <div class="nav-hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <button type="button" class="nav-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
-  <div class="mobile-menu">
+  <div class="mobile-menu" id="mobile-menu">
     <a href="index.html">HOME</a>
     <a href="about.html">ABOUT</a>
     <a href="culture.html">CULTURE</a>
@@ -2055,11 +2166,11 @@
     </div>
   </div>
 
-  <script src="js/vendor/three.min.js?v=1789993235"></script>
-  <script src="js/bundle-b.js?v=1789993235"></script>
-  <script src="js/modal-a11y.js?v=1789993235"></script>
-  <script src="js/country-codes.js?v=1789993235"></script>
-  <script src="js/onboarding-form.js?v=1792757153"></script>
+  <script src="js/vendor/three.min.js?v=1793089944"></script>
+  <script src="js/bundle-b.js?v=1793089944"></script>
+  <script src="js/modal-a11y.js?v=1793089944"></script>
+  <script src="js/country-codes.js?v=1793089944"></script>
+  <script src="js/onboarding-form.js?v=1793089944"></script>
 
 </body>
 </html>

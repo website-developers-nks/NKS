@@ -266,18 +266,36 @@ function initMobileMenu() {
 
   if (!hamburger || !mobileMenu) return;
 
+  function setOpen(open) {
+    hamburger.classList.toggle('active', open);
+    mobileMenu.classList.toggle('active', open);
+    hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hamburger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
   hamburger.addEventListener('click', function() {
-    hamburger.classList.toggle('active');
-    mobileMenu.classList.toggle('active');
-    document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+    var open = !mobileMenu.classList.contains('active');
+    setOpen(open);
+    if (open) {
+      var first = mobileMenu.querySelector('a');
+      if (first) setTimeout(function() { first.focus(); }, 50);
+    }
   });
 
   mobileMenu.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-      hamburger.classList.remove('active');
-      mobileMenu.classList.remove('active');
-      document.body.style.overflow = '';
-    });
+    link.addEventListener('click', () => setOpen(false));
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+      setOpen(false);
+      hamburger.focus();
+    }
+  });
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 1024 && mobileMenu.classList.contains('active')) setOpen(false);
   });
 }
 
@@ -375,9 +393,9 @@ function initWordReveal() {
       } else if (index === wordsToShow) {
 
         const wordProgress = (progress * wordSpans.length) - wordsToShow;
-        word.style.opacity = 0.15 + (wordProgress * 0.85);
+        word.style.opacity = 0.62 + (wordProgress * 0.38);
       } else {
-        word.style.opacity = '0.15';
+        word.style.opacity = '0.62';
       }
     });
   }
@@ -542,11 +560,11 @@ function initListenButton() {
     '.listen-ctrl-label{font-family:"Inter",sans-serif;font-size:12px;color:var(--text-secondary);}',
     '.listen-ctrl-value{font-family:"Inter",sans-serif;font-size:12px;font-weight:500;color:var(--text-primary);min-width:36px;text-align:right;}',
 
-    '.listen-range{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;background:var(--border);outline:none;cursor:pointer;}',
+    '.listen-range{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;background:var(--border);cursor:pointer;}',
     '.listen-range::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--accent);}',
     '.listen-range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--accent);}',
 
-    '.listen-voice-select{width:100%;padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23888\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}',
+    '.listen-voice-select{width:100%;padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;transition:border-color .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23888\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}',
     '.listen-voice-select:focus{border-color:var(--accent);}',
     '.listen-voice-select option{background:var(--surface,#111);color:var(--text-primary,#fff);}',
 
@@ -561,7 +579,7 @@ function initListenButton() {
     '.listen-tray-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;flex-shrink:0;}',
     '.listen-tray-btn{width:100%;padding:11px 0;border-radius:4px;border:1px solid var(--border);background:transparent;cursor:pointer;font-family:"Inter",sans-serif;font-size:13px;font-weight:500;color:var(--text-primary);transition:all .2s;letter-spacing:.04em;}',
     '.listen-tray-btn:hover{border-color:var(--accent);color:var(--accent);}',
-    '.listen-tray-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}',
+    '.listen-tray-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);}',
     '.listen-tray-btn.primary:hover{opacity:.85;}',
   ].join('');
   document.head.appendChild(style);
@@ -574,26 +592,31 @@ function initListenButton() {
     var navBtn = document.createElement('button');
     navBtn.id = 'listenNavBtn';
     navBtn.className = 'listen-nav-btn';
+    navBtn.type = 'button';
     navBtn.setAttribute('aria-label', 'Listen to page');
-    navBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
+    navBtn.setAttribute('aria-expanded', 'false');
+    navBtn.setAttribute('aria-controls', 'listenTray');
+    navBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
     navActions.insertBefore(navBtn, navActions.querySelector('.theme-toggle'));
   }
 
   var tray = document.createElement('div');
   tray.className = 'listen-tray';
   tray.id = 'listenTray';
+  tray.setAttribute('role', 'dialog');
+  tray.setAttribute('aria-label', 'Text to speech');
   tray.innerHTML =
     '<div class="listen-tray-header">' +
       '<span class="listen-tray-title">Text to Speech</span>' +
-      '<button class="listen-tray-close" id="listenTrayClose" aria-label="Close">' +
-        '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+      '<button type="button" class="listen-tray-close" id="listenTrayClose" aria-label="Close text to speech">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
       '</button>' +
     '</div>' +
 
     '<div class="listen-tray-body">' +
-      '<div class="listen-status" id="listenStatus">Ready</div>' +
+      '<div class="listen-status" id="listenStatus" role="status">Ready</div>' +
       '<div class="listen-status-sub" id="listenStatusSub">Press play to listen to this page</div>' +
-      '<div class="listen-tray-waves idle" id="listenWaves">' + waveBars + '</div>' +
+      '<div class="listen-tray-waves idle" id="listenWaves" aria-hidden="true">' + waveBars + '</div>' +
 
       '<div class="listen-divider"></div>' +
       '<div class="listen-section-label">Settings</div>' +
@@ -603,7 +626,7 @@ function initListenButton() {
           '<span class="listen-ctrl-label">Volume</span>' +
           '<span class="listen-ctrl-value" id="listenVolVal">100%</span>' +
         '</div>' +
-        '<input type="range" class="listen-range" id="listenVol" min="0" max="1" step="0.05" value="1">' +
+        '<input type="range" class="listen-range" id="listenVol" min="0" max="1" step="0.05" value="1" aria-label="Volume">' +
       '</div>' +
 
       '<div class="listen-ctrl-row">' +
@@ -611,14 +634,14 @@ function initListenButton() {
           '<span class="listen-ctrl-label">Speed</span>' +
           '<span class="listen-ctrl-value" id="listenSpeedVal">1.0×</span>' +
         '</div>' +
-        '<input type="range" class="listen-range" id="listenSpeed" min="0.5" max="2" step="0.1" value="1">' +
+        '<input type="range" class="listen-range" id="listenSpeed" min="0.5" max="2" step="0.1" value="1" aria-label="Speed">' +
       '</div>' +
 
       '<div class="listen-divider"></div>' +
 
-      '<button class="listen-advanced-toggle" id="listenAdvancedToggle">' +
+      '<button type="button" class="listen-advanced-toggle" id="listenAdvancedToggle" aria-expanded="false" aria-controls="listenAdvancedBody">' +
         '<span class="listen-section-label">Advanced</span>' +
-        '<svg class="listen-advanced-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<svg class="listen-advanced-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
       '</button>' +
 
       '<div class="listen-advanced-body" id="listenAdvancedBody">' +
@@ -628,7 +651,7 @@ function initListenButton() {
             '<div class="listen-ctrl-top">' +
               '<span class="listen-ctrl-label">Voice</span>' +
             '</div>' +
-            '<select class="listen-voice-select" id="listenVoiceSelect"><option>Loading voices…</option></select>' +
+            '<select class="listen-voice-select" id="listenVoiceSelect" aria-label="Voice"><option>Loading voices…</option></select>' +
           '</div>' +
 
           '<div class="listen-ctrl-row">' +
@@ -636,15 +659,15 @@ function initListenButton() {
               '<span class="listen-ctrl-label">Pitch</span>' +
               '<span class="listen-ctrl-value" id="listenPitchVal">1.0</span>' +
             '</div>' +
-            '<input type="range" class="listen-range" id="listenPitch" min="0.5" max="2" step="0.1" value="1">' +
+            '<input type="range" class="listen-range" id="listenPitch" min="0.5" max="2" step="0.1" value="1" aria-label="Pitch">' +
           '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
 
     '<div class="listen-tray-footer">' +
-      '<button class="listen-tray-btn primary" id="listenPlayBtn">Play</button>' +
-      '<button class="listen-tray-btn" id="listenStopBtn">Stop</button>' +
+      '<button type="button" class="listen-tray-btn primary" id="listenPlayBtn">Play</button>' +
+      '<button type="button" class="listen-tray-btn" id="listenStopBtn">Stop</button>' +
     '</div>';
   document.body.appendChild(tray);
 
@@ -685,6 +708,7 @@ function initListenButton() {
   advToggle.addEventListener('click', function() {
     var open = advBody.classList.toggle('open');
     advToggle.classList.toggle('open', open);
+    advToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 
   function onSettingChange() {
@@ -777,14 +801,29 @@ function initListenButton() {
     }
 
     trayEl.classList.add('open');
+    navBtnEl.setAttribute('aria-expanded', 'true');
+    setTimeout(function() { playBtn.focus(); }, 50);
   }
-  function closeTray() { trayEl.classList.remove('open'); }
+  function closeTray() {
+    trayEl.classList.remove('open');
+    navBtnEl.setAttribute('aria-expanded', 'false');
+  }
+
+  trayEl.addEventListener('focusout', function(e) {
+    if (trayEl.classList.contains('open') && e.relatedTarget &&
+        !trayEl.contains(e.relatedTarget) && e.relatedTarget !== navBtnEl) {
+      closeTray();
+    }
+  });
 
   navBtnEl.addEventListener('click', function(e) {
     e.stopPropagation();
     trayEl.classList.contains('open') ? closeTray() : openTray();
   });
-  closeBtn.addEventListener('click', closeTray);
+  closeBtn.addEventListener('click', function() {
+    closeTray();
+    navBtnEl.focus();
+  });
 
   document.addEventListener('click', function(e) {
     if (trayEl.classList.contains('open') &&
@@ -933,9 +972,9 @@ function initListenButton() {
     readMask  : svg('<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-9H7v4h10v-4z"/>'),
   };
 
-  function makeSwitch(key) {
-    var label = el('label', { className: 'nks-a11y-switch', title: key });
-    var input = el('input', { type: 'checkbox' });
+  function makeSwitch(key, name) {
+    var label = el('label', { className: 'nks-a11y-switch' });
+    var input = el('input', { type: 'checkbox', role: 'switch', 'aria-label': name });
     input.checked = !!state[key];
     input.addEventListener('change', function () {
       state[key] = input.checked;
@@ -948,12 +987,12 @@ function initListenButton() {
     return label;
   }
 
-  function makeStepper(key, min, max, fmt) {
-    var wrap = el('div', { className: 'nks-a11y-stepper' });
-    var dec  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Decrease', type: 'button' });
+  function makeStepper(key, name, min, max, fmt) {
+    var wrap = el('div', { className: 'nks-a11y-stepper', role: 'group', 'aria-label': name });
+    var dec  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Decrease ' + name, type: 'button' });
     dec.innerHTML = '&#8722;';
-    var valSpan = el('span', { className: 'nks-a11y-st-val' });
-    var inc  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Increase', type: 'button' });
+    var valSpan = el('span', { className: 'nks-a11y-st-val', 'aria-live': 'polite' });
+    var inc  = el('button', { className: 'nks-a11y-st-btn', 'aria-label': 'Increase ' + name, type: 'button' });
     inc.innerHTML = '+';
 
     function update() {
@@ -966,9 +1005,11 @@ function initListenButton() {
 
     dec.addEventListener('click', function () {
       if (state[key] > min) { state[key]--; applyAll(); }
+      if (dec.disabled) inc.focus();
     });
     inc.addEventListener('click', function () {
       if (state[key] < max) { state[key]++; applyAll(); }
+      if (inc.disabled) dec.focus();
     });
 
     wrap.appendChild(dec);
@@ -982,7 +1023,7 @@ function initListenButton() {
   function makeRow(iconHtml, labelText, control) {
     var row = el('div', { className: 'nks-a11y-row' });
     var lbl = el('div', { className: 'nks-a11y-row-lbl' });
-    var iconWrap = el('span');
+    var iconWrap = el('span', { 'aria-hidden': 'true' });
     iconWrap.innerHTML = iconHtml;
     lbl.appendChild(iconWrap);
     lbl.appendChild(document.createTextNode(labelText));
@@ -998,7 +1039,7 @@ function initListenButton() {
   }
 
   function createWidget() {
-    var widget = el('div', { id: 'nks-a11y-widget', role: 'region', 'aria-label': 'Accessibility Options' });
+    var widget = el('div', { id: 'nks-a11y-widget' });
 
     var panel = el('div', { id: 'nks-a11y-panel', role: 'dialog', 'aria-label': 'Accessibility Panel', 'aria-modal': 'false' });
 
@@ -1012,7 +1053,10 @@ function initListenButton() {
 
     var closeBtn = el('button', { className: 'nks-a11y-hdr-close', 'aria-label': 'Close accessibility panel', type: 'button' });
     closeBtn.innerHTML = IC.close;
-    closeBtn.addEventListener('click', closePanel);
+    closeBtn.addEventListener('click', function () {
+      closePanel();
+      ui.toggleBtn.focus();
+    });
 
     hdr.appendChild(title);
     hdr.appendChild(closeBtn);
@@ -1023,22 +1067,22 @@ function initListenButton() {
     body.appendChild(makeGrpLabel('Text'));
 
     body.appendChild(makeRow(IC.fontSize, 'Font Size',
-      makeStepper('fontSizeStep', -3, 6, function (v) {
+      makeStepper('fontSizeStep', 'Font Size', -3, 6, function (v) {
         if (v === 0) return 'Default';
         return (v > 0 ? '+' : '') + (v * 10) + '%';
       })
     ));
 
     body.appendChild(makeRow(IC.lineHt, 'Line Height',
-      makeStepper('lineHeightStep', 0, 5, function (v) {
+      makeStepper('lineHeightStep', 'Line Height', 0, 5, function (v) {
         return v === 0 ? 'Default' : '+' + v;
       })
     ));
 
-    body.appendChild(makeRow(IC.bold, 'Bold Text', makeSwitch('fontWeight')));
+    body.appendChild(makeRow(IC.bold, 'Bold Text', makeSwitch('fontWeight', 'Bold Text')));
 
     body.appendChild(makeRow(IC.letterSp, 'Letter Spacing',
-      makeStepper('letterSpacingStep', -1, 5, function (v) {
+      makeStepper('letterSpacingStep', 'Letter Spacing', -1, 5, function (v) {
         if (v === 0) return 'Default';
         return (v > 0 ? '+' : '') + (v * 0.8).toFixed(1) + 'px';
       })
@@ -1047,16 +1091,16 @@ function initListenButton() {
     body.appendChild(el('div', { className: 'nks-a11y-divider' }));
 
     body.appendChild(makeGrpLabel('Display'));
-    body.appendChild(makeRow(IC.contrast,  'High Contrast',   makeSwitch('highContrast')));
-    body.appendChild(makeRow(IC.cursor,    'Big Cursor',      makeSwitch('bigCursor')));
-    body.appendChild(makeRow(IC.hideImg,   'Hide Images',     makeSwitch('hideImages')));
-    body.appendChild(makeRow(IC.stopAnim,  'Stop Animations', makeSwitch('stopAnimations')));
+    body.appendChild(makeRow(IC.contrast,  'High Contrast',   makeSwitch('highContrast', 'High Contrast')));
+    body.appendChild(makeRow(IC.cursor,    'Big Cursor',      makeSwitch('bigCursor', 'Big Cursor')));
+    body.appendChild(makeRow(IC.hideImg,   'Hide Images',     makeSwitch('hideImages', 'Hide Images')));
+    body.appendChild(makeRow(IC.stopAnim,  'Stop Animations', makeSwitch('stopAnimations', 'Stop Animations')));
 
     body.appendChild(el('div', { className: 'nks-a11y-divider' }));
 
     body.appendChild(makeGrpLabel('Reading'));
-    body.appendChild(makeRow(IC.readLine, 'Reading Line', makeSwitch('readingLine')));
-    body.appendChild(makeRow(IC.readMask, 'Reading Mask', makeSwitch('readingMask')));
+    body.appendChild(makeRow(IC.readLine, 'Reading Line', makeSwitch('readingLine', 'Reading Line')));
+    body.appendChild(makeRow(IC.readMask, 'Reading Mask', makeSwitch('readingMask', 'Reading Mask')));
 
     panel.appendChild(body);
 
@@ -1100,6 +1144,14 @@ function initListenButton() {
 
     ui.panel     = panel;
     ui.toggleBtn = toggleBtn;
+    ui.closeBtn  = closeBtn;
+
+    panel.addEventListener('focusout', function (e) {
+      if (panel.classList.contains('nks-open') && e.relatedTarget &&
+          !panel.contains(e.relatedTarget) && e.relatedTarget !== toggleBtn) {
+        closePanel();
+      }
+    });
 
     document.addEventListener('click', function (e) {
       if (ui.panel.classList.contains('nks-open') &&
@@ -1139,10 +1191,13 @@ function initListenButton() {
 
     var listenTray = document.getElementById('listenTray');
     if (listenTray) listenTray.classList.remove('open');
+    var listenBtn = document.getElementById('listenNavBtn');
+    if (listenBtn) listenBtn.setAttribute('aria-expanded', 'false');
 
     panel.classList.add('nks-open');
     ui.toggleBtn.setAttribute('aria-expanded', 'true');
     ui.toggleBtn.classList.add('nks-active');
+    setTimeout(function () { ui.closeBtn.focus(); }, 50);
   }
 
   function closePanel() {

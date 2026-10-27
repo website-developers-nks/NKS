@@ -1778,20 +1778,240 @@
     codes.list.forEach(function (c) {
       var opt = document.createElement('option');
       opt.value = c.iso;
-      opt.setAttribute('data-full', c.flag + ' +' + c.dial + '  ' + c.name);
-      opt.setAttribute('data-short', c.flag + ' +' + c.dial);
-      opt.textContent = opt.getAttribute('data-short');
+      opt.textContent = c.flag + ' +' + c.dial + '  ' + c.name;
       select.appendChild(opt);
     });
     if (codes.byIso('IN')) select.value = 'IN';
   }
 
-  function setPhoneOptionLabels(select, expanded) {
-    Array.prototype.forEach.call(select.options, function (opt) {
-      var label = opt.getAttribute(expanded ? 'data-full' : 'data-short');
-      if (label !== null && opt.textContent !== label) opt.textContent = label;
-    });
+  var phonePickers = {};
+  var openPhonePicker = null;
+  var PHONE_PICKER_MAX_HEIGHT = 320;
+  var PHONE_PICKER_MARGIN = 8;
+
+  function refreshPhoneCountry(select) {
+    var picker = select && phonePickers[select.id];
+    var codes = window.NKSCountryCodes;
+    if (!picker || !codes) return;
+    var country = codes.byIso(select.value);
+    picker.button.textContent = country ? country.flag + ' +' + country.dial : 'Code';
+    picker.button.title = country ? country.name + ' (+' + country.dial + ')' : '';
   }
+
+  function positionPhonePicker(picker) {
+    var rect = picker.button.getBoundingClientRect();
+    var panel = picker.panel;
+    var gap = 4;
+    var below = window.innerHeight - rect.bottom - gap - PHONE_PICKER_MARGIN;
+    var above = rect.top - gap - PHONE_PICKER_MARGIN;
+    var openUp = below < 200 && above > below;
+    var maxHeight = Math.max(120, Math.min(PHONE_PICKER_MAX_HEIGHT, openUp ? above : below));
+    var width = Math.min(300, window.innerWidth - PHONE_PICKER_MARGIN * 2);
+    var left = Math.min(Math.max(PHONE_PICKER_MARGIN, rect.left), window.innerWidth - width - PHONE_PICKER_MARGIN);
+
+    panel.style.width = width + 'px';
+    panel.style.left = left + 'px';
+    panel.style.maxHeight = maxHeight + 'px';
+    if (openUp) {
+      panel.style.top = '';
+      panel.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+    } else {
+      panel.style.bottom = '';
+      panel.style.top = (rect.bottom + gap) + 'px';
+    }
+    panel.classList.toggle('opens-up', openUp);
+  }
+
+  function renderPhonePickerList(picker) {
+    var codes = window.NKSCountryCodes;
+    var query = picker.search.value.trim().toLowerCase();
+    var digits = query.replace(/[^\d]/g, '');
+    var current = picker.select.value;
+
+    picker.items = codes.list.filter(function (c) {
+      if (!query) return true;
+      if (digits && c.dial.indexOf(digits) === 0) return true;
+      return c.name.toLowerCase().indexOf(query) !== -1 || c.iso.toLowerCase() === query;
+    });
+
+    picker.list.innerHTML = '';
+    if (!picker.items.length) {
+      var empty = document.createElement('li');
+      empty.className = 'phone-country-empty';
+      empty.textContent = 'No matching country';
+      picker.list.appendChild(empty);
+      picker.active = -1;
+      return;
+    }
+
+    picker.items.forEach(function (c, index) {
+      var li = document.createElement('li');
+      li.className = 'phone-country-option';
+      li.id = picker.select.id + '-option-' + c.iso;
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-index', String(index));
+      li.setAttribute('aria-selected', c.iso === current ? 'true' : 'false');
+
+      var flag = document.createElement('span');
+      flag.className = 'phone-country-flag';
+      flag.textContent = c.flag;
+      var name = document.createElement('span');
+      name.className = 'phone-country-name';
+      name.textContent = c.name;
+      var dial = document.createElement('span');
+      dial.className = 'phone-country-dial';
+      dial.textContent = '+' + c.dial;
+
+      li.appendChild(flag);
+      li.appendChild(name);
+      li.appendChild(dial);
+      picker.list.appendChild(li);
+    });
+
+    var selectedIndex = -1;
+    picker.items.forEach(function (c, index) { if (c.iso === current) selectedIndex = index; });
+    setPhonePickerActive(picker, query ? 0 : Math.max(0, selectedIndex), true);
+  }
+
+  function setPhonePickerActive(picker, index, center) {
+    var options = picker.list.querySelectorAll('.phone-country-option');
+    if (!options.length) return;
+    index = Math.max(0, Math.min(index, options.length - 1));
+    if (options[picker.active]) options[picker.active].classList.remove('is-active');
+    picker.active = index;
+    var el = options[index];
+    el.classList.add('is-active');
+    picker.search.setAttribute('aria-activedescendant', el.id);
+    if (center) {
+      picker.list.scrollTop = el.offsetTop - picker.list.clientHeight / 2 + el.offsetHeight / 2;
+    } else {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function choosePhoneCountry(picker, index) {
+    var country = picker.items[index];
+    if (!country) return;
+    closePhonePicker(true);
+    if (picker.select.value === country.iso) return;
+    picker.select.value = country.iso;
+    refreshPhoneCountry(picker.select);
+    picker.select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function openPhoneCountryPicker(picker) {
+    if (openPhonePicker === picker) return;
+    closePhonePicker(false);
+    openPhonePicker = picker;
+    picker.search.value = '';
+    picker.panel.hidden = false;
+    picker.button.setAttribute('aria-expanded', 'true');
+    positionPhonePicker(picker);
+    renderPhonePickerList(picker);
+    picker.search.focus({ preventScroll: true });
+  }
+
+  function closePhonePicker(restoreFocus) {
+    if (!openPhonePicker) return;
+    var picker = openPhonePicker;
+    openPhonePicker = null;
+    picker.panel.hidden = true;
+    picker.button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) picker.button.focus({ preventScroll: true });
+  }
+
+  function enhancePhoneCountry(select) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'phone-country-btn';
+    button.setAttribute('aria-haspopup', 'listbox');
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-label', select.getAttribute('aria-label') || 'Country code');
+
+    var panel = document.createElement('div');
+    panel.className = 'phone-country-panel';
+    panel.hidden = true;
+
+    var search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'phone-country-search';
+    search.placeholder = 'Search country or code';
+    search.setAttribute('aria-label', 'Search country or code');
+    search.setAttribute('autocomplete', 'off');
+    search.setAttribute('role', 'combobox');
+    search.setAttribute('aria-expanded', 'true');
+    search.setAttribute('aria-controls', select.id + '-listbox');
+
+    var list = document.createElement('ul');
+    list.className = 'phone-country-list';
+    list.id = select.id + '-listbox';
+    list.setAttribute('role', 'listbox');
+
+    panel.appendChild(search);
+    panel.appendChild(list);
+    document.body.appendChild(panel);
+
+    select.classList.add('is-enhanced');
+    select.tabIndex = -1;
+    select.setAttribute('aria-hidden', 'true');
+    select.parentNode.insertBefore(button, select.nextSibling);
+
+    var picker = { select: select, button: button, panel: panel, search: search, list: list, items: [], active: -1 };
+    phonePickers[select.id] = picker;
+
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (openPhonePicker === picker) closePhonePicker(true);
+      else openPhoneCountryPicker(picker);
+    });
+    button.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        openPhoneCountryPicker(picker);
+      }
+    });
+
+    search.addEventListener('input', function () { renderPhonePickerList(picker); });
+    search.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown') { event.preventDefault(); setPhonePickerActive(picker, picker.active + 1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); setPhonePickerActive(picker, picker.active - 1); }
+      else if (event.key === 'Enter') { event.preventDefault(); choosePhoneCountry(picker, picker.active); }
+      else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closePhonePicker(true); }
+      else if (event.key === 'Tab') { closePhonePicker(false); }
+    });
+
+    list.addEventListener('mousedown', function (event) { event.preventDefault(); });
+    list.addEventListener('click', function (event) {
+      var option = event.target.closest('.phone-country-option');
+      if (option) choosePhoneCountry(picker, parseInt(option.getAttribute('data-index'), 10));
+    });
+    list.addEventListener('mousemove', function (event) {
+      var option = event.target.closest('.phone-country-option');
+      if (option) {
+        var index = parseInt(option.getAttribute('data-index'), 10);
+        if (index !== picker.active) setPhonePickerActive(picker, index);
+      }
+    });
+
+    refreshPhoneCountry(select);
+  }
+
+  document.addEventListener('mousedown', function (event) {
+    if (!openPhonePicker) return;
+    if (openPhonePicker.panel.contains(event.target) || openPhonePicker.button.contains(event.target)) return;
+    closePhonePicker(false);
+  }, true);
+
+  window.addEventListener('resize', function () {
+    if (openPhonePicker) positionPhonePicker(openPhonePicker);
+  });
+
+  window.addEventListener('scroll', function (event) {
+    if (!openPhonePicker || openPhonePicker.panel.contains(event.target)) return;
+    var rect = openPhonePicker.button.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) closePhonePicker(false);
+    else positionPhonePicker(openPhonePicker);
+  }, true);
 
   function composePhone(cfg, eventType) {
     var e = phoneEls(cfg);
@@ -1818,6 +2038,7 @@
       if (match) {
         e.country.value = match.iso;
         e.country.setAttribute('data-user-picked', '1');
+        refreshPhoneCountry(e.country);
         e.local.value = digits.slice(match.dial.length);
         return;
       }
@@ -1835,6 +2056,7 @@
       if (!e.country || e.country.getAttribute('data-user-picked')) return;
       if (e.local && e.local.value.trim()) return;
       e.country.value = iso;
+      refreshPhoneCountry(e.country);
     });
   }
 
@@ -1843,14 +2065,12 @@
       var e = phoneEls(cfg);
       if (!e.local || !e.country) return;
       populatePhoneCountry(e.country);
+      if (window.NKSCountryCodes) enhancePhoneCountry(e.country);
       e.local.addEventListener('input', function () { composePhone(cfg, 'input'); });
       e.local.addEventListener('change', function () { composePhone(cfg, 'change'); });
-      e.country.addEventListener('focus', function () { setPhoneOptionLabels(e.country, true); });
-      e.country.addEventListener('mousedown', function () { setPhoneOptionLabels(e.country, true); });
-      e.country.addEventListener('blur', function () { setPhoneOptionLabels(e.country, false); });
       e.country.addEventListener('change', function () {
         e.country.setAttribute('data-user-picked', '1');
-        setPhoneOptionLabels(e.country, false);
+        refreshPhoneCountry(e.country);
         composePhone(cfg, 'change');
       });
     });

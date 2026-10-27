@@ -92,8 +92,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789993235">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+  <link rel="stylesheet" href="css/styles.css?v=1793089944">
+  <link rel="stylesheet" href="css/accessibility.css?v=1793089944">
 
   <style>
 
@@ -845,26 +845,27 @@
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to content</a>
   <div id="splash" role="status" aria-label="Loading">
     <div class="splash-inner">
-      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <img src="images/logo.webp" alt="" class="splash-logo">
       <div class="splash-wordmark">NK Securities <span>Research</span></div>
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
 
-  <div id="particles-bg"></div>
+  <div id="particles-bg" aria-hidden="true"></div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Main">
     <div class="nav-container">
       <div class="nav-left">
-        <a href="index.html" class="nav-logo">
-          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+        <a href="index.html" class="nav-logo" aria-label="NK Securities Research home">
+          <img src="images/logo.webp" alt="" class="nav-logo-img">
           <span class="nav-logo-text">Securities <span>Research</span></span>
         </a>
 
         <div class="nav-links">
-          <a href="index.html" class="nav-link active">HOME</a>
+          <a href="index.html" class="nav-link active" aria-current="page">HOME</a>
           <a href="about.html" class="nav-link">ABOUT</a>
           <a href="culture.html" class="nav-link">CULTURE</a>
           <a href="ai-research.html" class="nav-link">AI &amp; RESEARCH</a>
@@ -880,31 +881,33 @@
         <a href="open-positions.html" class="nav-cta">Open Positions</a>
       </div>
 
-      <div class="nav-hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <button type="button" class="nav-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
-  <div class="mobile-menu">
-    <a href="index.html" class="active">HOME</a>
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+    <a href="index.html" class="active" aria-current="page">HOME</a>
     <a href="about.html">ABOUT</a>
     <a href="culture.html">CULTURE</a>
     <a href="ai-research.html">AI &amp; RESEARCH</a>
     <a href="contact.html">CONTACT</a>
     <a href="open-positions.html">OPEN POSITIONS</a>
-  </div>
+  </nav>
+
+  <main id="main" tabindex="-1">
 
   <section class="hero">
 
-    <div id="three-container" class="hero-3d-container"></div>
+    <div id="three-container" class="hero-3d-container" aria-hidden="true"></div>
 
     <div class="container">
       <div class="hero-content">
         <div class="hero-left">
-          <span class="label hero-tagline">EST. 2011 Â· SEBI REG. INZ000206920</span>
+          <span class="label hero-tagline">EST. 2011 · SEBI REG. INZ000206920</span>
 
           <h1 class="display-lg hero-title">
             <span class="line">Where Technology</span>
@@ -947,19 +950,19 @@
       <div class="marquee">
         <div class="marquee-content">
           <span>HIGH FREQUENCY TRADING</span>
-          <span>Â·</span>
+          <span aria-hidden="true">·</span>
           <span>PETABYTE-SCALE INFRASTRUCTURE</span>
-          <span>Â·</span>
+          <span aria-hidden="true">·</span>
           <span>ULTRA-LOW LATENCY</span>
-          <span>Â·</span>
+          <span aria-hidden="true">·</span>
         </div>
-        <div class="marquee-content">
+        <div class="marquee-content" aria-hidden="true">
           <span>HIGH FREQUENCY TRADING</span>
-          <span>Â·</span>
+          <span aria-hidden="true">·</span>
           <span>PETABYTE-SCALE INFRASTRUCTURE</span>
-          <span>Â·</span>
+          <span aria-hidden="true">·</span>
           <span>ULTRA-LOW LATENCY</span>
-          <span>Â·</span>
+          <span aria-hidden="true">·</span>
 
         </div>
       </div>
@@ -1102,13 +1105,13 @@
 
         <div class="culture-image-stack fade-up">
           <div class="culture-image">
-            <img src="images/image copy 5.webp" alt="Montly Party" loading="lazy" decoding="async">
+            <img src="images/image copy 5.webp" alt="Team at a monthly party" loading="lazy" decoding="async">
           </div>
           <div class="culture-image">
-            <img src="images/image copy 7.webp" alt="Fastival Celebration" loading="lazy" decoding="async">
+            <img src="images/image copy 7.webp" alt="Team at a festival celebration" loading="lazy" decoding="async">
           </div>
           <div class="culture-image">
-            <img src="images/image copy 10.webp" alt="Trading" loading="lazy" decoding="async">
+            <img src="images/image copy 10.webp" alt="Traders at work on the trading floor" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -1128,31 +1131,31 @@
 
       <div class="image-gallery fade-up">
         <div class="gallery-item">
-          <img src="images/image.webp" alt="Our Team" loading="lazy" decoding="async">
+          <img src="images/image.webp" alt="" loading="lazy" decoding="async">
           <div class="gallery-item-caption">
             <span>Our Team</span>
           </div>
         </div>
         <div class="gallery-item">
-          <img src="images/image copy.webp" alt="NK Securities Office Lobby" loading="lazy" decoding="async">
+          <img src="images/image copy.webp" alt="" loading="lazy" decoding="async">
           <div class="gallery-item-caption">
             <span>Our Office</span>
           </div>
         </div>
         <div class="gallery-item">
-          <img src="images/image copy 4.webp" alt="Trading Floor" loading="lazy" decoding="async">
+          <img src="images/image copy 4.webp" alt="" loading="lazy" decoding="async">
           <div class="gallery-item-caption">
             <span>Trading Floor</span>
           </div>
         </div>
         <div class="gallery-item">
-          <img src="images/image copy 3.webp" alt="Workspace" loading="lazy" decoding="async">
+          <img src="images/image copy 3.webp" alt="" loading="lazy" decoding="async">
           <div class="gallery-item-caption">
             <span>Workspace</span>
           </div>
         </div>
         <div class="gallery-item">
-          <img src="images/image copy 8.webp" alt="Team Sports" loading="lazy" decoding="async">
+          <img src="images/image copy 8.webp" alt="" loading="lazy" decoding="async">
           <div class="gallery-item-caption">
             <span>Team Activities</span>
           </div>
@@ -1214,28 +1217,30 @@
         <div class="careers-right fade-up">
           <a href="open-positions.html" class="role-item">
             <span class="role-name">Quantitative Researcher</span>
-            <span class="role-arrow">â</span>
+            <span class="role-arrow" aria-hidden="true">→</span>
           </a>
           <a href="open-positions.html" class="role-item">
             <span class="role-name">Software Engineer</span>
-            <span class="role-arrow">â</span>
+            <span class="role-arrow" aria-hidden="true">→</span>
           </a>
           <a href="open-positions.html" class="role-item">
             <span class="role-name">Business Operations</span>
-            <span class="role-arrow">â</span>
+            <span class="role-arrow" aria-hidden="true">→</span>
           </a>
           <a href="open-positions.html" class="role-item">
             <span class="role-name">Quantitative Research Intern</span>
-            <span class="role-arrow">â</span>
+            <span class="role-arrow" aria-hidden="true">→</span>
           </a>
           <a href="open-positions.html" class="role-item">
             <span class="role-name">Software Intern</span>
-            <span class="role-arrow">â</span>
+            <span class="role-arrow" aria-hidden="true">→</span>
           </a>
         </div>
       </div>
     </div>
   </section>
+
+  </main>
 
   <footer class="footer">
     <div class="container">
@@ -1253,15 +1258,15 @@
       </div>
 
       <div class="footer-bottom">
-        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
         <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
       </div>
     </div>
   </footer>
 
-  <script src="js/vendor/three.min.js?v=1789993235"></script>
-  <script src="js/vendor/three-lines.js?v=1789993235"></script>
-  <script src="js/bundle-a.js?v=1789993235"></script>
+  <script src="js/vendor/three.min.js?v=1793089944"></script>
+  <script src="js/vendor/three-lines.js?v=1793089944"></script>
+  <script src="js/bundle-a.js?v=1793089944"></script>
 
   
 

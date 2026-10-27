@@ -43,9 +43,9 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789993235">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
-  <link rel="stylesheet" href="css/forms.css?v=1789993235">
+  <link rel="stylesheet" href="css/styles.css?v=1793089944">
+  <link rel="stylesheet" href="css/accessibility.css?v=1793089944">
+  <link rel="stylesheet" href="css/forms.css?v=1793089944">
 
   <style>
     html, body {
@@ -175,12 +175,11 @@
       min-width: 180px;
       padding: 10px 14px;
       background: transparent;
-      border: 1px solid var(--border);
+      border: 1px solid var(--input-border);
       border-radius: 4px;
       color: var(--text-primary);
       font-family: 'Inter', sans-serif;
       font-size: 13px;
-      outline: none;
       transition: border-color 0.2s ease;
     }
 
@@ -403,21 +402,22 @@
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to content</a>
   <div id="splash" role="status" aria-label="Loading">
     <div class="splash-inner">
-      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <img src="images/logo.webp" alt="" class="splash-logo">
       <div class="splash-wordmark">NK Securities <span>Research</span></div>
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
 
-  <div id="particles-bg"></div>
+  <div id="particles-bg" aria-hidden="true"></div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Main">
     <div class="nav-container">
       <div class="nav-left">
-        <a href="index.html" class="nav-logo">
-          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+        <a href="index.html" class="nav-logo" aria-label="NK Securities Research home">
+          <img src="images/logo.webp" alt="" class="nav-logo-img">
           <span class="nav-logo-text">Securities <span>Research</span></span>
         </a>
 
@@ -435,25 +435,27 @@
           <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
           <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
         </button>
-        <a href="open-positions.html" class="nav-cta" style="border-color: var(--accent); color: var(--accent);">Open Positions</a>
+        <a href="open-positions.html" class="nav-cta" aria-current="page" style="border-color: var(--accent); color: var(--accent);">Open Positions</a>
       </div>
 
-      <div class="nav-hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <button type="button" class="nav-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
-  <div class="mobile-menu">
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
     <a href="index.html">HOME</a>
     <a href="about.html">ABOUT</a>
     <a href="culture.html">CULTURE</a>
     <a href="ai-research.html">AI &amp; RESEARCH</a>
     <a href="contact.html">CONTACT</a>
-    <a href="open-positions.html" class="active">OPEN POSITIONS</a>
-  </div>
+    <a href="open-positions.html" class="active" aria-current="page">OPEN POSITIONS</a>
+  </nav>
+
+  <main id="main" tabindex="-1">
 
   <section class="page-hero">
     <div class="container hero-careers-container">
@@ -466,7 +468,7 @@
         <p class="body-text max-w-480 mt-60">Join 100+ professionals including IITians building market research and trading infrastructure. Work translates directly into outcomes - no layers between your contribution and measurable impact.</p>
       </div>
       <div class="hero-careers-right">
-        <canvas id="heroCanvas3D"></canvas>
+        <canvas id="heroCanvas3D" aria-hidden="true"></canvas>
       </div>
     </div>
   </section>
@@ -486,7 +488,7 @@
         </select>
       </div>
 
-      <p class="gh-jobs-count fade-up" id="gh-jobs-count"></p>
+      <p class="gh-jobs-count fade-up" id="gh-jobs-count" aria-live="polite"></p>
       <div id="gh-jobs-board" class="fade-up"></div>
 
       <script>
@@ -816,46 +818,56 @@
         <form class="contact-form-full" id="cv-form" novalidate>
           <div class="form-row">
             <div class="form-group">
-              <input type="text" id="cv-name" name="name" placeholder="Full name" autocomplete="name" maxlength="120" required>
+              <label for="cv-name">Full name</label>
+              <input type="text" id="cv-name" name="name" autocomplete="name" maxlength="120" required>
             </div>
             <div class="form-group">
-              <input type="email" id="cv-email" name="email" placeholder="Email" autocomplete="email" maxlength="200" required>
+              <label for="cv-email">Email</label>
+              <input type="email" id="cv-email" name="email" autocomplete="email" maxlength="200" required>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <input type="tel" id="cv-phone" name="phone" placeholder="Phone" autocomplete="tel" maxlength="40">
+              <label for="cv-phone">Phone <span class="optional">(optional)</span></label>
+              <input type="tel" id="cv-phone" name="phone" autocomplete="tel" maxlength="40">
             </div>
             <div class="form-group">
-              <input type="text" id="cv-role" name="role" placeholder="Role or area of interest" maxlength="120">
+              <label for="cv-role">Role or area of interest <span class="optional">(optional)</span></label>
+              <input type="text" id="cv-role" name="role" maxlength="120">
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <input type="text" id="cv-college" name="college" placeholder="College / University" autocomplete="organization" maxlength="200" required>
+              <label for="cv-college">College / University</label>
+              <input type="text" id="cv-college" name="college" autocomplete="organization" maxlength="200" required>
             </div>
             <div class="form-group">
-              <input type="number" id="cv-cgpa" name="cgpa" placeholder="CGPA (out of 10)" min="0" max="10" step="0.01" inputmode="decimal" required>
+              <label for="cv-cgpa">CGPA (out of 10)</label>
+              <input type="number" id="cv-cgpa" name="cgpa" placeholder="e.g. 8.25" min="0" max="10" step="0.01" inputmode="decimal" required>
             </div>
           </div>
           <div class="form-group">
-            <input type="url" id="cv-linkedin" name="linkedin" placeholder="LinkedIn profile URL (optional)" maxlength="300">
+            <label for="cv-linkedin">LinkedIn profile URL <span class="optional">(optional)</span></label>
+            <input type="url" id="cv-linkedin" name="linkedin" placeholder="https://www.linkedin.com/in/your-name" autocomplete="url" maxlength="300">
           </div>
           <div class="form-group">
-            <textarea id="cv-message" name="message" placeholder="Anything you'd like us to know (optional)" rows="4" maxlength="3000"></textarea>
+            <label for="cv-message">Anything you'd like us to know <span class="optional">(optional)</span></label>
+            <textarea id="cv-message" name="message" rows="4" maxlength="3000"></textarea>
           </div>
           <div class="form-group form-file">
             <label for="cv-file">CV</label>
-            <input type="file" id="cv-file" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
-            <span class="form-hint">PDF, DOC or DOCX, up to 5MB.</span>
+            <input type="file" id="cv-file" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-describedby="cv-file-hint" required>
+            <span class="form-hint" id="cv-file-hint">PDF, DOC or DOCX, up to 5MB.</span>
           </div>
           <div class="g-recaptcha" data-sitekey="6LetatktAAAAANs2nMfoUJNw2sJy2k7QR_nEXrZf"></div>
           <button type="submit" class="form-submit">Submit CV</button>
-          <div class="form-status" role="alert" aria-live="polite"></div>
+          <div class="form-status" id="cv-form-status" role="alert"></div>
         </form>
       </div>
     </div>
   </section>
+
+  </main>
 
   <footer class="footer">
     <div class="container">
@@ -872,16 +884,16 @@
       </div>
 
       <div class="footer-bottom">
-        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
         <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
       </div>
     </div>
   </footer>
 
-  <script src="js/vendor/three.min.js?v=1789993235"></script>
-  <script src="js/bundle-b.js?v=1789993235"></script>
+  <script src="js/vendor/three.min.js?v=1793089944"></script>
+  <script src="js/bundle-b.js?v=1793089944"></script>
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <script src="js/contact-form.js?v=1789993235"></script>
+  <script src="js/contact-form.js?v=1793089944"></script>
 
   
 

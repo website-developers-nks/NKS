@@ -47,9 +47,29 @@
     }
 
     function clearStatus() {
+      Array.prototype.forEach.call(form.querySelectorAll('[aria-invalid]'), function (field) {
+        field.removeAttribute('aria-invalid');
+        var rest = (field.getAttribute('aria-describedby') || '').split(' ').filter(function (id) {
+          return id && (!statusEl || id !== statusEl.id);
+        });
+        if (rest.length) field.setAttribute('aria-describedby', rest.join(' '));
+        else field.removeAttribute('aria-describedby');
+      });
       if (!statusEl) return;
       statusEl.textContent = '';
       statusEl.classList.remove('is-visible', 'is-success', 'is-error');
+    }
+
+    function markInvalid(name) {
+      var field = form.elements[name];
+      if (!field) return;
+      field.setAttribute('aria-invalid', 'true');
+      if (statusEl && statusEl.id) {
+        var ids = (field.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+        if (ids.indexOf(statusEl.id) === -1) ids.push(statusEl.id);
+        field.setAttribute('aria-describedby', ids.join(' '));
+      }
+      field.focus();
     }
 
     function setLoading(isLoading) {
@@ -70,7 +90,8 @@
 
       var error = options.validate(form);
       if (error) {
-        showStatus(error, 'error');
+        showStatus(error[1], 'error');
+        markInvalid(error[0]);
         return;
       }
 
@@ -131,11 +152,11 @@
       successText: 'Thanks for reaching out! Your message has been sent.',
       failureText: 'Sorry, something went wrong and your message was not sent. Please try again or email us directly.',
       validate: function (form) {
-        if (!value(form, 'name')) return 'Please enter your name.';
-        if (!value(form, 'email')) return 'Please enter your email address.';
-        if (!EMAIL_PATTERN.test(value(form, 'email'))) return 'Please enter a valid email address.';
-        if (!value(form, 'subject')) return 'Please enter a subject.';
-        if (!value(form, 'message')) return 'Please enter a message.';
+        if (!value(form, 'name')) return ['name', 'Please enter your name.'];
+        if (!value(form, 'email')) return ['email', 'Please enter your email address, for example name@example.com.'];
+        if (!EMAIL_PATTERN.test(value(form, 'email'))) return ['email', 'Please enter a valid email address, for example name@example.com.'];
+        if (!value(form, 'subject')) return ['subject', 'Please enter a subject.'];
+        if (!value(form, 'message')) return ['message', 'Please enter a message.'];
         return null;
       },
       buildBody: function (form, token) {
@@ -161,20 +182,20 @@
       successText: 'Thanks! Your CV has been sent to our Recruitment team. We will be in touch if there is a fit.',
       failureText: 'Sorry, something went wrong and your CV was not sent. Please try again.',
       validate: function (form) {
-        if (!value(form, 'name')) return 'Please enter your name.';
-        if (!value(form, 'email')) return 'Please enter your email address.';
-        if (!EMAIL_PATTERN.test(value(form, 'email'))) return 'Please enter a valid email address.';
-        if (!value(form, 'college')) return 'Please enter your college.';
+        if (!value(form, 'name')) return ['name', 'Please enter your name.'];
+        if (!value(form, 'email')) return ['email', 'Please enter your email address, for example name@example.com.'];
+        if (!EMAIL_PATTERN.test(value(form, 'email'))) return ['email', 'Please enter a valid email address, for example name@example.com.'];
+        if (!value(form, 'college')) return ['college', 'Please enter your college.'];
         var cgpa = value(form, 'cgpa');
-        if (!/^\d{1,2}(\.\d{1,2})?$/.test(cgpa) || Number(cgpa) > 10) return 'Please enter your CGPA on a 10-point scale, e.g. 8.25.';
+        if (!/^\d{1,2}(\.\d{1,2})?$/.test(cgpa) || Number(cgpa) > 10) return ['cgpa', 'Please enter your CGPA on a 10-point scale, e.g. 8.25.'];
         var linkedin = value(form, 'linkedin');
-        if (linkedin && !/^https?:\/\/\S+$/i.test(linkedin)) return 'Please enter a full LinkedIn URL starting with https://.';
+        if (linkedin && !/^https?:\/\/\S+$/i.test(linkedin)) return ['linkedin', 'Please enter a full LinkedIn URL starting with https://.'];
 
         var file = form.elements.cv && form.elements.cv.files[0];
-        if (!file) return 'Please attach your CV.';
+        if (!file) return ['cv', 'Please attach your CV.'];
         var ext = file.name.split('.').pop().toLowerCase();
-        if (CV_EXTENSIONS.indexOf(ext) === -1) return 'Your CV must be a PDF, DOC or DOCX file.';
-        if (file.size > CV_MAX_BYTES) return 'Your CV must be 5MB or smaller.';
+        if (CV_EXTENSIONS.indexOf(ext) === -1) return ['cv', 'Your CV must be a PDF, DOC or DOCX file.'];
+        if (file.size > CV_MAX_BYTES) return ['cv', 'Your CV must be 5MB or smaller.'];
         return null;
       },
       buildBody: function (form, token) {

@@ -43,8 +43,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1789993235">
-  <link rel="stylesheet" href="css/accessibility.css?v=1789993235">
+  <link rel="stylesheet" href="css/styles.css?v=1793089944">
+  <link rel="stylesheet" href="css/accessibility.css?v=1793089944">
 
   <style>
     html, body {
@@ -69,6 +69,14 @@
 
     .page-hero .page-hero-content {
       align-items: start;
+    }
+
+    .page-hero .page-hero-content > * {
+      min-width: 0;
+    }
+
+    #candlestick-container canvas {
+      max-width: 100%;
     }
 
     .page-hero .hero-stats {
@@ -194,27 +202,28 @@
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to content</a>
   <div id="splash" role="status" aria-label="Loading">
     <div class="splash-inner">
-      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <img src="images/logo.webp" alt="" class="splash-logo">
       <div class="splash-wordmark">NK Securities <span>Research</span></div>
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
 
-  <div id="particles-bg"></div>
+  <div id="particles-bg" aria-hidden="true"></div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Main">
     <div class="nav-container">
       <div class="nav-left">
-        <a href="index.html" class="nav-logo">
-          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+        <a href="index.html" class="nav-logo" aria-label="NK Securities Research home">
+          <img src="images/logo.webp" alt="" class="nav-logo-img">
           <span class="nav-logo-text">Securities <span>Research</span></span>
         </a>
 
         <div class="nav-links">
           <a href="index.html" class="nav-link">HOME</a>
-          <a href="about.html" class="nav-link active">ABOUT</a>
+          <a href="about.html" class="nav-link active" aria-current="page">ABOUT</a>
           <a href="culture.html" class="nav-link">CULTURE</a>
           <a href="ai-research.html" class="nav-link">AI &amp; RESEARCH</a>
           <a href="contact.html" class="nav-link">CONTACT</a>
@@ -229,22 +238,24 @@
         <a href="open-positions.html" class="nav-cta">Open Positions</a>
       </div>
 
-      <div class="nav-hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <button type="button" class="nav-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
-  <div class="mobile-menu">
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
     <a href="index.html">HOME</a>
-    <a href="about.html" class="active">ABOUT</a>
+    <a href="about.html" class="active" aria-current="page">ABOUT</a>
     <a href="culture.html">CULTURE</a>
     <a href="ai-research.html">AI &amp; RESEARCH</a>
     <a href="contact.html">CONTACT</a>
     <a href="open-positions.html">OPEN POSITIONS</a>
-  </div>
+  </nav>
+
+  <main id="main" tabindex="-1">
 
   <section class="page-hero">
     <div class="container">
@@ -262,7 +273,7 @@
 
         <div class="hero-stats parallax" data-speed="0.3">
 
-          <div id="candlestick-container"></div>
+          <div id="candlestick-container" aria-hidden="true"></div>
         </div>
       </div>
     </div>
@@ -367,6 +378,8 @@
     </div>
   </section>
 
+  </main>
+
   <footer class="footer">
     <div class="container">
       <div class="footer-top">
@@ -382,14 +395,14 @@
       </div>
 
       <div class="footer-bottom">
-        <p class="footer-copyright">Â© 2026 NK Securities Research</p>
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
         <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
       </div>
     </div>
   </footer>
 
-  <script src="js/vendor/three.min.js?v=1789993235"></script>
-  <script src="js/bundle-b.js?v=1789993235"></script>
+  <script src="js/vendor/three.min.js?v=1793089944"></script>
+  <script src="js/bundle-b.js?v=1793089944"></script>
 
   
 
