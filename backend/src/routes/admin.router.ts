@@ -13,7 +13,8 @@ import { Doc } from '../db/models/doc.model';
 import { AdminLoginOtp } from '../db/models/admin-login-otp.model';
 import { Permission, PermissionGroup, IPermissionGroup } from '../db/models/permission-group.model';
 import { MessageTemplate } from '../db/models/message-template.model';
-import { ScheduledEmail, ScheduledEmailStatus } from '../db/models/scheduled-email.model';
+import { ScheduledEmail, ScheduledEmailStatus, CombinedAddressing } from '../db/models/scheduled-email.model';
+import { UserGroup, IUserGroup } from '../db/models/user-group.model';
 import { SheetConfig } from '../db/models/sheet-config.model';
 import { DriveConfig, IDriveConfig } from '../db/models/drive-config.model';
 import { requireAdminAuth, requirePermission } from '../middleware/admin-auth.middleware';
@@ -28,7 +29,21 @@ import { r2, R2_BUCKET } from '../lib/r2';
 import { buildOnboardingExportHtml } from '../services/onboarding-export.service';
 import { appendOnboardingToSheet } from '../services/onboarding-sheet.service';
 import { AdminAttachment } from '../db/models/admin-attachment.model';
-import { createScheduledEmail, deliverScheduledEmail } from '../services/scheduled-email.service';
+import {
+  createScheduledEmail,
+  createScheduledEmails,
+  deliverScheduledEmail,
+  deliverScheduledEmails,
+  notLockedFilter,
+} from '../services/scheduled-email.service';
+import {
+  EMAIL_PLACEHOLDERS,
+  fillHtml,
+  fillText,
+  findKnownPlaceholders,
+  findUnknownPlaceholders,
+  placeholderValues,
+} from '../lib/email-placeholders';
 import { sendReminderFor } from '../services/onboarding-reminder.service';
 import { isGoogleSheetsConfigured, parseSpreadsheetId, getSpreadsheetInfo } from '../lib/google-sheets';
 import { parseFolderId, checkFolder, testFolderUpload, driveAccountEmail } from '../lib/google-drive';
@@ -82,6 +97,16 @@ const ONBOARDING_DOC_FIELDS = [
 
 type OnboardingStatus = 'pending' | 'completed' | 'expired';
 const ONBOARDING_STATUS_ORDER: Record<OnboardingStatus, number> = { pending: 0, expired: 1, completed: 2 };
+
+function unknownPlaceholderMessage(names: string[]): string {
+  const listed = names.map((name) => `{{${name}}}`).join(', ');
+  const allowed = EMAIL_PLACEHOLDERS.map((name) => `{{${name}}}`).join(', ');
+  return `${listed} ${names.length === 1 ? 'is not a placeholder' : 'are not placeholders'}. Use ${allowed}.`;
+}
+
+const MAX_BULK_EMAIL_RECIPIENTS = 300;
+
+const BULK_SEND_BUDGET_MS = 15_000;
 
 const EXTRA_CONTENT_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -1518,6 +1543,8 @@ router.delete(
         await OnboardingAuth.deleteMany({ _id: { $in: authIds } });
       }
       await ScheduledEmail.deleteMany({ user: user._id });
+      await ScheduledEmail.updateMany({ recipients: user._id }, { $pull: { recipients: user._id } });
+      await UserGroup.updateMany({ members: user._id }, { $pull: { members: user._id } });
       await User.deleteOne({ _id: user._id });
 
       console.log('[admin/users/:id delete]', {
@@ -1548,7 +1575,7 @@ router.get(
     }
 
     try {
-      const emails = await ScheduledEmail.find({ user: id })
+      const emails = await ScheduledEmail.find({ $or: [{ user: id }, { recipients: id }] })
         .sort({ scheduledAt: -1 })
         .limit(100)
         .lean();
@@ -1564,6 +1591,9 @@ router.get(
         cc: email.cc ?? [],
         bcc: email.bcc ?? [],
         threaded: !!email.onboardingAuth,
+        batchId: email.batchId ? email.batchId.toString() : null,
+        combined: Array.isArray(email.recipients),
+        recipientCount: Array.isArray(email.recipients) ? email.recipients.length : 1,
         attempts: email.attempts ?? 0,
         lastError: email.lastError ?? null,
         createdAt: email.createdAt,
@@ -1588,8 +1618,9 @@ router.get(
     }
 
     try {
-      const email = await ScheduledEmail.findOne({ _id: emailId, user: id })
+      const email = await ScheduledEmail.findOne({ _id: emailId, $or: [{ user: id }, { recipients: id }] })
         .populate<{ user: IUser }>('user', 'firstName lastName email')
+        .populate<{ recipients: IUser[] }>('recipients', 'firstName lastName email')
         .populate<{ createdBy: IUser }>('createdBy', 'firstName lastName email')
         .populate<{ cancelledBy: IUser }>('cancelledBy', 'firstName lastName email')
         .populate<{ onboardingAuth: IOnboardingAuth }>('onboardingAuth', 'company location inviteSubject')
@@ -1608,6 +1639,15 @@ router.get(
 
       const thread = email.onboardingAuth as IOnboardingAuth | undefined;
 
+      let batch: { id: string; total: number; pending: number } | null = null;
+      if (email.batchId) {
+        const [total, pending] = await Promise.all([
+          ScheduledEmail.countDocuments({ batchId: email.batchId }),
+          ScheduledEmail.countDocuments({ batchId: email.batchId, status: ScheduledEmailStatus.Pending }),
+        ]);
+        batch = { id: email.batchId.toString(), total, pending };
+      }
+
       res.json({
         id: email._id.toString(),
         title: email.title,
@@ -1617,6 +1657,9 @@ router.get(
         contentMarkdown: email.contentMarkdown ?? null,
         status: email.status,
         to: person(email.user),
+        combined: Array.isArray(email.recipients),
+        addressing: email.addressing ?? null,
+        recipients: Array.isArray(email.recipients) ? email.recipients.map(person).filter(Boolean) : null,
         cc: email.cc ?? [],
         bcc: email.bcc ?? [],
         sentBy: person(email.createdBy),
@@ -1635,6 +1678,7 @@ router.get(
         createdAt: email.createdAt,
         attempts: email.attempts ?? 0,
         lastError: email.lastError ?? null,
+        batch,
       });
     } catch (err) {
       console.error('[admin/users/:id/emails/:emailId]', err);
@@ -1658,7 +1702,12 @@ router.post(
     try {
       const email = await ScheduledEmail.findOne({ _id: emailId, user: id });
       if (!email) {
-        res.status(404).json({ error: 'Email not found.' });
+        const combined = await ScheduledEmail.exists({ _id: emailId, recipients: id });
+        res.status(combined ? 409 : 404).json({
+          error: combined
+            ? "This email goes to a whole group in one message. Cancel it from the group's page."
+            : 'Email not found.',
+        });
         return;
       }
 
@@ -1672,7 +1721,7 @@ router.post(
       }
 
       const updated = await ScheduledEmail.updateOne(
-        { _id: email._id, status: ScheduledEmailStatus.Pending },
+        { _id: email._id, status: ScheduledEmailStatus.Pending, ...notLockedFilter(new Date()) },
         {
           status: ScheduledEmailStatus.Cancelled,
           cancelledAt: new Date(),
@@ -1681,7 +1730,7 @@ router.post(
       );
 
       if (!updated.modifiedCount) {
-        res.status(409).json({ error: 'That email was just sent and can no longer be cancelled.' });
+        res.status(409).json({ error: 'That email is being sent right now and can no longer be cancelled.' });
         return;
       }
 
@@ -1760,6 +1809,12 @@ router.post(
       return;
     }
 
+    const unknownPlaceholders = findUnknownPlaceholders(title, subtitle, content, contentMarkdown);
+    if (unknownPlaceholders.length) {
+      res.status(400).json({ error: unknownPlaceholderMessage(unknownPlaceholders), reason: 'unknown_placeholder' });
+      return;
+    }
+
     let when: Date | undefined;
     if (scheduledAt) {
       if (Number.isNaN(Date.parse(scheduledAt))) {
@@ -1807,14 +1862,15 @@ router.post(
       }
 
       const toArray = (v: string | string[] | undefined) => (v ? (Array.isArray(v) ? v : [v]) : undefined);
+      const values = placeholderValues(user);
 
       const record = await createScheduledEmail({
         userId: user._id as Types.ObjectId,
-        title: title.trim(),
+        title: fillText(title.trim(), values),
         subject: thread?.subject,
-        subtitle: subtitle?.trim() || undefined,
-        contentHtml: sanitizeHtml(content, EXTRA_CONTENT_SANITIZE_OPTIONS),
-        contentMarkdown,
+        subtitle: subtitle?.trim() ? fillText(subtitle.trim(), values) : undefined,
+        contentHtml: fillHtml(sanitizeHtml(content, EXTRA_CONTENT_SANITIZE_OPTIONS), values),
+        contentMarkdown: contentMarkdown ? fillText(contentMarkdown, values) : contentMarkdown,
         cc: toArray(cc),
         bcc: toArray(bcc),
         onboardingAuth: thread ? (thread.auth._id as Types.ObjectId) : undefined,
@@ -1833,19 +1889,724 @@ router.post(
         return;
       }
 
-      record.user = user;
-      const sent = await deliverScheduledEmail(record);
+      const outcome = await deliverScheduledEmail(record);
 
-      if (!sent) {
+      if (outcome === 'failed') {
         const saved = await ScheduledEmail.findById(record._id);
         res.status(502).json({ error: saved?.lastError || "The email couldn't be sent." });
         return;
       }
 
-      res.status(201).json({ id: (record._id as object).toString(), scheduled: false, sent: true });
+      res.status(201).json({ id: (record._id as object).toString(), scheduled: false, sent: outcome === 'sent', queued: outcome === 'skipped' });
     } catch (err) {
       console.error('[admin/users/:id/send-email]', err);
       res.status(500).json({ error: 'Failed to send the email.' });
+    }
+  },
+);
+
+interface ComposeInput {
+  title: string;
+  subtitle?: string;
+  contentHtml: string;
+  contentMarkdown?: string;
+  cc?: string[];
+  bcc?: string[];
+  when?: Date;
+}
+
+type ComposeResult = { input: ComposeInput } | { error: string; reason?: string };
+
+function parseCompose(body: Record<string, unknown>, personalized: boolean): ComposeResult {
+  const { title, subtitle, content, contentMarkdown, cc, bcc, scheduledAt } = body as {
+    title?: string;
+    subtitle?: string;
+    content?: string;
+    contentMarkdown?: string;
+    cc?: string | string[];
+    bcc?: string | string[];
+    scheduledAt?: string;
+  };
+
+  if (!title || typeof title !== 'string' || !title.trim()) return { error: 'A title is required.' };
+  if (!content || typeof content !== 'string' || !content.trim()) return { error: 'A message is required.' };
+
+  const unknownPlaceholders = findUnknownPlaceholders(title, subtitle, content, contentMarkdown);
+  if (unknownPlaceholders.length) {
+    return { error: unknownPlaceholderMessage(unknownPlaceholders), reason: 'unknown_placeholder' };
+  }
+
+  if (!personalized && findKnownPlaceholders(title, subtitle, content, contentMarkdown).length) {
+    return {
+      error: 'Placeholders like {{firstName}} only work when each member gets a separate email.',
+      reason: 'placeholder_in_combined',
+    };
+  }
+
+  let when: Date | undefined;
+  if (scheduledAt) {
+    if (Number.isNaN(Date.parse(scheduledAt))) return { error: 'Invalid schedule date.' };
+    when = new Date(scheduledAt);
+    if (when.getTime() <= Date.now()) return { error: 'The scheduled time must be in the future.' };
+  }
+
+  const toArray = (v: string | string[] | undefined) => (v ? (Array.isArray(v) ? v : [v]) : undefined);
+
+  return {
+    input: {
+      title: title.trim(),
+      subtitle: subtitle?.trim() || undefined,
+      contentHtml: sanitizeHtml(content, EXTRA_CONTENT_SANITIZE_OPTIONS),
+      contentMarkdown,
+      cc: toArray(cc),
+      bcc: toArray(bcc),
+      when,
+    },
+  };
+}
+
+type Recipient = { _id: unknown; firstName?: string; lastName?: string; email?: string };
+
+async function sendSeparately(
+  users: Recipient[],
+  input: ComposeInput,
+  adminId: Types.ObjectId,
+  startedAt: number,
+  userGroup?: Types.ObjectId,
+) {
+  const batchId = new Types.ObjectId();
+
+  const records = await createScheduledEmails(users.map((user) => {
+    const values = placeholderValues(user);
+    return {
+      userId: user._id as Types.ObjectId,
+      title: fillText(input.title, values),
+      subtitle: input.subtitle ? fillText(input.subtitle, values) : undefined,
+      contentHtml: fillHtml(input.contentHtml, values),
+      contentMarkdown: input.contentMarkdown ? fillText(input.contentMarkdown, values) : input.contentMarkdown,
+      cc: input.cc,
+      bcc: input.bcc,
+      scheduledAt: input.when,
+      batchId,
+      batchTitle: input.title,
+      userGroup,
+      createdBy: adminId,
+    };
+  }));
+
+  if (input.when) {
+    return { batchId: batchId.toString(), total: records.length, scheduled: true, scheduledAt: input.when };
+  }
+
+  const result = await deliverScheduledEmails(records, startedAt + BULK_SEND_BUDGET_MS);
+  const failed = await ScheduledEmail.countDocuments({ batchId, status: ScheduledEmailStatus.Failed });
+
+  return {
+    batchId: batchId.toString(),
+    total: records.length,
+    scheduled: false,
+    sent: result.sent,
+    failed,
+    queued: records.length - result.sent - failed,
+  };
+}
+
+router.post(
+  '/users/bulk-send-email',
+  requireAdminAuth,
+  requirePermission(Permission.EmailUsers),
+  async (req: Request, res: Response) => {
+    const startedAt = Date.now();
+    const { userIds } = req.body as { userIds?: unknown };
+
+    if (!Array.isArray(userIds) || !userIds.length) {
+      res.status(400).json({ error: 'Choose at least one recipient.' });
+      return;
+    }
+
+    const ids = [...new Set(userIds.map(String))];
+
+    if (ids.some((id) => !Types.ObjectId.isValid(id))) {
+      res.status(400).json({ error: 'Invalid user id.' });
+      return;
+    }
+
+    if (ids.length > MAX_BULK_EMAIL_RECIPIENTS) {
+      res.status(400).json({ error: `A group email can go to at most ${MAX_BULK_EMAIL_RECIPIENTS} people at once.` });
+      return;
+    }
+
+    const parsed = parseCompose(req.body, true);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error, reason: parsed.reason });
+      return;
+    }
+
+    try {
+      const users = await User.find({ _id: { $in: ids } }, { firstName: 1, lastName: 1, email: 1 }).lean();
+
+      if (users.length !== ids.length) {
+        res.status(404).json({ error: 'Some of the selected users no longer exist. Reload the list and try again.' });
+        return;
+      }
+
+      const byId = new Map(users.map((user) => [String(user._id), user]));
+      const ordered = ids.map((id) => byId.get(id)!);
+
+      res.status(201).json(await sendSeparately(ordered, parsed.input, req.admin!._id as Types.ObjectId, startedAt));
+    } catch (err) {
+      console.error('[admin/users/bulk-send-email]', err);
+      res.status(500).json({ error: 'Failed to send the group email.' });
+    }
+  },
+);
+
+router.post(
+  '/email-batches/:batchId/cancel',
+  requireAdminAuth,
+  requirePermission(Permission.EmailUsers),
+  async (req: Request, res: Response) => {
+    const { batchId } = req.params as { batchId: string };
+
+    if (!Types.ObjectId.isValid(batchId)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    try {
+      const total = await ScheduledEmail.countDocuments({ batchId });
+      if (!total) {
+        res.status(404).json({ error: 'Group email not found.' });
+        return;
+      }
+
+      const now = new Date();
+      const updated = await ScheduledEmail.updateMany(
+        { batchId, status: ScheduledEmailStatus.Pending, ...notLockedFilter(now) },
+        {
+          status: ScheduledEmailStatus.Cancelled,
+          cancelledAt: now,
+          cancelledBy: req.admin!._id as Types.ObjectId,
+        },
+      );
+
+      const remaining = await ScheduledEmail.countDocuments({ batchId, status: ScheduledEmailStatus.Pending });
+
+      res.json({ batchId, total, cancelled: updated.modifiedCount, stillSending: remaining });
+    } catch (err) {
+      console.error('[admin/email-batches/:batchId/cancel]', err);
+      res.status(500).json({ error: 'Failed to cancel the group email.' });
+    }
+  },
+);
+
+const MAX_GROUP_NAME_LENGTH = 80;
+const MAX_GROUP_DESCRIPTION_LENGTH = 300;
+
+function serializeUserGroup(group: IUserGroup) {
+  return {
+    id: (group._id as object).toString(),
+    name: group.name,
+    description: group.description ?? null,
+    memberCount: group.members?.length ?? 0,
+    createdAt: group.createdAt,
+    updatedAt: group.updatedAt,
+  };
+}
+
+function parseGroupFields(body: { name?: unknown; description?: unknown }, requireName: boolean) {
+  const fields: { name?: string; description?: string } = {};
+
+  if (body.name !== undefined || requireName) {
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    if (!name) return { error: 'A group name is required.' };
+    if (name.length > MAX_GROUP_NAME_LENGTH) return { error: `Group names can be at most ${MAX_GROUP_NAME_LENGTH} characters.` };
+    fields.name = name;
+  }
+
+  if (body.description !== undefined) {
+    const description = typeof body.description === 'string' ? body.description.trim() : '';
+    if (description.length > MAX_GROUP_DESCRIPTION_LENGTH) {
+      return { error: `Descriptions can be at most ${MAX_GROUP_DESCRIPTION_LENGTH} characters.` };
+    }
+    fields.description = description;
+  }
+
+  return { fields };
+}
+
+async function findUsersByIds(raw: unknown): Promise<{ error: string; status: number } | { ids: Types.ObjectId[] }> {
+  if (!Array.isArray(raw)) return { error: 'userIds must be a list.', status: 400 };
+  const ids = [...new Set(raw.map(String))];
+  if (ids.some((id) => !Types.ObjectId.isValid(id))) return { error: 'Invalid user id.', status: 400 };
+  const found = await User.find({ _id: { $in: ids } }, { _id: 1 }).lean();
+  if (found.length !== ids.length) {
+    return { error: 'Some of those users no longer exist. Reload the list and try again.', status: 404 };
+  }
+  return { ids: ids.map((id) => new Types.ObjectId(id)) };
+}
+
+function isDuplicateKey(err: unknown) {
+  return (err as { code?: number })?.code === 11000;
+}
+
+router.get(
+  '/user-groups',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers, Permission.EmailUsers),
+  async (_req: Request, res: Response) => {
+    try {
+      const groups = await UserGroup.find().sort({ name: 1 }).collation({ locale: 'en' });
+      res.json(groups.map(serializeUserGroup));
+    } catch (err) {
+      console.error('[admin/user-groups]', err);
+      res.status(500).json({ error: 'Failed to fetch groups.' });
+    }
+  },
+);
+
+router.post(
+  '/user-groups',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers),
+  async (req: Request, res: Response) => {
+    const parsed = parseGroupFields(req.body ?? {}, true);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+
+    try {
+      let members: Types.ObjectId[] = [];
+      if ((req.body as { memberIds?: unknown }).memberIds !== undefined) {
+        const found = await findUsersByIds((req.body as { memberIds?: unknown }).memberIds);
+        if ('error' in found) {
+          res.status(found.status).json({ error: found.error });
+          return;
+        }
+        members = found.ids;
+      }
+
+      const group = await UserGroup.create({
+        ...parsed.fields,
+        members,
+        createdBy: req.admin!._id,
+      });
+      res.status(201).json(serializeUserGroup(group));
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        res.status(409).json({ error: 'A group with that name already exists.' });
+        return;
+      }
+      console.error('[admin/user-groups create]', err);
+      res.status(500).json({ error: 'Failed to create the group.' });
+    }
+  },
+);
+
+router.get(
+  '/user-groups/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers, Permission.EmailUsers),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    try {
+      const group = await UserGroup.findById(id);
+      if (!group) {
+        res.status(404).json({ error: 'Group not found.' });
+        return;
+      }
+
+      const members = await User.find(
+        { _id: { $in: group.members } },
+        { email: 1, firstName: 1, lastName: 1, isAdmin: 1, createdAt: 1 },
+      )
+        .sort({ firstName: 1, lastName: 1 })
+        .collation({ locale: 'en' })
+        .lean();
+
+      const creator = group.createdBy
+        ? await User.findById(group.createdBy, { firstName: 1, lastName: 1, email: 1 }).lean()
+        : null;
+
+      res.json({
+        ...serializeUserGroup(group),
+        memberCount: members.length,
+        createdBy: creator?.email ? { name: `${creator.firstName} ${creator.lastName}`.trim(), email: creator.email } : null,
+        members: members.map((user) => ({
+          id: user._id.toString(),
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isAdmin: user.isAdmin,
+          createdAt: user.createdAt,
+        })),
+      });
+    } catch (err) {
+      console.error('[admin/user-groups/:id]', err);
+      res.status(500).json({ error: 'Failed to fetch the group.' });
+    }
+  },
+);
+
+router.patch(
+  '/user-groups/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    const parsed = parseGroupFields(req.body ?? {}, false);
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error });
+      return;
+    }
+
+    try {
+      const update: Record<string, unknown> = {};
+      if (parsed.fields.name !== undefined) update.name = parsed.fields.name;
+      if (parsed.fields.description !== undefined) {
+        if (parsed.fields.description) update.description = parsed.fields.description;
+        else update.$unset = { description: 1 };
+      }
+
+      const group = await UserGroup.findByIdAndUpdate(id, update, { returnDocument: 'after', runValidators: true });
+      if (!group) {
+        res.status(404).json({ error: 'Group not found.' });
+        return;
+      }
+      res.json(serializeUserGroup(group));
+    } catch (err) {
+      if (isDuplicateKey(err)) {
+        res.status(409).json({ error: 'A group with that name already exists.' });
+        return;
+      }
+      console.error('[admin/user-groups/:id update]', err);
+      res.status(500).json({ error: 'Failed to update the group.' });
+    }
+  },
+);
+
+router.delete(
+  '/user-groups/:id',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    try {
+      const deleted = await UserGroup.findByIdAndDelete(id);
+      if (!deleted) {
+        res.status(404).json({ error: 'Group not found.' });
+        return;
+      }
+      res.json({ id, deleted: true });
+    } catch (err) {
+      console.error('[admin/user-groups/:id delete]', err);
+      res.status(500).json({ error: 'Failed to delete the group.' });
+    }
+  },
+);
+
+router.post(
+  '/user-groups/:id/members',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    try {
+      const found = await findUsersByIds((req.body as { userIds?: unknown }).userIds);
+      if ('error' in found) {
+        res.status(found.status).json({ error: found.error });
+        return;
+      }
+      if (!found.ids.length) {
+        res.status(400).json({ error: 'Choose at least one user to add.' });
+        return;
+      }
+
+      const before = await UserGroup.findById(id, { members: 1 }).lean();
+      if (!before) {
+        res.status(404).json({ error: 'Group not found.' });
+        return;
+      }
+
+      const group = await UserGroup.findByIdAndUpdate(
+        id,
+        { $addToSet: { members: { $each: found.ids } } },
+        { returnDocument: 'after' },
+      );
+
+      res.json({
+        ...serializeUserGroup(group!),
+        added: (group!.members.length) - (before.members?.length ?? 0),
+      });
+    } catch (err) {
+      console.error('[admin/user-groups/:id/members add]', err);
+      res.status(500).json({ error: 'Failed to add members.' });
+    }
+  },
+);
+
+router.delete(
+  '/user-groups/:id/members/:userId',
+  requireAdminAuth,
+  requirePermission(Permission.ManageUsers),
+  async (req: Request, res: Response) => {
+    const { id, userId } = req.params as { id: string; userId: string };
+    if (!Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(userId)) {
+      res.status(400).json({ error: 'Invalid id.' });
+      return;
+    }
+
+    try {
+      const group = await UserGroup.findByIdAndUpdate(
+        id,
+        { $pull: { members: new Types.ObjectId(userId) } },
+        { returnDocument: 'after' },
+      );
+      if (!group) {
+        res.status(404).json({ error: 'Group not found.' });
+        return;
+      }
+      res.json(serializeUserGroup(group));
+    } catch (err) {
+      console.error('[admin/user-groups/:id/members remove]', err);
+      res.status(500).json({ error: 'Failed to remove the member.' });
+    }
+  },
+);
+
+router.post(
+  '/user-groups/:id/send-email',
+  requireAdminAuth,
+  requirePermission(Permission.EmailUsers),
+  async (req: Request, res: Response) => {
+    const startedAt = Date.now();
+    const { id } = req.params as { id: string };
+    const { mode, addressing } = req.body as { mode?: string; addressing?: string };
+
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    if (mode !== 'combined' && mode !== 'separate') {
+      res.status(400).json({ error: 'Choose whether to send one combined email or separate emails.' });
+      return;
+    }
+
+    if (mode === 'combined' && addressing !== undefined && addressing !== CombinedAddressing.To && addressing !== CombinedAddressing.Bcc) {
+      res.status(400).json({ error: 'Invalid addressing option.' });
+      return;
+    }
+
+    const parsed = parseCompose(req.body, mode === 'separate');
+    if ('error' in parsed) {
+      res.status(400).json({ error: parsed.error, reason: parsed.reason });
+      return;
+    }
+
+    try {
+      const group = await UserGroup.findById(id);
+      if (!group) {
+        res.status(404).json({ error: 'Group not found.' });
+        return;
+      }
+
+      const members = await User.find({ _id: { $in: group.members } }, { firstName: 1, lastName: 1, email: 1 })
+        .sort({ firstName: 1, lastName: 1 })
+        .collation({ locale: 'en' })
+        .lean();
+
+      if (!members.length) {
+        res.status(400).json({ error: 'This group has no members yet.' });
+        return;
+      }
+
+      if (members.length > MAX_BULK_EMAIL_RECIPIENTS) {
+        res.status(400).json({ error: `A group email can go to at most ${MAX_BULK_EMAIL_RECIPIENTS} people at once.` });
+        return;
+      }
+
+      const adminId = req.admin!._id as Types.ObjectId;
+      const groupId = group._id as Types.ObjectId;
+
+      if (mode === 'separate') {
+        res.status(201).json(await sendSeparately(members, parsed.input, adminId, startedAt, groupId));
+        return;
+      }
+
+      const input = parsed.input;
+      const record = await createScheduledEmail({
+        recipients: members.map((member) => member._id as Types.ObjectId),
+        addressing: addressing === CombinedAddressing.Bcc ? CombinedAddressing.Bcc : CombinedAddressing.To,
+        userGroup: groupId,
+        title: input.title,
+        subtitle: input.subtitle,
+        contentHtml: input.contentHtml,
+        contentMarkdown: input.contentMarkdown,
+        cc: input.cc,
+        bcc: input.bcc,
+        scheduledAt: input.when,
+        createdBy: adminId,
+      });
+
+      if (input.when) {
+        res.status(201).json({
+          id: (record._id as object).toString(),
+          total: members.length,
+          scheduled: true,
+          scheduledAt: record.scheduledAt,
+        });
+        return;
+      }
+
+      const outcome = await deliverScheduledEmail(record);
+      if (outcome === 'failed') {
+        const saved = await ScheduledEmail.findById(record._id);
+        res.status(502).json({ error: saved?.lastError || "The email couldn't be sent." });
+        return;
+      }
+
+      res.status(201).json({
+        id: (record._id as object).toString(),
+        total: members.length,
+        scheduled: false,
+        sent: outcome === 'sent',
+        queued: outcome === 'skipped',
+      });
+    } catch (err) {
+      console.error('[admin/user-groups/:id/send-email]', err);
+      res.status(500).json({ error: 'Failed to send the group email.' });
+    }
+  },
+);
+
+router.get(
+  '/user-groups/:id/emails',
+  requireAdminAuth,
+  requirePermission(Permission.EmailUsers),
+  async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: 'Invalid group id.' });
+      return;
+    }
+
+    try {
+      const rows = await ScheduledEmail.aggregate([
+        { $match: { userGroup: new Types.ObjectId(id) } },
+        {
+          $group: {
+            _id: { $ifNull: ['$batchId', '$_id'] },
+            separate: { $max: { $cond: [{ $ifNull: ['$batchId', false] }, true, false] } },
+            title: { $first: { $ifNull: ['$batchTitle', '$title'] } },
+            addressing: { $first: '$addressing' },
+            recipientCount: { $sum: { $cond: [{ $isArray: '$recipients' }, { $size: '$recipients' }, 1] } },
+            emails: { $sum: 1 },
+            sent: { $sum: { $cond: [{ $eq: ['$status', ScheduledEmailStatus.Sent] }, 1, 0] } },
+            pending: { $sum: { $cond: [{ $eq: ['$status', ScheduledEmailStatus.Pending] }, 1, 0] } },
+            failed: { $sum: { $cond: [{ $eq: ['$status', ScheduledEmailStatus.Failed] }, 1, 0] } },
+            cancelled: { $sum: { $cond: [{ $eq: ['$status', ScheduledEmailStatus.Cancelled] }, 1, 0] } },
+            scheduledAt: { $min: '$scheduledAt' },
+            lastSentAt: { $max: '$sentAt' },
+            createdAt: { $min: '$createdAt' },
+            createdBy: { $first: '$createdBy' },
+            lastError: { $max: '$lastError' },
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $limit: 50 },
+      ]);
+
+      const creatorIds = [...new Set(rows.map((row) => row.createdBy && String(row.createdBy)).filter(Boolean))];
+      const creators = await User.find({ _id: { $in: creatorIds } }, { firstName: 1, lastName: 1 }).lean();
+      const creatorNames = new Map(creators.map((user) => [String(user._id), `${user.firstName} ${user.lastName}`.trim()]));
+
+      res.json(rows.map((row) => ({
+        id: String(row._id),
+        kind: row.separate ? 'separate' : 'combined',
+        title: row.title,
+        addressing: row.addressing ?? null,
+        recipients: row.recipientCount,
+        emails: row.emails,
+        sent: row.sent,
+        pending: row.pending,
+        failed: row.failed,
+        cancelled: row.cancelled,
+        scheduledAt: row.scheduledAt,
+        lastSentAt: row.lastSentAt ?? null,
+        createdAt: row.createdAt,
+        sentBy: row.createdBy ? creatorNames.get(String(row.createdBy)) ?? null : null,
+        lastError: row.lastError ?? null,
+      })));
+    } catch (err) {
+      console.error('[admin/user-groups/:id/emails]', err);
+      res.status(500).json({ error: 'Failed to fetch the group emails.' });
+    }
+  },
+);
+
+router.post(
+  '/user-groups/:id/emails/:emailId/cancel',
+  requireAdminAuth,
+  requirePermission(Permission.EmailUsers),
+  async (req: Request, res: Response) => {
+    const { id, emailId } = req.params as { id: string; emailId: string };
+    if (!Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(emailId)) {
+      res.status(400).json({ error: 'Invalid id.' });
+      return;
+    }
+
+    try {
+      const email = await ScheduledEmail.findOne({ _id: emailId, userGroup: id, recipients: { $exists: true } });
+      if (!email) {
+        res.status(404).json({ error: 'Email not found.' });
+        return;
+      }
+
+      if (email.status !== ScheduledEmailStatus.Pending) {
+        res.status(409).json({
+          error: email.status === ScheduledEmailStatus.Sent
+            ? 'That email has already been sent.'
+            : `That email is ${email.status} and cannot be cancelled.`,
+        });
+        return;
+      }
+
+      const updated = await ScheduledEmail.updateOne(
+        { _id: email._id, status: ScheduledEmailStatus.Pending, ...notLockedFilter(new Date()) },
+        { status: ScheduledEmailStatus.Cancelled, cancelledAt: new Date(), cancelledBy: req.admin!._id as Types.ObjectId },
+      );
+
+      if (!updated.modifiedCount) {
+        res.status(409).json({ error: 'That email is being sent right now and can no longer be cancelled.' });
+        return;
+      }
+
+      res.json({ id: emailId, cancelled: true });
+    } catch (err) {
+      console.error('[admin/user-groups/:id/emails/:emailId/cancel]', err);
+      res.status(500).json({ error: 'Failed to cancel the email.' });
     }
   },
 );

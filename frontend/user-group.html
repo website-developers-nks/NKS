@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group - NK Securities Research</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" href="images/favicons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="images/favicons/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" href="images/favicons/favicon-96x96.png" sizes="96x96">
+  <link rel="apple-touch-icon" href="images/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="images/favicons/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
+
+  <link rel="stylesheet" href="css/styles.css?v=1794909560">
+  <link rel="stylesheet" href="css/accessibility.css?v=1794909560">
+
+  <link rel="stylesheet" href="css/admin.css?v=1794909560">
+</head>
+<body>
+  <div id="splash" role="status" aria-label="Loading">
+    <div class="splash-inner">
+      <img src="images/logo.webp" alt="NK Securities Research" class="splash-logo">
+      <div class="splash-wordmark">NK Securities <span>Research</span></div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <div id="particles-bg"></div>
+
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+          <img src="images/logo.webp" alt="NK Securities" class="nav-logo-img">
+          <span class="nav-logo-text">Securities <span>Research</span></span>
+        </a>
+
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">HOME</a>
+          <a href="about.html" class="nav-link">ABOUT</a>
+          <a href="culture.html" class="nav-link">CULTURE</a>
+          <a href="contact.html" class="nav-link">CONTACT</a>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/></svg>
+        </button>
+        <a href="open-positions.html" class="nav-cta">Open Positions</a>
+        <button type="button" class="nav-logout" id="admin-logout-btn">Logout</button>
+      </div>
+
+      <button type="button" class="nav-hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">HOME</a>
+    <a href="about.html">ABOUT</a>
+    <a href="culture.html">CULTURE</a>
+    <a href="contact.html">CONTACT</a>
+    <a href="open-positions.html">OPEN POSITIONS</a>
+    <button type="button" class="mobile-menu-logout" id="admin-logout-btn-mobile">LOG OUT</button>
+  </div>
+
+  <section class="admin-section">
+    <div class="container">
+
+      <div class="admin-card admin-panel text-center" id="gp-loading-panel">
+        <div class="admin-icon is-spinner"></div>
+        <h2 class="display-sm mb-16">Loading Group…</h2>
+        <p class="body-text">Hold tight while we confirm your admin session.</p>
+      </div>
+
+      <div class="admin-card admin-card-wide admin-panel" id="gp-content-panel" hidden>
+        <a href="manage-users.html#groups" class="admin-back-link">&#8592; Back to groups</a>
+
+        <div class="admin-page-header group-page-header">
+          <div class="group-page-title">
+            <span class="group-page-kicker">Group</span>
+            <h2 class="display-sm" id="gp-name"></h2>
+            <p class="body-text" id="gp-description" hidden></p>
+            <p class="group-page-meta" id="gp-meta"></p>
+          </div>
+          <div class="group-page-actions" id="gp-actions"></div>
+        </div>
+
+        <div class="admin-tabs" role="tablist">
+          <button type="button" class="admin-tab is-active" data-tab="members" role="tab" aria-selected="true" id="gp-tab-members">Members</button>
+          <button type="button" class="admin-tab" data-tab="emails" role="tab" aria-selected="false" id="gp-tab-emails">Emails sent</button>
+        </div>
+
+        <div class="admin-tab-panel" data-tab-panel="members">
+          <div class="onboardings-toolbar">
+            <input type="text" id="gp-member-search" class="toolbar-search" placeholder="Search members…">
+            <button type="button" class="onboarding-row-btn" id="gp-add-members-btn" hidden>Add members</button>
+          </div>
+          <div class="onboardings-list users-list" id="gp-members-list"></div>
+        </div>
+
+        <div class="admin-tab-panel" data-tab-panel="emails" hidden>
+          <p class="body-text group-emails-intro">Everything emailed to this group from this page, newest first.</p>
+          <div class="onboardings-list users-list" id="gp-emails-list"></div>
+        </div>
+      </div>
+
+      <div class="admin-card admin-panel text-center" id="gp-missing-panel" hidden>
+        <h2 class="display-sm mb-16">Group Not Found</h2>
+        <p class="body-text">This group may have been deleted.</p>
+        <a href="manage-users.html#groups" class="admin-back-link" style="justify-content: center;">&#8592; Back to groups</a>
+      </div>
+
+      <div class="admin-card admin-panel text-center" id="gp-denied-panel" hidden>
+        <div class="admin-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">No Access</h2>
+        <p class="body-text" id="gp-denied-message">Your permission group doesn't allow managing or emailing users.</p>
+        <a href="administrator.html" class="admin-back-link" style="justify-content: center;">&#8592; Back to dashboard</a>
+      </div>
+
+      <div class="admin-card admin-panel text-center" id="gp-error-panel" hidden>
+        <div class="admin-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5M12 16h.01"/>
+          </svg>
+        </div>
+        <h2 class="display-sm mb-16">Something Went Wrong</h2>
+        <p class="body-text">We couldn't load this group right now. Please try again in a moment.</p>
+        <button type="button" class="form-submit" id="gp-retry-btn" style="width: auto; padding: 0 32px;">Try Again</button>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="admin-modal" id="gp-add-members-modal" data-expandable hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-labelledby="gp-add-title">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="gp-add-title">Add Members</h3>
+      <p class="body-text">Tick the people to add. Anyone already in the group isn't listed.</p>
+      <div class="onboardings-toolbar">
+        <input type="text" id="gp-add-search" class="toolbar-search" placeholder="Search by name or email…">
+        <div class="toolbar-date">
+          <label for="gp-add-since">Added since</label>
+          <input type="date" id="gp-add-since">
+        </div>
+      </div>
+      <div class="users-selection-bar">
+        <label class="users-select-all">
+          <input type="checkbox" id="gp-add-select-all">
+          <span>Select all shown</span>
+        </label>
+        <span class="users-selection-count" id="gp-add-count" aria-live="polite">None selected</span>
+        <button type="button" class="onboarding-row-btn is-primary" id="gp-add-submit" disabled>Add to group</button>
+      </div>
+      <div class="onboardings-list users-list" id="gp-add-list"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal" id="gp-edit-modal" data-expandable hidden>
+    <div class="admin-modal-backdrop" data-modal-close></div>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="gp-edit-title">
+      <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
+        <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
+        </svg>
+        <svg class="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/>
+        </svg>
+      </button>
+      <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
+      <h3 id="gp-edit-title">Edit Group</h3>
+      <form class="admin-form" id="gp-edit-form" novalidate>
+        <div class="form-group">
+          <label for="gp-edit-name">Group name</label>
+          <input type="text" id="gp-edit-name" maxlength="80" required>
+        </div>
+        <div class="form-group">
+          <label for="gp-edit-description">Description (optional)</label>
+          <input type="text" id="gp-edit-description" maxlength="300">
+        </div>
+        <button type="submit" class="form-submit" id="gp-edit-submit">Save Changes</button>
+        <div class="form-status" id="gp-edit-status" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <span class="footer-logo">NK Securities Research</span>
+        <div class="footer-links">
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="files/CSR-Policy-Docs.pdf">CSR Policy</a>
+        </div>
+      </div>
+
+      <div class="footer-middle">
+        <p>SEBI Regd. No: INZ000206920</p>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-copyright">© 2026 NK Securities Research</p>
+        <p class="footer-disclaimer">NK Securities Research is a proprietary trading company. We do not have any clients and do not accept outside funds. Please do not transfer funds to any person claiming to be associated with NK Securities Research.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <script src="js/vendor/three.min.js?v=1794909560"></script>
+  <script src="js/vendor/marked.js?v=1794909560"></script>
+  <script src="js/markdown-email.js?v=1794909560"></script>
+  <script src="js/row-menu.js?v=1794909560"></script>
+  <script src="js/bundle-b.js?v=1794909560"></script>
+  <script src="js/modal-expand.js?v=1794909560"></script>
+  <script src="js/modal-a11y.js?v=1794909560"></script>
+  <script src="js/email-composer.js?v=1794909560"></script>
+  <script src="js/user-group.js?v=1794909560"></script>
+
+</body>
+</html>

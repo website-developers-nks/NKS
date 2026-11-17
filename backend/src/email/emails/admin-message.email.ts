@@ -1,6 +1,6 @@
 import { Company } from '../../db/models/onboarding-auth.model';
 import { BaseEmail, BaseEmailInit, EmailAddress, getSupportEmail } from '../base.email';
-import { divider, emailLayout } from '../layout';
+import { divider, emailLayout, escapeHtml } from '../layout';
 
 export interface AdminMessageEmailData {
   title: string;
@@ -13,7 +13,7 @@ export class AdminMessageEmail extends BaseEmail {
 
   private readonly data: AdminMessageEmailData;
 
-  constructor(to: EmailAddress, data: AdminMessageEmailData, overrides?: Partial<BaseEmailInit>) {
+  constructor(to: EmailAddress | EmailAddress[], data: AdminMessageEmailData, overrides?: Partial<BaseEmailInit>) {
     super({
       to,
       subject: data.title,
@@ -26,11 +26,11 @@ export class AdminMessageEmail extends BaseEmail {
     const supportEmail = getSupportEmail(company);
 
     const subtitle = this.data.subtitle
-      ? `<p style="margin:0 0 24px;color:#555;font-size:16px;">${this.data.subtitle}</p>`
+      ? `<p style="margin:0 0 24px;color:#555;font-size:16px;">${escapeHtml(this.data.subtitle)}</p>`
       : '';
 
     const content = `
-      <h2 style="margin:0 0 8px;font-size:24px;color:#0a0a0a;">${this.data.title}</h2>
+      <h2 style="margin:0 0 8px;font-size:24px;color:#0a0a0a;">${escapeHtml(this.data.title)}</h2>
       ${subtitle}
       <div style="color:#555;">${this.data.contentHtml}</div>
       ${divider()}
@@ -41,7 +41,7 @@ export class AdminMessageEmail extends BaseEmail {
     `;
 
     return emailLayout(content, {
-      preheader: this.data.subtitle || this.data.title,
+      preheader: escapeHtml(this.data.subtitle || this.data.title),
       company,
     });
   }

@@ -3,6 +3,7 @@ import './models/user.model';
 import './models/permission-group.model';
 import './models/message-template.model';
 import './models/scheduled-email.model';
+import './models/user-group.model';
 import './models/sheet-config.model';
 import './models/onboarding-auth.model';
 import './models/otp.model';

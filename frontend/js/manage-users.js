@@ -437,380 +437,25 @@
     }
 
  
-    var sendEmailForm = document.getElementById('admin-send-email-form');
-    var sendEmailSubmitBtn = document.getElementById('admin-send-email-submit');
-    var sendEmailStatus = document.getElementById('admin-send-email-status');
-    var seRecipient = document.getElementById('se-recipient');
-    var seContent = document.getElementById('se-content');
-    var sePreviewBody = document.getElementById('se-preview-body');
-    var seTabs = Array.prototype.slice.call(document.querySelectorAll('[data-se-tab]'));
-    var sePanels = Array.prototype.slice.call(document.querySelectorAll('[data-se-panel]'));
-    var emailRecipient = null;
-
-    if (window.NKSMarkdown) window.NKSMarkdown.initToolbars();
-
-    function selectEmailTab(name) {
-      seTabs.forEach(function (tab) {
-        var active = tab.dataset.seTab === name;
-        tab.classList.toggle('is-active', active);
-        tab.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      sePanels.forEach(function (panel) { panel.hidden = panel.dataset.sePanel !== name; });
-
-      if (name === 'preview' && window.NKSMarkdown) {
-        sePreviewBody.innerHTML = window.NKSMarkdown.toEmailHtml(seContent.value);
-      }
-    }
-
-    seTabs.forEach(function (tab) {
-      tab.addEventListener('click', function () { selectEmailTab(tab.dataset.seTab); });
-    });
-
-    var modeSelect = document.getElementById('se-mode');
-    var threadWrap = document.getElementById('se-thread-wrap');
-    var threadSelect = document.getElementById('se-onboarding');
     var THREAD_COMPANY_LABELS = {
       nksecurities: 'NK Securities',
       'nk securities research & tech': 'NKS Research & Tech'
     };
     var THREAD_LOCATION_LABELS = { gurugram: 'Gurugram', gift_city: 'GIFT City', dubai: 'Dubai', singapore: 'Singapore' };
 
-    function setThreadMessage(message) {
-      threadSelect.innerHTML = '';
-      var opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = message;
-      opt.disabled = true;
-      opt.selected = true;
-      threadSelect.appendChild(opt);
-    }
-
-    function loadThreads(user) {
-      setThreadMessage('Loading onboardings…');
-
-      return fetch(API_BASE + '/users/' + encodeURIComponent(user.id) + '/threads', {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (result.status !== 200 || !Array.isArray(result.data)) {
-            handleApiFailure(result);
-            setThreadMessage('Could not load onboardings');
-            return;
-          }
-
-          if (!result.data.length) {
-            setThreadMessage('This user has no onboardings');
-            return;
-          }
-
-          threadSelect.innerHTML = '';
-          var placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = 'Select an onboarding…';
-          placeholder.disabled = true;
-          placeholder.selected = true;
-          threadSelect.appendChild(placeholder);
-
-          result.data.forEach(function (thread) {
-            var opt = document.createElement('option');
-            opt.value = thread.id;
-            var label = [
-              THREAD_COMPANY_LABELS[thread.company] || thread.company,
-              THREAD_LOCATION_LABELS[thread.location] || thread.location,
-              thread.createdAt ? new Date(thread.createdAt).toLocaleDateString() : ''
-            ].filter(Boolean).join(' · ');
-            opt.textContent = thread.canReply ? label : label + ' — no thread to reply to';
-            opt.disabled = !thread.canReply;
-            threadSelect.appendChild(opt);
-          });
-        })
-        .catch(function (err) {
-          console.error('[manage-users] threads fetch failed:', err);
-          setThreadMessage('Could not load onboardings');
-        });
-    }
-
-    function syncThreadField() {
-      var threaded = modeSelect.value === 'thread';
-      threadWrap.hidden = !threaded;
-      if (threaded && emailRecipient) loadThreads(emailRecipient);
-    }
-
-    if (modeSelect) modeSelect.addEventListener('change', syncThreadField);
-
-    var templateSelect = document.getElementById('se-template');
-    var templatesCache = [];
-
-    function renderTemplateOptions() {
-      if (!templateSelect) return;
-      templateSelect.innerHTML = '';
-
-      var none = document.createElement('option');
-      none.value = '';
-      none.textContent = templatesCache.length ? 'No template' : 'No templates saved yet';
-      templateSelect.appendChild(none);
-
-      templatesCache.forEach(function (template) {
-        var opt = document.createElement('option');
-        opt.value = template.id;
-        opt.textContent = template.name;
-        templateSelect.appendChild(opt);
-      });
-
-      templateSelect.value = '';
-    }
-
-    function loadTemplates() {
-      if (!templateSelect) return Promise.resolve();
-
-      return fetch(API_BASE + '/message-templates', {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' }
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (result.status !== 200 || !Array.isArray(result.data)) {
-            console.error('[manage-users] templates fetch failed:', result.status);
-            return;
-          }
-          templatesCache = result.data;
-          renderTemplateOptions();
-        })
-        .catch(function (err) {
-          console.error('[manage-users] templates fetch failed:', err);
-        });
-    }
-
-    if (templateSelect) {
-      templateSelect.addEventListener('change', function () {
-        var template = templatesCache.filter(function (t) { return t.id === templateSelect.value; })[0];
-        if (!template) return;
-
-        // Only ask when there is actually something to lose.
-        var current = seContent.value.trim();
-        if (current && current !== template.content.trim() &&
-            !window.confirm('Replace the current message with the "' + template.name + '" template?')) {
-          templateSelect.value = '';
-          return;
-        }
-
-        seContent.value = template.content;
-        selectEmailTab('editor');
-      });
-    }
-
-  
-    var saveTemplateBtn = document.getElementById('se-save-template-btn');
-    var saveTemplateRow = document.getElementById('se-save-template-row');
-    var templateNameInput = document.getElementById('se-template-name');
-    var saveTemplateConfirmBtn = document.getElementById('se-save-template-confirm');
-    var saveTemplateCancelBtn = document.getElementById('se-save-template-cancel');
-
-    function hideTemplateSaveRow() {
-      if (!saveTemplateRow) return;
-      saveTemplateRow.hidden = true;
-      templateNameInput.value = '';
-    }
-
-    if (saveTemplateBtn) {
-      saveTemplateBtn.addEventListener('click', function () {
-        if (!seContent.value.trim()) {
-          showToast('There is nothing to save - write a message first.', 'error');
-          return;
-        }
-        saveTemplateRow.hidden = false;
-        templateNameInput.focus();
-      });
-    }
-
-    if (saveTemplateCancelBtn) saveTemplateCancelBtn.addEventListener('click', hideTemplateSaveRow);
-
-    function saveTemplate() {
-      var name = templateNameInput.value.trim();
-
-      if (!name) {
-        showToast('Please name the template.', 'error');
-        templateNameInput.focus();
-        return;
-      }
-
-      var originalText = saveTemplateConfirmBtn.textContent;
-      saveTemplateConfirmBtn.disabled = true;
-      saveTemplateConfirmBtn.textContent = 'Saving…';
-
-      fetch(API_BASE + '/message-templates', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, content: seContent.value })
-      })
-        .then(parseJson)
-        .then(function (result) {
-          if (handleApiFailure(result)) return;
-
-          if (result.status === 201 && result.data && result.data.id) {
-            hideTemplateSaveRow();
-            showToast('Template saved.', 'success');
-            // Reload so the picker offers it straight away, already selected.
-            loadTemplates().then(function () {
-              if (templateSelect) templateSelect.value = result.data.id;
-            });
-            return;
-          }
-
-          showToast((result.data && result.data.error) || 'Could not save the template.', 'error');
-        })
-        .catch(function (err) {
-          console.error('[manage-users] save template failed:', err);
-          showToast('Could not save the template.', 'error');
-        })
-        .finally(function () {
-          saveTemplateConfirmBtn.disabled = false;
-          saveTemplateConfirmBtn.textContent = originalText;
-        });
-    }
-
-    if (saveTemplateConfirmBtn) saveTemplateConfirmBtn.addEventListener('click', saveTemplate);
-
-    if (templateNameInput) {
-      // The row sits in the dialog header, outside the send-email <form>, so
-      // Enter needs wiring by hand.
-      templateNameInput.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          saveTemplate();
-        }
-      });
-    }
-
-    // cc/bcc accept a single address or a list, same as register-onboarding.
-    function parseEmailListInput(value) {
-      if (!value) return undefined;
-      var list = value.split(/[,;]+/).map(function (s) { return s.trim(); }).filter(Boolean);
-      if (!list.length) return undefined;
-      return list.length === 1 ? list[0] : list;
-    }
+    var composer = window.NKSEmailComposer.create({
+      apiBase: API_BASE,
+      showModal: showModal,
+      closeModal: closeModal,
+      showToast: showToast,
+      setFormStatus: setFormStatus,
+      clearFormStatus: clearFormStatus,
+      handleApiFailure: handleApiFailure,
+      parseJson: parseJson
+    });
 
     function openSendEmail(user) {
-      emailRecipient = user;
-      sendEmailForm.reset();
-      clearFormStatus(sendEmailStatus);
-      hideTemplateSaveRow();
-      selectEmailTab('editor');
-      syncThreadField();
-      loadTemplates();
-
-      var fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
-      seRecipient.textContent = 'This will be sent to ' + (fullName ? fullName + ' (' + user.email + ')' : user.email) + '.';
-
-      // <input type="datetime-local"> compares against local wall-clock time, so
-      // min has to be local too - toISOString() would be UTC and reject valid
-      // times for anyone east of Greenwich.
-      var scheduleInput = document.getElementById('se-schedule');
-      var now = new Date();
-      var pad = function (n) { return String(n).padStart(2, '0'); };
-      scheduleInput.min = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) +
-        'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-
-      showModal('admin-send-email-modal');
-      document.getElementById('se-title').focus();
-    }
-
-    if (sendEmailForm) {
-      sendEmailForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        clearFormStatus(sendEmailStatus);
-
-        if (!emailRecipient) return;
-
-        var title = document.getElementById('se-title').value.trim();
-        var subtitle = document.getElementById('se-subtitle').value.trim();
-        var markdown = seContent.value.trim();
-        var scheduleValue = document.getElementById('se-schedule').value;
-
-        if (!title) {
-          setFormStatus(sendEmailStatus, 'Please enter a title.', 'error');
-          return;
-        }
-
-        if (!markdown) {
-          setFormStatus(sendEmailStatus, 'Please write a message.', 'error');
-          return;
-        }
-
-        var onboardingId = modeSelect.value === 'thread' ? threadSelect.value : '';
-        if (modeSelect.value === 'thread' && !onboardingId) {
-          setFormStatus(sendEmailStatus, 'Please pick the onboarding thread to reply in.', 'error');
-          return;
-        }
-
-        var scheduledAt;
-        if (scheduleValue) {
-          var when = new Date(scheduleValue);
-          if (Number.isNaN(when.getTime())) {
-            setFormStatus(sendEmailStatus, 'That schedule date is not valid.', 'error');
-            return;
-          }
-          if (when.getTime() <= Date.now()) {
-            setFormStatus(sendEmailStatus, 'The scheduled time must be in the future.', 'error');
-            return;
-          }
-          // Sent as an absolute instant - the field is local wall-clock time.
-          scheduledAt = when.toISOString();
-        }
-
-        var payload = {
-          title: title,
-          content: window.NKSMarkdown ? window.NKSMarkdown.toEmailHtml(markdown) : markdown,
-          contentMarkdown: markdown
-        };
-        if (subtitle) payload.subtitle = subtitle;
-        var cc = parseEmailListInput(document.getElementById('se-cc').value);
-        var bcc = parseEmailListInput(document.getElementById('se-bcc').value);
-        if (cc) payload.cc = cc;
-        if (bcc) payload.bcc = bcc;
-        if (scheduledAt) payload.scheduledAt = scheduledAt;
-        if (onboardingId) payload.onboardingId = onboardingId;
-
-        var originalText = sendEmailSubmitBtn.textContent;
-        sendEmailSubmitBtn.disabled = true;
-        sendEmailSubmitBtn.textContent = scheduledAt ? 'Scheduling…' : 'Sending…';
-
-        fetch(API_BASE + '/users/' + encodeURIComponent(emailRecipient.id) + '/send-email', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-          .then(parseJson)
-          .then(function (result) {
-            if (handleApiFailure(result)) return;
-
-            if (result.status === 201 && result.data && result.data.id) {
-              sendEmailForm.reset();
-              selectEmailTab('editor');
-              closeModal();
-              showToast(result.data.scheduled
-                ? 'Email scheduled for ' + new Date(result.data.scheduledAt).toLocaleString() + '.'
-                : 'Email sent.', 'success');
-              return;
-            }
-
-            setFormStatus(sendEmailStatus, (result.data && result.data.error) || 'Could not send the email.', 'error');
-          })
-          .catch(function (err) {
-            console.error('[manage-users] send email failed:', err);
-            setFormStatus(sendEmailStatus, 'Something went wrong while sending. Please try again.', 'error');
-          })
-          .finally(function () {
-            sendEmailSubmitBtn.disabled = false;
-            sendEmailSubmitBtn.textContent = originalText;
-          });
-      });
+      composer.open({ kind: 'single', users: [user] });
     }
 
     function describeRelated(data) {
@@ -915,6 +560,42 @@
         });
     }
 
+    function cancelEmailBatch(batchId, btn) {
+      var originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Cancelling…';
+
+      fetch(API_BASE + '/email-batches/' + encodeURIComponent(batchId) + '/cancel', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (handleApiFailure(result)) return;
+
+          if (result.status === 200 && result.data) {
+            var message = 'Cancelled ' + result.data.cancelled + ' scheduled email' + (result.data.cancelled === 1 ? '' : 's') + '.';
+            if (result.data.stillSending) {
+              message += ' ' + result.data.stillSending + ' were already being sent and could not be stopped.';
+            }
+            showToast(message, 'success');
+            loadUserEmails(emailsRecipient);
+            return;
+          }
+
+          showToast((result.data && result.data.error) || 'Could not cancel the group email.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        })
+        .catch(function (err) {
+          console.error('[manage-users] cancel group email failed:', err);
+          showToast('Could not cancel the group email.', 'error');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+    }
+
     function renderEmailRow(email) {
       var row = document.createElement('div');
       row.className = 'onboarding-row is-clickable';
@@ -939,6 +620,8 @@
         metaParts.push('Due ' + new Date(email.scheduledAt).toLocaleString());
       }
       if (email.threaded) metaParts.push('Reply in onboarding thread');
+      if (email.batchId) metaParts.push('Group email');
+      if (email.combined) metaParts.push('Group email · one message to ' + email.recipientCount + ' people');
       if (email.cc && email.cc.length) metaParts.push('CC ' + email.cc.join(', '));
       if (email.bcc && email.bcc.length) metaParts.push('BCC ' + email.bcc.join(', '));
 
@@ -959,7 +642,7 @@
       var actions = document.createElement('div');
       actions.className = 'onboarding-row-actions';
 
-      if (email.status === 'pending') {
+      if (email.status === 'pending' && !email.combined) {
         var cancelBtn = document.createElement('button');
         cancelBtn.type = 'button';
         cancelBtn.className = 'onboarding-row-btn is-danger';
@@ -1040,6 +723,9 @@
 
       [
         detailField('To', email.to ? email.to.name + ' (' + email.to.email + ')' : null),
+        detailField(email.addressing === 'bcc' ? 'BCC (one combined email)' : 'To (one combined email)', email.recipients
+          ? email.recipients.map(function (person) { return person.name + ' (' + person.email + ')'; }).join(', ')
+          : null),
         // Who composed it - the admin, not the recipient.
         detailField('Sent by', email.sentBy ? email.sentBy.name + ' (' + email.sentBy.email + ')' : 'Unknown'),
         detailField('Subject', email.subject),
@@ -1054,10 +740,29 @@
           : null),
         detailField('Delivery', email.status === 'failed'
           ? email.lastError + ' (' + email.attempts + ' attempt' + (email.attempts === 1 ? '' : 's') + ')'
+          : null),
+        detailField('Group email', email.batch
+          ? 'Sent separately to ' + email.batch.total + ' people' +
+            (email.batch.pending ? ' · ' + email.batch.pending + ' still scheduled' : '')
           : null)
       ].filter(Boolean).forEach(function (field) { grid.appendChild(field); });
 
       ueDetailBody.appendChild(grid);
+
+      if (email.batch && email.batch.pending) {
+        var batchActions = document.createElement('div');
+        batchActions.className = 'email-batch-actions';
+        var batchCancelBtn = document.createElement('button');
+        batchCancelBtn.type = 'button';
+        batchCancelBtn.className = 'onboarding-row-btn is-danger';
+        batchCancelBtn.textContent = 'Cancel for everyone still scheduled (' + email.batch.pending + ')';
+        batchCancelBtn.addEventListener('click', function () {
+          if (!window.confirm('Cancel this email for all ' + email.batch.pending + ' people it has not been sent to yet?')) return;
+          cancelEmailBatch(email.batch.id, batchCancelBtn);
+        });
+        batchActions.appendChild(batchCancelBtn);
+        ueDetailBody.appendChild(batchActions);
+      }
 
       var bodyHeading = document.createElement('h4');
       bodyHeading.className = 'email-detail-body-heading';
@@ -1147,6 +852,8 @@
       loadUserEmails(user);
     }
 
+    var addedSinceInput = document.getElementById('mu-added-since');
+
     function renderUserRow(user) {
       var row = document.createElement('div');
       row.className = 'onboarding-row';
@@ -1226,10 +933,12 @@
     function applyUsersFilter() {
       var term = searchInput.value.trim().toLowerCase();
       var role = roleFilter.value;
+      var since = addedSinceInput && addedSinceInput.value ? new Date(addedSinceInput.value + 'T00:00:00') : null;
 
       var filtered = usersCache.filter(function (user) {
         if (role === 'admin' && !user.isAdmin) return false;
         if (role === 'member' && user.isAdmin) return false;
+        if (since && !(user.createdAt && new Date(user.createdAt) >= since)) return false;
         if (term) {
           var haystack = ((user.firstName || '') + ' ' + (user.lastName || '') + ' ' + (user.email || '')).toLowerCase();
           if (haystack.indexOf(term) === -1) return false;
@@ -1271,6 +980,153 @@
 
     if (searchInput) searchInput.addEventListener('input', applyUsersFilter);
     if (roleFilter) roleFilter.addEventListener('change', applyUsersFilter);
+    if (addedSinceInput) addedSinceInput.addEventListener('change', applyUsersFilter);
+
+    var userGroupsListEl = document.getElementById('mu-user-groups-list');
+    var userGroupsSearch = document.getElementById('mu-user-groups-search');
+    var userGroupsCache = [];
+
+    function groupPageUrl(group) {
+      return 'user-group.html?id=' + encodeURIComponent(group.id);
+    }
+
+    function renderUserGroupRow(group) {
+      var row = document.createElement('a');
+      row.className = 'onboarding-row is-clickable user-group-row';
+      row.href = groupPageUrl(group);
+
+      var info = document.createElement('div');
+      info.className = 'onboarding-row-info';
+
+      var name = document.createElement('div');
+      name.className = 'onboarding-row-name';
+      name.textContent = group.name;
+      info.appendChild(name);
+
+      var meta = document.createElement('div');
+      meta.className = 'onboarding-row-meta';
+      meta.textContent = [
+        group.memberCount + ' member' + (group.memberCount === 1 ? '' : 's'),
+        group.description,
+        group.createdAt ? 'Created ' + new Date(group.createdAt).toLocaleDateString() : ''
+      ].filter(Boolean).join(' · ');
+      info.appendChild(meta);
+      row.appendChild(info);
+
+      var arrow = document.createElement('span');
+      arrow.className = 'user-group-row-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '→';
+      row.appendChild(arrow);
+      return row;
+    }
+
+    function renderUserGroups() {
+      if (!userGroupsListEl) return;
+      var term = userGroupsSearch ? userGroupsSearch.value.trim().toLowerCase() : '';
+      var shown = userGroupsCache.filter(function (group) {
+        return !term || (group.name + ' ' + (group.description || '')).toLowerCase().indexOf(term) !== -1;
+      });
+
+      userGroupsListEl.innerHTML = '';
+      if (!shown.length) {
+        setListMessage(userGroupsListEl, userGroupsCache.length
+          ? 'No groups match your search.'
+          : 'No groups yet. Use "Create Group" to make the first one.');
+        return;
+      }
+      shown.forEach(function (group) { userGroupsListEl.appendChild(renderUserGroupRow(group)); });
+    }
+
+    function loadUserGroups() {
+      if (!userGroupsListEl) return Promise.resolve();
+      setListMessage(userGroupsListEl, 'Loading groups…');
+
+      return fetch(API_BASE + '/user-groups', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(parseJson)
+        .then(function (result) {
+          if (result.status !== 200 || !Array.isArray(result.data)) {
+            handleApiFailure(result);
+            setListMessage(userGroupsListEl, (result.data && result.data.error) || 'Could not load groups.');
+            return;
+          }
+          userGroupsCache = result.data;
+          renderUserGroups();
+        })
+        .catch(function (err) {
+          console.error('[manage-users] groups fetch failed:', err);
+          setListMessage(userGroupsListEl, 'Could not load groups.');
+        });
+    }
+
+    if (userGroupsSearch) userGroupsSearch.addEventListener('input', renderUserGroups);
+
+    var userGroupForm = document.getElementById('admin-user-group-form');
+    var userGroupStatus = document.getElementById('admin-user-group-status');
+    var userGroupSubmit = document.getElementById('admin-user-group-submit');
+    var addUserGroupBtn = document.getElementById('mu-add-user-group-btn');
+
+    function createUserGroup(fields, memberIds) {
+      var body = { name: fields.name };
+      if (fields.description) body.description = fields.description;
+      if (memberIds) body.memberIds = memberIds;
+
+      return fetch(API_BASE + '/user-groups', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then(parseJson);
+    }
+
+    if (addUserGroupBtn) {
+      addUserGroupBtn.addEventListener('click', function () {
+        userGroupForm.reset();
+        clearFormStatus(userGroupStatus);
+        showModal('admin-user-group-modal');
+        document.getElementById('ug-name').focus();
+      });
+    }
+
+    if (userGroupForm) {
+      userGroupForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearFormStatus(userGroupStatus);
+
+        var name = document.getElementById('ug-name').value.trim();
+        var description = document.getElementById('ug-description').value.trim();
+        if (!name) {
+          setFormStatus(userGroupStatus, 'Please name the group.', 'error');
+          return;
+        }
+
+        var originalText = userGroupSubmit.textContent;
+        userGroupSubmit.disabled = true;
+        userGroupSubmit.textContent = 'Creating…';
+
+        createUserGroup({ name: name, description: description })
+          .then(function (result) {
+            if (handleApiFailure(result)) return;
+            if (result.status === 201 && result.data && result.data.id) {
+              window.location.href = groupPageUrl(result.data);
+              return;
+            }
+            setFormStatus(userGroupStatus, (result.data && result.data.error) || 'Could not create the group.', 'error');
+          })
+          .catch(function (err) {
+            console.error('[manage-users] create group failed:', err);
+            setFormStatus(userGroupStatus, 'Something went wrong. Please try again.', 'error');
+          })
+          .finally(function () {
+            userGroupSubmit.disabled = false;
+            userGroupSubmit.textContent = originalText;
+          });
+      });
+    }
 
     // ---- Permission groups ----
 
@@ -1646,6 +1502,7 @@
     var myGroupId = null;
     var usersTab = document.getElementById('mu-tab-users');
     var permissionsTab = document.getElementById('mu-tab-permissions');
+    var userGroupsTab = document.getElementById('mu-tab-groups');
     var deniedMessage = document.getElementById('mu-denied-message');
 
     function applyPermissionsToUi() {
@@ -1662,10 +1519,13 @@
 
       usersTab.hidden = !canUsers;
       permissionsTab.hidden = !canPermissions;
+      if (userGroupsTab) userGroupsTab.hidden = !can('manage_users');
       if (addUserBtn) addUserBtn.hidden = !can('manage_users');
 
       showPanel('mu-content-panel');
-      selectTab(canUsers ? 'users' : 'permissions');
+      var wanted = window.location.hash.replace('#', '');
+      if (wanted === 'groups' && can('manage_users')) selectTab('groups');
+      else selectTab(canUsers ? 'users' : 'permissions');
       return true;
     }
 
@@ -1698,6 +1558,7 @@
           loadGroups().then(function () {
             if (can('manage_users') || can('manage_permissions')) loadUsers();
           });
+          if (can('manage_users')) loadUserGroups();
         })
         .catch(function (err) {
           console.error('[manage-users] auth check failed:', err);

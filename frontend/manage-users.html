@@ -19,10 +19,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"></noscript>
 
-  <link rel="stylesheet" href="css/styles.css?v=1793090837">
-  <link rel="stylesheet" href="css/accessibility.css?v=1793090837">
+  <link rel="stylesheet" href="css/styles.css?v=1794909560">
+  <link rel="stylesheet" href="css/accessibility.css?v=1794909560">
 
-  <link rel="stylesheet" href="css/admin.css?v=1793090837">
+  <link rel="stylesheet" href="css/admin.css?v=1794909560">
 </head>
 <body>
   <div id="splash" role="status" aria-label="Loading">
@@ -93,6 +93,7 @@
 
         <div class="admin-tabs" role="tablist">
           <button type="button" class="admin-tab is-active" data-tab="users" role="tab" aria-selected="true" id="mu-tab-users">Users</button>
+          <button type="button" class="admin-tab" data-tab="groups" role="tab" aria-selected="false" id="mu-tab-groups" hidden>Groups</button>
           <button type="button" class="admin-tab" data-tab="permissions" role="tab" aria-selected="false" id="mu-tab-permissions">Manage Permissions</button>
         </div>
 
@@ -114,9 +115,29 @@
                 <option value="member">Non-admins</option>
               </select>
             </div>
+            <div class="toolbar-date">
+              <label for="mu-added-since">Added since</label>
+              <input type="date" id="mu-added-since">
+            </div>
           </div>
 
           <div class="onboardings-list users-list" id="mu-list"></div>
+        </div>
+
+        <div class="admin-tab-panel" data-tab-panel="groups" id="mu-panel-groups" hidden>
+          <div class="admin-page-header">
+            <div>
+              <h2 class="display-sm">Groups</h2>
+              <p class="body-text">Named lists of people, like an intern batch. Open a group to see its members and email them together.</p>
+            </div>
+            <button type="button" class="form-submit admin-page-header-btn" id="mu-add-user-group-btn">Create Group</button>
+          </div>
+
+          <div class="onboardings-toolbar">
+            <input type="text" id="mu-user-groups-search" class="toolbar-search" placeholder="Search groups…">
+          </div>
+
+          <div class="onboardings-list users-list" id="mu-user-groups-list"></div>
         </div>
 
         <div class="admin-tab-panel" data-tab-panel="permissions" id="mu-panel-permissions" hidden>
@@ -207,10 +228,9 @@
     </div>
   </div>
 
-  <div class="admin-modal" id="admin-send-email-modal" data-expandable hidden>
+  <div class="admin-modal" id="admin-user-group-modal" data-expandable hidden>
     <div class="admin-modal-backdrop" data-modal-close></div>
-    <div class="admin-modal-dialog is-wide" role="dialog" aria-modal="true" aria-label="Send email">
-      <button type="button" class="admin-modal-action" id="se-save-template-btn">Save as template</button>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ug-title">
       <button type="button" class="admin-modal-expand" data-modal-expand aria-label="Expand to full screen" aria-pressed="false" title="Expand">
         <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>
@@ -220,99 +240,19 @@
         </svg>
       </button>
       <button type="button" class="admin-modal-close" aria-label="Close" data-modal-close>&#10005;</button>
-      <h3>Send Email</h3>
-      <p class="body-text" id="se-recipient">Compose a one-off email to this user.</p>
-
-      <div class="template-save-row" id="se-save-template-row" hidden>
-        <input type="text" id="se-template-name" placeholder="Template name" maxlength="80">
-        <button type="button" class="onboarding-row-btn" id="se-save-template-confirm">Save</button>
-        <button type="button" class="onboarding-row-btn" id="se-save-template-cancel">Cancel</button>
-      </div>
-
-      <form class="admin-form" id="admin-send-email-form" novalidate>
+      <h3 id="ug-title">Create Group</h3>
+      <p class="body-text" id="ug-intro">Give the group a name. You'll add people to it on the group's page.</p>
+      <form class="admin-form" id="admin-user-group-form" novalidate>
         <div class="form-group">
-          <label for="se-mode">Send as</label>
-          <div class="select-wrapper">
-            <select id="se-mode">
-              <option value="separate" selected>A separate email</option>
-              <option value="thread">A reply in an onboarding thread</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group" id="se-thread-wrap" hidden>
-          <label for="se-onboarding">Onboarding thread</label>
-          <div class="select-wrapper">
-            <select id="se-onboarding">
-              <option value="" disabled selected>Select an onboarding…</option>
-            </select>
-          </div>
-          <p class="markdown-hint">The email arrives under that onboarding's invite, so it lands in the same conversation.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="se-title">Title</label>
-          <input type="text" id="se-title" name="title" maxlength="150" required>
-          <p class="markdown-hint">Used as both the email subject and its heading.</p>
+          <label for="ug-name">Group name</label>
+          <input type="text" id="ug-name" name="name" maxlength="80" placeholder="Interns - January 2027" required>
         </div>
         <div class="form-group">
-          <label for="se-subtitle">Subtitle (optional)</label>
-          <input type="text" id="se-subtitle" name="subtitle" maxlength="200">
+          <label for="ug-description">Description (optional)</label>
+          <input type="text" id="ug-description" name="description" maxlength="300">
         </div>
-        <div class="form-group">
-          <label for="se-cc">CC (optional)</label>
-          <input type="text" id="se-cc" name="cc" placeholder="manager@nksecurities.com, other@nksecurities.com">
-        </div>
-        <div class="form-group">
-          <label for="se-bcc">BCC (optional)</label>
-          <input type="text" id="se-bcc" name="bcc" placeholder="hr@nksecurities.com">
-        </div>
-
-        <div class="form-group">
-          <label for="se-template">Template (optional)</label>
-          <div class="select-wrapper">
-            <select id="se-template">
-              <option value="" selected>No template</option>
-            </select>
-          </div>
-          <p class="markdown-hint">Loads a saved message into the editor below.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="se-content">Message</label>
-          <div class="admin-tabs" role="tablist">
-            <button type="button" class="admin-tab is-active" data-se-tab="editor" role="tab" aria-selected="true">Editor</button>
-            <button type="button" class="admin-tab" data-se-tab="preview" role="tab" aria-selected="false">Preview</button>
-          </div>
-
-          <div class="admin-tab-panel" data-se-panel="editor">
-            <div class="markdown-toolbar" data-md-target="se-content">
-              <button type="button" class="markdown-toolbar-btn" data-md="bold" title="Bold">B</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="italic" title="Italic">I</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="heading" title="Heading">H</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="ul" title="Bulleted list">&#8226;</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="ol" title="Numbered list">1.</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="quote" title="Quote">&#8221;</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="code" title="Code">&lt;/&gt;</button>
-              <button type="button" class="markdown-toolbar-btn" data-md="link" title="Link">&#128279;</button>
-            </div>
-            <textarea id="se-content" name="content" rows="10" placeholder="Write your message here - **markdown** is supported."></textarea>
-            <p class="markdown-hint">Full markdown supported: headings, lists, quotes, code, tables, links and more.</p>
-          </div>
-
-          <div class="admin-tab-panel" data-se-panel="preview" hidden>
-            <div class="markdown-preview-body" id="se-preview-body"></div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="se-schedule">Schedule for (optional)</label>
-          <input type="datetime-local" id="se-schedule" name="scheduledAt">
-          <p class="markdown-hint">Leave blank to send immediately.</p>
-        </div>
-
-        <button type="submit" class="form-submit" id="admin-send-email-submit">Send Email</button>
-        <div class="form-status" id="admin-send-email-status" role="alert" aria-live="polite"></div>
+        <button type="submit" class="form-submit" id="admin-user-group-submit">Create Group</button>
+        <div class="form-status" id="admin-user-group-status" role="alert" aria-live="polite"></div>
       </form>
     </div>
   </div>
@@ -411,14 +351,15 @@
 
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-  <script src="js/vendor/three.min.js?v=1793090837"></script>
-  <script src="js/vendor/marked.js?v=1793090837"></script>
-  <script src="js/markdown-email.js?v=1793090837"></script>
-  <script src="js/row-menu.js?v=1793090837"></script>
-  <script src="js/bundle-b.js?v=1793090837"></script>
-  <script src="js/modal-expand.js?v=1793090837"></script>
-  <script src="js/modal-a11y.js?v=1793090837"></script>
-  <script src="js/manage-users.js?v=1793090837"></script>
+  <script src="js/vendor/three.min.js?v=1794909560"></script>
+  <script src="js/vendor/marked.js?v=1794909560"></script>
+  <script src="js/markdown-email.js?v=1794909560"></script>
+  <script src="js/row-menu.js?v=1794909560"></script>
+  <script src="js/bundle-b.js?v=1794909560"></script>
+  <script src="js/modal-expand.js?v=1794909560"></script>
+  <script src="js/modal-a11y.js?v=1794909560"></script>
+  <script src="js/email-composer.js?v=1794909560"></script>
+  <script src="js/manage-users.js?v=1794909560"></script>
 
 </body>
 </html>
